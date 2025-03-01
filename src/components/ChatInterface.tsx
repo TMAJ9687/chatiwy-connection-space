@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -83,7 +82,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
   const [imageUploads, setImageUploads] = useState(0);
   const [lastMessage, setLastMessage] = useState<string>('');
   const [duplicateCount, setDuplicateCount] = useState(0);
-  const [view, setView] = useState<'chat' | 'history' | 'inbox'>('chat');
+  const [view, setView<'chat' | 'history' | 'inbox'>('chat');
   const [isReportFormOpen, setIsReportFormOpen] = useState(false);
   const messageEndRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -102,7 +101,16 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
           isAdmin: botUser.isAdmin
         });
       } else if (socketConnected) {
-        // Try to get user info from socket
+        // Get user info from socket
+        // We'll set a listener for users_update in the next effect hook
+        // For now, at least create a basic chat with this user ID
+        setCurrentChat({
+          userId: selectedUser,
+          username: "User",  // This will get updated when we receive user info
+          isBot: false
+        });
+        
+        // Request updated user list from the server
         socketService.on('users_update', (users) => {
           const user = users.find((u: any) => u.id === selectedUser);
           if (user) {
@@ -122,18 +130,33 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
   // Set up WebSocket listeners for messages
   useEffect(() => {
     if (socketConnected) {
+      // Clear any previous listeners
+      socketService.off('receive_message');
+      socketService.off('user_typing');
+      socketService.off('blocked_by');
+      
       // Listen for incoming messages
       socketService.on('receive_message', (messageData: any) => {
-        const isFromCurrentChat = messageData.senderId === currentChat?.userId;
-        const isSentByMe = messageData.senderId === socketService.getSocketId();
+        console.log('Received message:', messageData);
         
-        if (isFromCurrentChat || isSentByMe) {
+        // Determine if this message is from/to the current chat
+        const isFromCurrentChat = messageData.senderId === currentChat?.userId;
+        const isSentByMe = messageData.senderId === userProfile.id || 
+                          messageData.senderId === socketService.getSocketId();
+        const isForCurrentChat = messageData.recipientId === currentChat?.userId;
+        
+        console.log('Message from current chat?', isFromCurrentChat);
+        console.log('Message sent by me?', isSentByMe);
+        console.log('Current chat:', currentChat);
+        
+        if (isFromCurrentChat || (isSentByMe && isForCurrentChat)) {
           // This message is for the current chat
           const newMessage: Message = {
-            id: messageData.id,
+            id: messageData.id || Math.random().toString(36).substring(7),
             sender: messageData.sender,
+            senderId: messageData.senderId,
             content: messageData.content,
-            timestamp: new Date(messageData.timestamp),
+            timestamp: new Date(messageData.timestamp || Date.now()),
             isBot: false
           };
           
@@ -151,7 +174,25 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
           setShouldAutoScroll(true);
         } else {
           // Message is from another user
+          // Store in chat history for that user
+          if (messageData.senderId) {
+            if (!userChatHistories[messageData.senderId]) {
+              userChatHistories[messageData.senderId] = [];
+            }
+            
+            userChatHistories[messageData.senderId].push({
+              id: messageData.id || Math.random().toString(36).substring(7),
+              sender: messageData.sender,
+              senderId: messageData.senderId,
+              content: messageData.content,
+              timestamp: new Date(messageData.timestamp || Date.now()),
+              isBot: false,
+              isRead: false
+            });
+          }
+          
           // Could add notification functionality here
+          toast.info(`New message from ${messageData.sender}`);
         }
       });
       
@@ -167,14 +208,16 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
         toast.error(`You have been blocked by a user`);
         // Maybe update UI to reflect this
       });
-      
-      return () => {
+    }
+    
+    return () => {
+      if (socketConnected) {
         socketService.off('receive_message');
         socketService.off('user_typing');
         socketService.off('blocked_by');
-      };
-    }
-  }, [socketConnected, currentChat]);
+      }
+    };
+  }, [socketConnected, currentChat, userProfile.id]);
 
   // Load chat history for selected user
   useEffect(() => {
@@ -320,13 +363,34 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
     if (!validateMessage(messageInput)) return;
     
     if (socketConnected && !currentChat?.isBot) {
+      // Create a message object
+      const newMessage = {
+        id: Math.random().toString(36).substring(7),
+        sender: userProfile.username,
+        senderId: userProfile.id,
+        content: messageInput,
+        timestamp: new Date(),
+        isBot: false
+      };
+      
+      // Add message to local display immediately for better UX
+      setMessages(prev => [...prev, newMessage]);
+      
+      // Update history
+      if (currentChat?.userId) {
+        userChatHistories[currentChat.userId] = [
+          ...(userChatHistories[currentChat.userId] || []),
+          newMessage
+        ];
+      }
+      
       // Send message via WebSocket
       socketService.sendMessage({
         to: currentChat?.userId,
         content: messageInput
       });
       
-      // Clear input (actual message display will be handled by the 'receive_message' event)
+      // Clear input
       setMessageInput('');
       
       // Enable auto-scroll when sending a new message
@@ -344,6 +408,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
       const newMessage = {
         id: Math.random().toString(36).substring(7),
         sender: userProfile.username,
+        senderId: userProfile.id,
         content: messageInput,
         timestamp: new Date(),
         isBot: false

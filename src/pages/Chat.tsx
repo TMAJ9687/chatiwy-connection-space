@@ -29,6 +29,8 @@ const ChatPage = () => {
   
   // Connect to WebSocket server
   useEffect(() => {
+    let isConnected = false;
+    
     const connectToSocket = async () => {
       try {
         // If we have a custom Render URL, set it first
@@ -38,6 +40,7 @@ const ChatPage = () => {
         
         await socketService.connect();
         setSocketConnected(true);
+        isConnected = true;
         console.log('Connected to WebSocket server');
       } catch (error) {
         console.error('Failed to connect to WebSocket server:', error);
@@ -47,8 +50,17 @@ const ChatPage = () => {
     
     connectToSocket();
     
+    // Add reconnection logic
+    const reconnectionInterval = setInterval(() => {
+      if (!socketService.isConnected() && !isConnected) {
+        console.log('Attempting to reconnect to WebSocket server...');
+        connectToSocket();
+      }
+    }, 10000); // Try to reconnect every 10 seconds if not connected
+    
     // Cleanup on unmount
     return () => {
+      clearInterval(reconnectionInterval);
       socketService.disconnect();
     };
   }, []);

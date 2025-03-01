@@ -34,8 +34,9 @@ interface ConnectedUsersProps {
   socketConnected?: boolean;
 }
 
-// Get the mockConnectedUsers from the global scope, used as fallback
-declare const mockConnectedUsers: Map<string, any>;
+// Create a mock user database for demo purposes when WebSocket is not available
+// This would be replaced by a real database in a production app
+const mockConnectedUsers = new Map();
 
 export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socketConnected = false }: ConnectedUsersProps) {
   const [filter, setFilter] = useState('all');
