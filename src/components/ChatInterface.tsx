@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -82,7 +83,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
   const [imageUploads, setImageUploads] = useState(0);
   const [lastMessage, setLastMessage] = useState<string>('');
   const [duplicateCount, setDuplicateCount] = useState(0);
-  const [view, setView<'chat' | 'history' | 'inbox'>('chat');
+  const [view, setView] = useState<'chat' | 'history' | 'inbox'>('chat');
   const [isReportFormOpen, setIsReportFormOpen] = useState(false);
   const messageEndRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
