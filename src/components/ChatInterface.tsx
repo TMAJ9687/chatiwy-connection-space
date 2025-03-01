@@ -63,6 +63,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect }: ChatI
     userId: string;
     username: string;
     isBot: boolean;
+    isAdmin?: boolean;
   } | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [messageInput, setMessageInput] = useState('');
@@ -72,6 +73,8 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect }: ChatI
   const [view, setView] = useState<'chat' | 'history' | 'inbox'>('chat');
   const [isReportFormOpen, setIsReportFormOpen] = useState(false);
   const messageEndRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
 
   // Initialize selected user as current chat
   useEffect(() => {
@@ -81,7 +84,8 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect }: ChatI
         setCurrentChat({
           userId: botUser.id,
           username: botUser.username,
-          isBot: true
+          isBot: true,
+          isAdmin: botUser.isAdmin
         });
       }
     } else {
@@ -99,6 +103,12 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect }: ChatI
       
       // Set messages from history
       setMessages(userChatHistories[currentChat.userId]);
+      
+      // Reset view when switching users
+      setView('chat');
+      
+      // Enable auto-scroll for new conversation
+      setShouldAutoScroll(true);
     }
   }, [currentChat]);
 
@@ -191,10 +201,17 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect }: ChatI
     }
   }, [messages, currentChat, userProfile]);
 
-  // Scroll to bottom when messages change
+  // Handle auto-scrolling
   useEffect(() => {
-    messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (shouldAutoScroll && messages.length > 0) {
+      // Slight delay to ensure content is rendered
+      const timer = setTimeout(() => {
+        messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [messages, shouldAutoScroll]);
 
   const validateMessage = (message: string): boolean => {
     // Check for character limit (140 for standard users)
@@ -232,6 +249,14 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect }: ChatI
 
   const handleSendMessage = () => {
     if (!messageInput.trim()) return;
+    
+    // Check if user is trying to message someone who blocked them
+    if (blockedUsers.has(userProfile.id) && currentChat?.isBot) {
+      toast.error(`${currentChat.username} has blocked you`);
+      setMessageInput('');
+      return;
+    }
+    
     if (!validateMessage(messageInput)) return;
     
     // Add message to chat
@@ -253,6 +278,9 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect }: ChatI
     
     // Clear input
     setMessageInput('');
+    
+    // Enable auto-scroll when sending a new message
+    setShouldAutoScroll(true);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -278,11 +306,29 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect }: ChatI
 
   const handleBlockUser = () => {
     if (currentChat) {
+      // Check if user is an admin
+      if (currentChat.isAdmin) {
+        toast.error("You cannot block an admin");
+        return;
+      }
+      
       blockedUsers.add(currentChat.userId);
       toast.success(`${currentChat.username} has been blocked`);
-      onUserSelect(null);
+      
+      // Stay on the current user but update the view
+      setView('chat');
       
       // In a real app, we would update a blocked users list here
+    }
+  };
+  
+  const handleUnblockUser = () => {
+    if (currentChat) {
+      blockedUsers.delete(currentChat.userId);
+      toast.success(`${currentChat.username} has been unblocked`);
+      
+      // Force re-render
+      setMessages([...messages]);
     }
   };
 
@@ -396,7 +442,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect }: ChatI
         return (
           <>
             {/* Message area */}
-            <ScrollArea className="flex-1 p-4">
+            <ScrollArea className="flex-1 px-4 py-2" ref={scrollAreaRef}>
               {blockedUsers.has(currentChat?.userId || '') ? (
                 <div className="flex items-center justify-center h-full flex-col gap-2">
                   <AlertOctagon className="h-16 w-16 text-red-500" />
@@ -406,18 +452,13 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect }: ChatI
                   </p>
                   <Button 
                     variant="outline" 
-                    onClick={() => {
-                      if (currentChat) {
-                        blockedUsers.delete(currentChat.userId);
-                        toast.success(`${currentChat.username} has been unblocked`);
-                      }
-                    }}
+                    onClick={handleUnblockUser}
                   >
                     Unblock User
                   </Button>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-4 py-2">
                   {messages.map((message) => (
                     <div 
                       key={message.id}
@@ -520,6 +561,9 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect }: ChatI
               <div>
                 <div className="flex items-center gap-1">
                   <h3 className="font-medium">{currentChat.username}</h3>
+                  {currentChat.isAdmin && (
+                    <Badge variant="outline" className="ml-1 text-xs">Admin</Badge>
+                  )}
                   {blockedUsers.has(currentChat.userId) && (
                     <TooltipProvider>
                       <Tooltip>
@@ -595,7 +639,11 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect }: ChatI
               
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="ghost" size="icon">
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    disabled={currentChat.isAdmin}
+                  >
                     <UserX className="h-5 w-5 text-red-500" />
                   </Button>
                 </AlertDialogTrigger>

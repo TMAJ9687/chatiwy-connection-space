@@ -1,4 +1,3 @@
-
 // Create diverse bot profiles with different genders, countries, ages, and interests
 export interface BotProfile {
   id: string;
@@ -8,111 +7,121 @@ export interface BotProfile {
   country: string;
   flag: string;
   interests: string[];
-  isOnline: boolean;
-  avatar?: string;
+  isOnline?: boolean;
   lastActive?: string;
+  isAdmin?: boolean;
 }
 
 export const botProfiles: BotProfile[] = [
   {
-    id: 'bot1',
+    id: 'bot-1',
     username: 'Emma',
-    age: 24,
+    age: 25,
     gender: 'Female',
+    country: 'United States',
+    flag: '🇺🇸',
+    interests: ['Photography', 'Hiking', 'Cooking'],
+    isAdmin: false
+  },
+  {
+    id: 'bot-2',
+    username: 'Liam',
+    age: 28,
+    gender: 'Male',
     country: 'Canada',
     flag: '🇨🇦',
-    interests: ['Music', 'Photography', 'Travel'],
-    isOnline: true,
+    interests: ['Gaming', 'Technology', 'Movies'],
+    isAdmin: false
   },
   {
-    id: 'bot2',
-    username: 'Lucas',
-    age: 31,
-    gender: 'Male',
-    country: 'Brazil',
-    flag: '🇧🇷',
-    interests: ['Sports', 'Gaming', 'Cooking'],
-    isOnline: true,
-  },
-  {
-    id: 'bot3',
+    id: 'bot-3',
     username: 'Sophia',
-    age: 27,
+    age: 23,
     gender: 'Female',
-    country: 'France',
-    flag: '🇫🇷',
-    interests: ['Art', 'Reading', 'Fashion'],
-    isOnline: true,
+    country: 'United Kingdom',
+    flag: '🇬🇧',
+    interests: ['Art', 'Music', 'Travel'],
+    isAdmin: false
   },
   {
-    id: 'bot4',
-    username: 'Ethan',
-    age: 35,
+    id: 'bot-4',
+    username: 'Noah',
+    age: 30,
     gender: 'Male',
     country: 'Australia',
     flag: '🇦🇺',
-    interests: ['Fitness', 'Technology', 'Movies'],
-    isOnline: true,
+    interests: ['Sports', 'Fitness', 'Reading'],
+    isAdmin: false
   },
   {
-    id: 'bot5',
-    username: 'Zara',
-    age: 22,
+    id: 'bot-5',
+    username: 'Olivia',
+    age: 26,
     gender: 'Female',
-    country: 'India',
-    flag: '🇮🇳',
-    interests: ['Dance', 'Meditation', 'Photography'],
-    isOnline: true,
+    country: 'France',
+    flag: '🇫🇷',
+    interests: ['Fashion', 'Baking', 'Dancing'],
+    isAdmin: false
   },
   {
-    id: 'bot6',
-    username: 'Miguel',
+    id: 'bot-6',
+    username: 'William',
+    age: 31,
+    gender: 'Male',
+    country: 'Germany',
+    flag: '🇩🇪',
+    interests: ['Cycling', 'Photography', 'History'],
+    isAdmin: false
+  },
+  {
+    id: 'bot-7',
+    username: 'Ava',
+    age: 24,
+    gender: 'Female',
+    country: 'Italy',
+    flag: '🇮🇹',
+    interests: ['Cooking', 'Languages', 'Movies'],
+    isAdmin: false
+  },
+  {
+    id: 'bot-8',
+    username: 'James',
     age: 29,
     gender: 'Male',
     country: 'Spain',
     flag: '🇪🇸',
-    interests: ['Cooking', 'Travel', 'Music'],
-    isOnline: true,
+    interests: ['Travel', 'Music', 'Food'],
+    isAdmin: false
   },
   {
-    id: 'bot7',
-    username: 'Aisha',
-    age: 26,
-    gender: 'Female',
-    country: 'UAE',
-    flag: '🇦🇪',
-    interests: ['Fashion', 'Technology', 'Reading'],
-    isOnline: true,
-  },
-  {
-    id: 'bot8',
-    username: 'Jackson',
-    age: 33,
-    gender: 'Male',
-    country: 'South Africa',
-    flag: '🇿🇦',
-    interests: ['Sports', 'Photography', 'History'],
-    isOnline: true,
-  },
-  {
-    id: 'bot9',
-    username: 'Yuki',
-    age: 25,
+    id: 'bot-9',
+    username: 'Isabella',
+    age: 27,
     gender: 'Female',
     country: 'Japan',
     flag: '🇯🇵',
-    interests: ['Art', 'Gaming', 'Cooking'],
-    isOnline: true,
+    interests: ['Anime', 'Gaming', 'Drawing'],
+    isAdmin: false
   },
   {
-    id: 'bot10',
-    username: 'Alexander',
-    age: 28,
+    id: 'bot-10',
+    username: 'Benjamin',
+    age: 33,
     gender: 'Male',
-    country: 'Germany',
-    flag: '🇩🇪',
-    interests: ['Technology', 'Fitness', 'Movies'],
-    isOnline: true,
+    country: 'Brazil',
+    flag: '🇧🇷',
+    interests: ['Soccer', 'Beach', 'Dancing'],
+    isAdmin: false
+  },
+  {
+    id: 'admin-1',
+    username: 'Admin',
+    age: 35,
+    gender: 'Male',
+    country: 'Global',
+    flag: '🌎',
+    interests: ['Moderation', 'Support', 'Community'],
+    isAdmin: true
   }
 ];
 

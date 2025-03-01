@@ -1,6 +1,7 @@
 
 import React from 'react';
-import { 
+import { Button } from '@/components/ui/button';
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -10,7 +11,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Check, X } from 'lucide-react';
 
 interface GuidancePopupProps {
   onAccept: () => void;
@@ -20,53 +20,37 @@ interface GuidancePopupProps {
 export function GuidancePopup({ onAccept, onDecline }: GuidancePopupProps) {
   return (
     <AlertDialog defaultOpen>
-      <AlertDialogContent className="max-w-2xl">
+      <AlertDialogContent className="max-w-[500px]">
         <AlertDialogHeader>
-          <AlertDialogTitle className="text-2xl font-bold text-teal-500">
-            Chatiwy Guidelines
-          </AlertDialogTitle>
-          <AlertDialogDescription className="text-base space-y-4">
-            <p>
-              Welcome to Chatiwy! Before you start chatting, please read and agree to our guidelines:
-            </p>
-            
-            <div className="space-y-2 mt-4">
-              <h3 className="font-semibold text-foreground">Chat Rules:</h3>
-              <ul className="list-disc pl-5 space-y-1">
-                <li>Be respectful to other users.</li>
-                <li>Do not share personal information (address, phone number, etc.).</li>
-                <li>No spamming or sending duplicate messages.</li>
-                <li>No harassment, bullying, or hate speech.</li>
-                <li>No sharing of explicit content.</li>
-                <li>No impersonation of others.</li>
-                <li>No promotion of illegal activities.</li>
-                <li className="text-red-500 font-semibold">Underage users (under 18) are strictly prohibited from using this platform.</li>
-              </ul>
-            </div>
-            
-            <div className="mt-4">
-              <p className="text-sm text-muted-foreground">
-                By clicking "I Agree", you confirm that you have read and accept these guidelines,
-                and that you are at least 18 years of age. Violations may result in temporary or permanent bans from the platform.
+          <AlertDialogTitle>Welcome to Chatiwy!</AlertDialogTitle>
+          <AlertDialogDescription>
+            <div className="space-y-4 text-foreground">
+              <div>
+                <h3 className="font-bold mb-2">Chat Rules</h3>
+                <ul className="list-disc list-inside space-y-1">
+                  <li>Be respectful and kind to other users</li>
+                  <li>Do not share personal contact information</li>
+                  <li>Report any suspicious or inappropriate behavior</li>
+                  <li>No spam, advertising, or self-promotion</li>
+                  <li>No hate speech, discrimination, or harassment</li>
+                </ul>
+              </div>
+              
+              <div>
+                <h3 className="font-bold mb-2 text-red-500">Important!</h3>
+                <p>Chatiwy is strictly for users 18 years and older. Underage users are not permitted to use this platform.</p>
+              </div>
+
+              <p>
+                By clicking "I Accept", you agree to follow these guidelines and our Terms of Service.
+                Violation of these rules may result in account suspension or termination.
               </p>
             </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter className="flex flex-col sm:flex-row gap-2">
-          <AlertDialogCancel 
-            onClick={onDecline}
-            className="mt-0 w-full sm:w-auto border-red-500 hover:bg-red-500 hover:text-white"
-          >
-            <X className="mr-2 h-4 w-4" />
-            I Disagree
-          </AlertDialogCancel>
-          <AlertDialogAction 
-            onClick={onAccept}
-            className="w-full sm:w-auto bg-teal-500 hover:bg-teal-600"
-          >
-            <Check className="mr-2 h-4 w-4" />
-            I Agree
-          </AlertDialogAction>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={onDecline}>Decline</AlertDialogCancel>
+          <AlertDialogAction onClick={onAccept}>I Accept</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
