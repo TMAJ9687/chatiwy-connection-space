@@ -31,7 +31,7 @@ class SocketService {
     
     this.connectionInProgress = true;
     
-    return new Promise((resolve, reject) => {
+    return new Promise<Socket>((resolve, reject) => {
       this.tryNextServer(resolve, reject);
     }).finally(() => {
       this.connectionInProgress = false;
