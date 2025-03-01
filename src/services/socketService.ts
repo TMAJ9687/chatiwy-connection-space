@@ -2,35 +2,57 @@
 import { io, Socket } from 'socket.io-client';
 import { toast } from 'sonner';
 
-// Define the server URL
-const SERVER_URL = 'http://localhost:5000';
+// Define the server URL with fallback options
+// In development, try connecting to the local server first
+// For the Lovable environment, we need to use a different approach
+const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const SERVER_URL = isLocalhost 
+  ? 'http://localhost:5000' 
+  : window.location.origin.replace(/^https/, 'http');
 
 // Create a class to manage socket connections
 class SocketService {
   private socket: Socket | null = null;
   private registeredCallbacks: Map<string, Function[]> = new Map();
+  private reconnectAttempts: number = 0;
+  private maxReconnectAttempts: number = 3;
 
   // Initialize the socket connection
   connect(): Promise<Socket> {
     return new Promise((resolve, reject) => {
       try {
-        this.socket = io(SERVER_URL);
+        console.log('Attempting to connect to WebSocket server at:', SERVER_URL);
+        
+        // Configure socket with better connection options
+        this.socket = io(SERVER_URL, {
+          reconnectionAttempts: this.maxReconnectAttempts,
+          timeout: 5000,
+          transports: ['websocket', 'polling'], // Try WebSocket first, fall back to polling
+        });
 
         this.socket.on('connect', () => {
           console.log('Connected to WebSocket server');
+          this.reconnectAttempts = 0;
           resolve(this.socket as Socket);
         });
 
         this.socket.on('connect_error', (error) => {
           console.error('Connection error:', error);
-          toast.error('Unable to connect to chat server. Using offline mode.');
-          reject(error);
+          this.reconnectAttempts++;
+          
+          if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+            toast.error('Unable to connect to chat server. Using offline mode.');
+            reject(error);
+          } else {
+            console.log(`Connection attempt ${this.reconnectAttempts} failed, retrying...`);
+          }
         });
 
         // Setup default event listeners
         this.setupEventListeners();
       } catch (error) {
         console.error('Socket connection error:', error);
+        toast.error('Unable to connect to chat server. Using offline mode.');
         reject(error);
       }
     });
@@ -47,7 +69,11 @@ class SocketService {
 
     this.socket.on('disconnect', (reason) => {
       console.log('Disconnected from server:', reason);
-      toast.error('Disconnected from chat server. Trying to reconnect...');
+      
+      // Don't show error toast for client-initiated disconnects
+      if (reason !== 'io client disconnect') {
+        toast.error('Disconnected from chat server. Trying to reconnect...');
+      }
     });
   }
 
