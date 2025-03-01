@@ -1,14 +1,17 @@
 
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Moon, Sun, LogOut } from 'lucide-react';
+import { Moon, Sun, LogOut, Inbox } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { toast } from 'sonner';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Badge } from '@/components/ui/badge';
 
 export function Navbar() {
   const navigate = useNavigate();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -17,6 +20,26 @@ export function Navbar() {
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Check for unread messages
+  useEffect(() => {
+    // This will listen to changes in the unreadMessagesPerUser Set
+    const checkUnreadMessages = () => {
+      const unreadMessagesPerUser = window.unreadMessagesPerUser;
+      if (unreadMessagesPerUser) {
+        setUnreadCount(unreadMessagesPerUser.size);
+      }
+    };
+
+    // Set initial value
+    checkUnreadMessages();
+
+    // Set up an interval to check periodically
+    const intervalId = setInterval(checkUnreadMessages, 3000);
+    
+    // Clean up
+    return () => clearInterval(intervalId);
   }, []);
 
   const toggleDarkMode = () => {
@@ -35,6 +58,19 @@ export function Navbar() {
     navigate('/');
   };
 
+  const handleInboxClick = () => {
+    // Get current chat view
+    const currentView = document.querySelector('[data-chat-view]');
+    if (currentView) {
+      currentView.setAttribute('data-chat-view', 'inbox');
+    }
+    
+    // Navigate to chat page if not already there
+    if (window.location.pathname !== '/chat') {
+      navigate('/chat');
+    }
+  };
+
   return (
     <header 
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -50,6 +86,36 @@ export function Navbar() {
         </Link>
         
         <div className="flex items-center space-x-3">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant={unreadCount > 0 ? "success" : "outline"} 
+                  size="icon" 
+                  className="rounded-full"
+                  onClick={handleInboxClick}
+                >
+                  {unreadCount > 0 ? (
+                    <div className="relative">
+                      <Inbox className="h-5 w-5" />
+                      <Badge 
+                        variant="destructive" 
+                        className="absolute -top-2 -right-2 w-5 h-5 p-0 flex items-center justify-center"
+                      >
+                        {unreadCount}
+                      </Badge>
+                    </div>
+                  ) : (
+                    <Inbox className="h-5 w-5" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{unreadCount > 0 ? `${unreadCount} unread messages` : 'Inbox'}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        
           <button 
             onClick={toggleDarkMode} 
             className="p-2 rounded-full bg-secondary hover:bg-secondary/80 transition-colors"

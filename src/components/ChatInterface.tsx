@@ -8,6 +8,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ReportForm } from '@/components/ReportForm';
 import {
   DropdownMenu,
@@ -52,6 +53,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import socketService from '@/services/socketService';
+import { countries } from '@/utils/countryData';
 
 interface Message {
   id: string;
@@ -70,12 +72,29 @@ interface ChatInterfaceProps {
   socketConnected?: boolean;
 }
 
-// Store chat histories per user
+// Store chat histories per user - make it global for the Navbar to access
 const userChatHistories: Record<string, Message[]> = {};
 // Store blocked users
 const blockedUsers: Set<string> = new Set();
-// Store unread messages per user
-const unreadMessagesPerUser: Set<string> = new Set();
+// Store unread messages per user - make it global for the Navbar to access
+declare global {
+  interface Window {
+    unreadMessagesPerUser: Set<string>;
+  }
+}
+window.unreadMessagesPerUser = new Set<string>();
+
+// Common emoji categories
+const emojiCategories = {
+  smileys: ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '🥲', '☺️', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘'],
+  gestures: ['👋', '🤚', '🖐', '✋', '🖖', '👌', '🤌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '👇', '👍', '👎'],
+  people: ['👶', '👧', '🧒', '👦', '👩', '🧑', '👨', '👩‍🦱', '🧑‍🦱', '👨‍🦱', '👩‍🦰', '🧑‍🦰', '👨‍🦰', '👱‍♀️', '👱'],
+  animals: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐻‍❄️', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🙈', '🙉'],
+  food: ['🍏', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅'],
+  activities: ['⚽️', '🏀', '🏈', '⚾️', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏'],
+  travel: ['🚗', '🚕', '🚙', '🚌', '🚎', '🏎', '🚓', '🚑', '🚒', '🚐', '🛻', '🚚', '🚛', '🚜', '🦯', '🦽', '🦼', '🛴'],
+  symbols: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❤️‍🔥', '❤️‍🩹', '❣️', '💕', '💞', '💓', '💗', '💖']
+};
 
 export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketConnected = false }: ChatInterfaceProps) {
   const [currentChat, setCurrentChat] = useState<{
@@ -91,6 +110,8 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
   const [duplicateCount, setDuplicateCount] = useState(0);
   const [view, setView] = useState<'chat' | 'history' | 'inbox' | 'blocked'>('chat');
   const [isReportFormOpen, setIsReportFormOpen] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [currentEmojiCategory, setCurrentEmojiCategory] = useState<keyof typeof emojiCategories>('smileys');
   const messageEndRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
@@ -132,15 +153,46 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
       }
 
       // Mark messages as read for the selected user
-      if (unreadMessagesPerUser.has(selectedUser)) {
-        unreadMessagesPerUser.delete(selectedUser);
+      if (window.unreadMessagesPerUser.has(selectedUser)) {
+        window.unreadMessagesPerUser.delete(selectedUser);
         // Update unread count
-        setUnreadCount(unreadMessagesPerUser.size);
+        setUnreadCount(window.unreadMessagesPerUser.size);
       }
     } else {
       setCurrentChat(null);
     }
   }, [selectedUser, socketConnected]);
+
+  // Check for data-chat-view attribute changes from the Navbar
+  useEffect(() => {
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'data-chat-view') {
+          const element = mutation.target as HTMLElement;
+          const viewValue = element.getAttribute('data-chat-view');
+          
+          if (viewValue === 'inbox') {
+            setView('inbox');
+          }
+        }
+      });
+    });
+    
+    // Create a div to observe if it doesn't exist yet
+    let observeElement = document.querySelector('[data-chat-view]');
+    if (!observeElement) {
+      observeElement = document.createElement('div');
+      observeElement.setAttribute('data-chat-view', 'chat');
+      observeElement.style.display = 'none';
+      document.body.appendChild(observeElement);
+    }
+    
+    observer.observe(observeElement, { attributes: true });
+    
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
 
   // Set up WebSocket listeners for messages
   useEffect(() => {
@@ -214,8 +266,8 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
             
             // Add to unread messages if not from current user
             if (!isSentByMe) {
-              unreadMessagesPerUser.add(messageData.senderId);
-              setUnreadCount(unreadMessagesPerUser.size);
+              window.unreadMessagesPerUser.add(messageData.senderId);
+              setUnreadCount(window.unreadMessagesPerUser.size);
               
               // Show notification
               toast.info(`New message from ${messageData.sender}`);
@@ -272,6 +324,11 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
       setShouldAutoScroll(true);
     }
   }, [currentChat]);
+
+  // Update unread count
+  useEffect(() => {
+    setUnreadCount(window.unreadMessagesPerUser.size);
+  }, [window.unreadMessagesPerUser.size]);
 
   // Bot responds to user messages
   useEffect(() => {
@@ -390,7 +447,10 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
     
     // Check if user is trying to message someone who blocked them
     if (blockedUsers.has(currentChat?.userId || '')) {
-      toast.error(`${currentChat?.username} has been blocked`);
+      toast.warning(`You can't send messages to ${currentChat?.username} because they are blocked`, {
+        id: 'blocked-user-warning',
+        duration: 4000,
+      });
       setMessageInput('');
       return;
     }
@@ -463,6 +523,9 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
       // Enable auto-scroll when sending a new message
       setShouldAutoScroll(true);
     }
+    
+    // Close emoji picker after sending
+    setShowEmojiPicker(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -496,6 +559,17 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
 
   const handleVoiceMessage = () => {
     toast.info('Voice messages are only available for VIP users');
+  };
+
+  const handleEmojiClick = (emoji: string) => {
+    setMessageInput(prev => prev + emoji);
+    
+    // Don't close emoji picker after adding an emoji
+    // Focus on the input
+    const textarea = document.querySelector('textarea');
+    if (textarea) {
+      textarea.focus();
+    }
   };
 
   const handleBlockUser = () => {
@@ -548,40 +622,41 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
     }
   };
 
-  // Always render notification icon
-  const renderNotificationIcon = () => {
-    return (
-      <div className="fixed bottom-4 right-4 z-50">
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button 
-                variant={unreadCount > 0 ? "success" : "outline"} 
-                size="icon" 
-                className="rounded-full shadow-lg"
-                onClick={() => setView('inbox')}
-              >
-                {unreadCount > 0 ? (
-                  <div className="relative">
-                    <Inbox className="h-5 w-5" />
-                    <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
-                      {unreadCount}
-                    </span>
-                  </div>
-                ) : (
-                  <Inbox className="h-5 w-5" />
-                )}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{unreadCount > 0 ? `${unreadCount} new messages` : 'Inbox'}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </div>
-    );
+  // Get gender for the avatar
+  const getGenderForAvatar = (username: string, isBot = false): 'male' | 'female' => {
+    if (isBot) {
+      const bot = botProfiles.find(b => b.username === username);
+      return bot?.gender === 'Male' ? 'male' : 'female';
+    }
+    
+    // For regular users
+    return 'male'; // Default if we don't know
   };
 
+  // Get country flag
+  const getCountryFlag = (country?: string): string => {
+    if (!country || country === 'Unknown') return '🌍';
+    
+    const foundCountry = countries.find(c => c.name === country);
+    return foundCountry?.flag || '🌍';
+  };
+
+  // Get modern avatar URL based on gender
+  const getAvatarUrl = (name: string, gender: 'male' | 'female'): string => {
+    // Generate a consistent hash for the name to get the same avatar each time
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    
+    // Select avatar style based on gender and hash
+    const style = gender === 'male' ? 'male' : 'female';
+    const number = Math.abs(hash % 10) + 1; // Numbers 1-10
+    
+    return `https://api.dicebear.com/7.x/personas/svg?seed=${style}${number}`;
+  };
+
+  // Render functions moved out for clarity
   const renderViewContent = () => {
     switch (view) {
       case 'blocked':
@@ -593,17 +668,18 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                 {Array.from(blockedUsers).map(userId => {
                   const bot = botProfiles.find(b => b.id === userId);
                   let username = "Unknown User";
-                  let gender = "Male"; // Default for UI styling
+                  let gender: 'male' | 'female' = 'male'; // Default for UI styling
                   
                   // Determine user details
                   if (bot) {
                     username = bot.username;
-                    gender = bot.gender;
+                    gender = bot.gender === 'Male' ? 'male' : 'female';
                   } else {
                     // Try to find in chat history
                     const chatHistory = userChatHistories[userId] || [];
                     if (chatHistory.length > 0 && chatHistory[0].sender) {
                       username = chatHistory[0].sender;
+                      gender = getGenderForAvatar(username);
                     }
                   }
                   
@@ -613,10 +689,12 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                       className="p-4 border rounded-lg flex items-center justify-between"
                     >
                       <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold ${
-                          gender === 'Male' ? 'bg-blue-500' : 'bg-pink-500'
-                        }`}>
-                          {username.charAt(0)}
+                        <div className="w-10 h-10 rounded-full overflow-hidden">
+                          <img 
+                            src={getAvatarUrl(username, gender)} 
+                            alt={username}
+                            className="w-full h-full object-cover"
+                          />
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
@@ -668,7 +746,8 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                   
                   const lastMessage = chatHistory[chatHistory.length - 1];
                   const chatName = bot ? bot.username : chatHistory[0].sender;
-                  const hasUnread = unreadMessagesPerUser.has(userId);
+                  const hasUnread = window.unreadMessagesPerUser.has(userId);
+                  const gender: 'male' | 'female' = bot?.gender === 'Male' ? 'male' : 'female';
                   
                   return (
                     <div 
@@ -680,18 +759,18 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                       }}
                     >
                       <div className="flex items-center gap-3 mb-2">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold ${
-                          bot?.gender === 'Male' ? 'bg-blue-500' : 'bg-pink-500'
-                        } ${hasUnread ? 'ring-2 ring-teal-400' : ''}`}>
-                          {chatName.charAt(0)}
+                        <div className={`w-10 h-10 rounded-full overflow-hidden ${hasUnread ? 'ring-2 ring-teal-400' : ''}`}>
+                          <img 
+                            src={getAvatarUrl(chatName, gender)} 
+                            alt={chatName}
+                            className="w-full h-full object-cover"
+                          />
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <span className={`font-medium ${hasUnread ? 'font-bold' : ''}`}>{chatName}</span>
                             <span className="text-sm text-muted-foreground">{bot?.age}</span>
-                            {bot?.flag && (
-                              <span className="ml-1 text-lg">{bot.flag}</span>
-                            )}
+                            <span className="ml-1 text-lg">{getCountryFlag(bot?.country)}</span>
                             {hasUnread && (
                               <Badge variant="success" className="ml-1">New</Badge>
                             )}
@@ -731,9 +810,9 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
         return (
           <div className="flex-1 p-6">
             <h3 className="text-lg font-medium mb-4">Inbox Messages</h3>
-            {unreadMessagesPerUser.size > 0 ? (
+            {window.unreadMessagesPerUser.size > 0 ? (
               <div className="space-y-4">
-                {Array.from(unreadMessagesPerUser).map(userId => {
+                {Array.from(window.unreadMessagesPerUser).map(userId => {
                   // Skip blocked users
                   if (blockedUsers.has(userId)) return null;
                   
@@ -745,6 +824,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                   
                   const lastMessage = chatHistory[chatHistory.length - 1];
                   const chatName = bot ? bot.username : chatHistory[0].sender;
+                  const gender: 'male' | 'female' = bot?.gender === 'Male' ? 'male' : 'female';
                   
                   return (
                     <div 
@@ -756,18 +836,18 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                       }}
                     >
                       <div className="flex items-center gap-3 mb-2">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold ${
-                          bot?.gender === 'Male' ? 'bg-blue-500' : 'bg-pink-500'
-                        } ring-2 ring-teal-400`}>
-                          {chatName.charAt(0)}
+                        <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-teal-400">
+                          <img 
+                            src={getAvatarUrl(chatName, gender)} 
+                            alt={chatName}
+                            className="w-full h-full object-cover"
+                          />
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <span className="font-bold">{chatName}</span>
                             <span className="text-sm text-muted-foreground">{bot?.age}</span>
-                            {bot?.flag && (
-                              <span className="ml-1 text-lg">{bot.flag}</span>
-                            )}
+                            <span className="ml-1 text-lg">{getCountryFlag(bot?.country)}</span>
                             <Badge variant="success" className="ml-1">New</Badge>
                           </div>
                         </div>
@@ -911,6 +991,55 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                     >
                       <Image className="h-5 w-5" />
                     </Button>
+                    
+                    <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
+                      <PopoverTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          size="icon"
+                          disabled={blockedUsers.has(currentChat?.userId || '')}
+                        >
+                          <Smile className="h-5 w-5" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-72 p-0" align="end">
+                        <div className="p-2 border-b">
+                          <div className="flex flex-wrap gap-1">
+                            {Object.keys(emojiCategories).map((category) => (
+                              <Button
+                                key={category}
+                                variant={currentEmojiCategory === category ? "default" : "ghost"}
+                                size="sm"
+                                className="px-2 py-1 h-8"
+                                onClick={() => setCurrentEmojiCategory(category as keyof typeof emojiCategories)}
+                              >
+                                {category === 'smileys' ? '😀' : 
+                                 category === 'gestures' ? '👋' :
+                                 category === 'people' ? '👨‍👩‍👧‍👦' :
+                                 category === 'animals' ? '🐶' :
+                                 category === 'food' ? '🍔' :
+                                 category === 'activities' ? '⚽' :
+                                 category === 'travel' ? '✈️' : '❤️'}
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="p-2 max-h-48 overflow-y-auto">
+                          <div className="grid grid-cols-8 gap-1">
+                            {emojiCategories[currentEmojiCategory].map((emoji, i) => (
+                              <button
+                                key={i}
+                                className="h-8 w-8 flex items-center justify-center hover:bg-accent rounded text-lg"
+                                onClick={() => handleEmojiClick(emoji)}
+                              >
+                                {emoji}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                    
                     <Button 
                       variant="outline" 
                       size="icon"
@@ -944,12 +1073,15 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
             {/* Chat header */}
             <div className="p-4 border-b flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold ${
-                  botProfiles.find(b => b.id === currentChat.userId)?.gender === 'Male' 
-                    ? 'bg-blue-500' 
-                    : 'bg-pink-500'
-                }`}>
-                  {currentChat.username.charAt(0)}
+                <div className="w-10 h-10 rounded-full overflow-hidden">
+                  <img 
+                    src={getAvatarUrl(
+                      currentChat.username, 
+                      botProfiles.find(b => b.id === currentChat.userId)?.gender === 'Male' ? 'male' : 'female'
+                    )} 
+                    alt={currentChat.username}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
                 <div>
                   <div className="flex items-center gap-1">
@@ -1092,6 +1224,14 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                     </AlertDialog>
                     
                     <DropdownMenuItem 
+                      onClick={() => setView('blocked')}
+                      onSelect={(e) => e.preventDefault()}
+                    >
+                      <UserMinus className="h-4 w-4 mr-2" />
+                      <span>Blocked Users</span>
+                    </DropdownMenuItem>
+                    
+                    <DropdownMenuItem 
                       onClick={() => setIsReportFormOpen(true)}
                       onSelect={(e) => e.preventDefault()}
                     >
@@ -1125,9 +1265,6 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
           </div>
         )}
       </div>
-      
-      {/* Fixed notification icon - always displayed now */}
-      {renderNotificationIcon()}
     </>
   );
 }

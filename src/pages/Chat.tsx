@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { Navbar } from '@/components/Navbar';
@@ -12,6 +13,17 @@ import socketService from '@/services/socketService';
 const mockConnectedUsers = new Map();
 const sessionKey = 'chatiwy_session_id';
 const RENDER_URL = 'https://chatiwy-test.onrender.com';
+
+// Initialize global for unread messages
+declare global {
+  interface Window {
+    unreadMessagesPerUser: Set<string>;
+  }
+}
+
+if (!window.unreadMessagesPerUser) {
+  window.unreadMessagesPerUser = new Set<string>();
+}
 
 const ChatPage = () => {
   const navigate = useNavigate();

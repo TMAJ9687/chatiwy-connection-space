@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,7 +34,12 @@ interface ConnectedUsersProps {
   socketConnected?: boolean;
 }
 
-const unreadMessagesPerUser: Set<string> = new Set();
+// Get unread messages from global
+declare global {
+  interface Window {
+    unreadMessagesPerUser: Set<string>;
+  }
+}
 
 export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socketConnected = false }: ConnectedUsersProps) {
   const [filter, setFilter] = useState('all');
@@ -70,7 +76,7 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
             age: user.age,
             gender: user.gender,
             country: user.country || 'Unknown',
-            flag: user.flag || '🌍',
+            flag: user.flag || getCountryFlag(user.country),
             isOnline: user.isOnline,
             isBot: false
           }));
@@ -107,6 +113,7 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
         
         const bots = botProfiles.map(bot => ({
           ...bot,
+          flag: getCountryFlag(bot.country),
           isBot: true
         }));
         
@@ -116,6 +123,7 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
       console.error("Error fetching connected users:", error);
       return botProfiles.map(bot => ({
         ...bot,
+        flag: getCountryFlag(bot.country),
         isBot: true
       }));
     }
@@ -175,6 +183,7 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
       console.error("Error filtering users:", error);
       setUsersList(botProfiles.map(bot => ({
         ...bot,
+        flag: getCountryFlag(bot.country),
         isBot: true
       })));
     }
@@ -207,9 +216,27 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
     setSearchQuery('');
   };
   
-  const getCountryFlag = (countryName: string): string => {
+  const getCountryFlag = (countryName?: string): string => {
+    if (!countryName || countryName === 'Unknown') return '🌍';
+    
+    // Find the country in the countries array
     const country = countries.find(c => c.name === countryName);
-    return country ? country.flag : '🌍';
+    return country?.flag || '🌍';
+  };
+
+  // Get modern avatar URL based on gender
+  const getAvatarUrl = (name: string, gender: string): string => {
+    // Generate a consistent hash for the name to get the same avatar each time
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    
+    // Select avatar style based on gender and hash
+    const style = gender === 'Male' ? 'male' : 'female';
+    const number = Math.abs(hash % 10) + 1; // Numbers 1-10
+    
+    return `https://api.dicebear.com/7.x/personas/svg?seed=${style}${number}`;
   };
 
   return (
@@ -372,16 +399,18 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
       <CardContent className="overflow-auto max-h-[calc(70vh-8rem)]">
         <div className="space-y-4">
           <div className="flex items-center gap-3 p-2 rounded-lg border bg-muted/50">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold ${
-              userProfile.gender === 'Male' ? 'bg-blue-500' : 'bg-pink-500'
-            }`}>
-              {userProfile.username.charAt(0)}
+            <div className="w-10 h-10 rounded-full overflow-hidden">
+              <img 
+                src={getAvatarUrl(userProfile.username, userProfile.gender)} 
+                alt={userProfile.username}
+                className="w-full h-full object-cover"
+              />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1">
                 <span className="font-medium truncate">{userProfile.username}</span>
                 <span className="text-xs opacity-70">{userProfile.age}</span>
-                <span className="ml-1 text-lg">{userProfile.flag || '🌍'}</span>
+                <span className="ml-1 text-lg">{userProfile.flag || getCountryFlag(userProfile.country)}</span>
                 <Badge className="ml-auto" variant="outline">You</Badge>
               </div>
               <div className="flex items-center text-sm text-green-500">
@@ -393,7 +422,7 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
               
           {usersList.length > 0 ? (
             usersList.map((user) => {
-              const hasUnread = unreadMessagesPerUser.has(user.id);
+              const hasUnread = window.unreadMessagesPerUser?.has(user.id);
               
               return (
                 <div 
@@ -403,16 +432,18 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
                   } ${hasUnread ? 'bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800' : ''}`}
                   onClick={() => onUserSelect(user.id)}
                 >
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold ${
-                    user.gender === 'Male' ? 'bg-blue-500' : 'bg-pink-500'
-                  } ${hasUnread ? 'ring-2 ring-teal-400' : ''}`}>
-                    {user.username.charAt(0)}
+                  <div className={`w-10 h-10 rounded-full overflow-hidden ${hasUnread ? 'ring-2 ring-teal-400' : ''}`}>
+                    <img 
+                      src={getAvatarUrl(user.username, user.gender)} 
+                      alt={user.username}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1">
                       <span className={`font-medium truncate ${hasUnread ? 'font-bold' : ''}`}>{user.username}</span>
                       <span className="text-xs opacity-70">{user.age}</span>
-                      <span className="ml-1 text-lg">{user.flag}</span>
+                      <span className="ml-1 text-lg">{user.flag || getCountryFlag(user.country)}</span>
                       {user.isBot && (
                         <Badge className="ml-auto" variant="outline">Bot</Badge>
                       )}
