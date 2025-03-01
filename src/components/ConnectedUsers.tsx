@@ -33,7 +33,6 @@ interface ConnectedUsersProps {
   socketConnected?: boolean;
 }
 
-// Keep track of unread messages per user
 const unreadMessagesPerUser: Set<string> = new Set();
 
 export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socketConnected = false }: ConnectedUsersProps) {
@@ -47,10 +46,8 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
   const [connectedUsersCount, setConnectedUsersCount] = useState(0);
   const [realTimeUsers, setRealTimeUsers] = useState<any[]>([]);
   
-  // Setup WebSocket listeners for user updates
   useEffect(() => {
     if (socketConnected) {
-      // Listen for users list updates
       socketService.on('users_update', (users: any[]) => {
         console.log('Received users update:', users);
         setRealTimeUsers(users);
@@ -62,13 +59,11 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
     }
   }, [socketConnected]);
   
-  // Function to get connected users from the socket or mock database
   const getConnectedUsers = () => {
     try {
       if (socketConnected && realTimeUsers.length > 0) {
-        // Use real-time users from WebSocket
         const socketUsers = realTimeUsers
-          .filter(user => user.id !== userProfile.id) // Exclude current user using profile ID
+          .filter(user => user.id !== userProfile.id)
           .map(user => ({
             id: user.id,
             username: user.username,
@@ -80,7 +75,6 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
             isBot: false
           }));
         
-        // Add bot profiles
         const bots = botProfiles.map(bot => ({
           ...bot,
           isBot: true
@@ -88,7 +82,6 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
         
         return [...socketUsers, ...bots];
       } else {
-        // Create a mock connected users list for demo purposes
         const mockUsers = [
           {
             id: "mock-user-1",
@@ -112,18 +105,15 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
           }
         ];
         
-        // Add bot profiles
         const bots = botProfiles.map(bot => ({
           ...bot,
           isBot: true
         }));
         
-        // Combine mock users and bots
         return [...mockUsers, ...bots];
       }
     } catch (error) {
       console.error("Error fetching connected users:", error);
-      // Fallback to just bot profiles if there's an error
       return botProfiles.map(bot => ({
         ...bot,
         isBot: true
@@ -131,22 +121,17 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
     }
   };
   
-  // Effect to gather all available countries from our data
   useEffect(() => {
-    // Use the full countries list from our countryData.ts
     const countryNames = countries.map(country => country.name);
     setAvailableCountries(countryNames);
   }, []);
   
-  // Effect to update the users list when filter changes
   useEffect(() => {
     try {
       const allUsers = getConnectedUsers();
       
-      // Apply filters
       let filteredUsers = allUsers;
       
-      // Apply gender filter
       if (filter !== 'all') {
         filteredUsers = filteredUsers.filter(user => {
           if (filter === 'online') return user.isOnline !== false;
@@ -156,19 +141,16 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
         });
       }
       
-      // Apply country filter
       if (countryFilter.length > 0) {
         filteredUsers = filteredUsers.filter(user => 
           countryFilter.includes(user.country)
         );
       }
       
-      // Apply age range filter
       filteredUsers = filteredUsers.filter(user => 
         user.age >= ageRange[0] && user.age <= ageRange[1]
       );
       
-      // Apply search
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         filteredUsers = filteredUsers.filter(user => 
@@ -177,17 +159,14 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
         );
       }
       
-      // Count real connected users (excluding bots and excluding the current user)
       let realConnectedCount = 0;
       if (socketConnected) {
-        // Count from WebSocket users
         realConnectedCount = realTimeUsers.filter(user => 
           user.id !== userProfile.id && 
           user.isOnline
         ).length;
       } else {
-        // Using mock count
-        realConnectedCount = 2; // For the mock demo users
+        realConnectedCount = 2;
       }
       setConnectedUsersCount(realConnectedCount);
       
@@ -228,7 +207,6 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
     setSearchQuery('');
   };
   
-  // Helper function to get flag emoji for a country name
   const getCountryFlag = (countryName: string): string => {
     const country = countries.find(c => c.name === countryName);
     return country ? country.flag : '🌍';
@@ -393,7 +371,6 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
       </CardHeader>
       <CardContent className="overflow-auto max-h-[calc(70vh-8rem)]">
         <div className="space-y-4">
-          {/* Display current user first */}
           <div className="flex items-center gap-3 p-2 rounded-lg border bg-muted/50">
             <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold ${
               userProfile.gender === 'Male' ? 'bg-blue-500' : 'bg-pink-500'
@@ -440,7 +417,7 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
                         <Badge className="ml-auto" variant="outline">Bot</Badge>
                       )}
                       {hasUnread && (
-                        <Badge className="ml-auto" variant="default" className="bg-teal-500">New</Badge>
+                        <Badge className="ml-auto" variant="default">New</Badge>
                       )}
                     </div>
                     <div className="flex items-center text-sm text-green-500">
