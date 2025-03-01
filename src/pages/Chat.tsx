@@ -13,6 +13,9 @@ import { toast } from 'sonner';
 // This would be replaced by a real database in a production app
 const mockConnectedUsers = new Map();
 
+// Create a set to track user sessions by browser session
+const sessionKey = 'chatiwy_session_id';
+
 const ChatPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -21,21 +24,38 @@ const ChatPage = () => {
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   
   useEffect(() => {
+    // Generate a unique session ID for this browser window if it doesn't exist
+    let sessionId = sessionStorage.getItem(sessionKey);
+    if (!sessionId) {
+      sessionId = Math.random().toString(36).substring(2, 15);
+      sessionStorage.setItem(sessionKey, sessionId);
+    }
+    
     // Check if we have user profile data from the previous page
     if (location.state?.userProfile) {
       const profile = location.state.userProfile;
+      
+      // Ensure the profile has a unique identifier
+      profile.id = profile.id || sessionId;
+      profile.sessionId = sessionId;
+      
       setUserProfile(profile);
       
-      // Store user in our mock database
-      if (profile && profile.username) {
-        mockConnectedUsers.set(profile.id || profile.username, {
-          ...profile,
-          isOnline: true,
-          lastSeen: new Date()
-        });
-        
-        console.log("Current connected users:", Array.from(mockConnectedUsers.entries()));
-      }
+      // Clear any previous entries with the same session ID
+      mockConnectedUsers.forEach((user, key) => {
+        if (user.sessionId === sessionId) {
+          mockConnectedUsers.delete(key);
+        }
+      });
+      
+      // Store user in our mock database with a unique ID
+      mockConnectedUsers.set(profile.id, {
+        ...profile,
+        isOnline: true,
+        lastSeen: new Date()
+      });
+      
+      console.log("Current connected users:", Array.from(mockConnectedUsers.entries()));
     } else {
       // If no profile data, redirect back to home
       navigate('/');
@@ -56,6 +76,26 @@ const ChatPage = () => {
       }
     };
   }, [location.state, navigate]);
+
+  // This handles the before unload event to mark users as offline when closing the browser
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const sessionId = sessionStorage.getItem(sessionKey);
+      if (sessionId && userProfile) {
+        mockConnectedUsers.forEach((user, key) => {
+          if (user.sessionId === sessionId) {
+            mockConnectedUsers.delete(key);
+          }
+        });
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [userProfile]);
 
   const handleGuidanceAccept = () => {
     setShowGuidance(false);
