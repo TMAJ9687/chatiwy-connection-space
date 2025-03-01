@@ -4,10 +4,12 @@ import { ArrowRight, RefreshCw } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { useNavigate } from 'react-router-dom';
 
 export function HeroSection() {
   const [username, setUsername] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const navigate = useNavigate();
 
   const handleStartChat = () => {
     if (!username.trim()) {
@@ -15,8 +17,21 @@ export function HeroSection() {
       return;
     }
     
-    // In a real app, this would navigate to the chat page
-    toast.success(`Welcome, ${username}! Starting chat...`);
+    // Validate username (max 20 chars, alphanumeric, max 2 numbers)
+    const alphanumericRegex = /^[a-zA-Z0-9]+$/;
+    if (!alphanumericRegex.test(username)) {
+      toast.error("Username can only contain letters and numbers");
+      return;
+    }
+    
+    const numberCount = (username.match(/[0-9]/g) || []).length;
+    if (numberCount > 2) {
+      toast.error("Username can contain a maximum of 2 numbers");
+      return;
+    }
+    
+    // Navigate to the profile page with the username
+    navigate('/profile', { state: { username } });
   };
 
   const generateRandomUsername = () => {

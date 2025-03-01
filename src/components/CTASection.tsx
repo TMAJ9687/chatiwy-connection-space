@@ -2,11 +2,13 @@
 import { ArrowRight } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useNavigate } from 'react-router-dom';
 
 export function CTASection() {
+  const navigate = useNavigate();
+  
   const handleGetStarted = () => {
-    toast("Let's get started!");
-    // In a real app, this would navigate to the username input
+    // Scroll to the top where the username input is
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 

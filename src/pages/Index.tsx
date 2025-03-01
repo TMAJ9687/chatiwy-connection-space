@@ -3,7 +3,6 @@ import { Helmet } from 'react-helmet';
 import { Navbar } from '@/components/Navbar';
 import { HeroSection } from '@/components/HeroSection';
 import { FeaturesSection } from '@/components/FeaturesSection';
-import { ChatPreview } from '@/components/ChatPreview';
 import { VIPSection } from '@/components/VIPSection';
 import { CTASection } from '@/components/CTASection';
 import { Footer } from '@/components/Footer';
@@ -21,7 +20,6 @@ const Index = () => {
       <main>
         <HeroSection />
         <FeaturesSection />
-        <ChatPreview />
         <VIPSection />
         <CTASection />
       </main>
