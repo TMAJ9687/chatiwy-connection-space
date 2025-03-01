@@ -35,6 +35,29 @@ const ChatPage = () => {
     if (location.state?.userProfile) {
       const profile = location.state.userProfile;
       
+      // Check if username contains "admin" in any form
+      if (profile.username.toLowerCase().includes('admin')) {
+        navigate('/');
+        toast.error('The username "admin" is reserved and cannot be used');
+        return;
+      }
+      
+      // Check if username is already taken by someone else other than this session
+      let isUsernameTakenByOther = false;
+      mockConnectedUsers.forEach((user, key) => {
+        if (user.username.toLowerCase() === profile.username.toLowerCase() && 
+            user.sessionId !== sessionId && 
+            user.isOnline) {
+          isUsernameTakenByOther = true;
+        }
+      });
+      
+      if (isUsernameTakenByOther) {
+        navigate('/');
+        toast.error('This username is already taken. Please choose another one');
+        return;
+      }
+      
       // Ensure the profile has a unique identifier
       profile.id = profile.id || sessionId;
       profile.sessionId = sessionId;

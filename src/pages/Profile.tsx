@@ -18,6 +18,10 @@ const interests = [
   "Science", "History", "Nature", "Animals", "Meditation"
 ];
 
+// Create a mock user database for demo purposes
+// This would be replaced by a real database in a production app
+declare const mockConnectedUsers: Map<string, any>;
+
 const ProfilePage = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -29,7 +33,34 @@ const ProfilePage = () => {
   // Get the username from the location state passed during navigation
   useEffect(() => {
     if (location.state?.username) {
-      setUsername(location.state.username);
+      const providedUsername = location.state.username;
+      
+      // Check if username contains "admin" in any form
+      if (providedUsername.toLowerCase().includes('admin')) {
+        navigate('/');
+        toast.error('The username "admin" is reserved and cannot be used');
+        return;
+      }
+      
+      // Check if username is already taken by someone else
+      let isUsernameTaken = false;
+      try {
+        mockConnectedUsers.forEach((user) => {
+          if (user.username.toLowerCase() === providedUsername.toLowerCase() && user.isOnline) {
+            isUsernameTaken = true;
+          }
+        });
+      } catch (error) {
+        console.error("Error checking for username:", error);
+      }
+      
+      if (isUsernameTaken) {
+        navigate('/');
+        toast.error('This username is already taken. Please choose another one');
+        return;
+      }
+      
+      setUsername(providedUsername);
     } else {
       // If no username, redirect back to home
       navigate('/');

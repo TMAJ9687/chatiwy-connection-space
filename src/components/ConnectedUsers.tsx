@@ -4,20 +4,24 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Slider } from '@/components/ui/slider';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+  DropdownMenuCheckboxItem,
 } from '@/components/ui/dropdown-menu';
 import { 
   Users, 
   Search, 
   Filter, 
   SlidersHorizontal, 
-  ChevronDown 
+  ChevronDown, 
+  X
 } from 'lucide-react';
 import { botProfiles } from '@/utils/botProfiles';
 
@@ -34,6 +38,10 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect }: Conn
   const [filter, setFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [usersList, setUsersList] = useState<any[]>([]);
+  const [countryFilter, setCountryFilter] = useState<string[]>([]);
+  const [ageRange, setAgeRange] = useState<[number, number]>([18, 80]);
+  const [availableCountries, setAvailableCountries] = useState<string[]>([]);
+  const [showFilters, setShowFilters] = useState(false);
   
   // Function to get connected users from the mock database
   const getConnectedUsers = () => {
@@ -69,6 +77,13 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect }: Conn
     }
   };
   
+  // Effect to collect available countries from all users
+  useEffect(() => {
+    const allUsers = getConnectedUsers();
+    const countries = [...new Set(allUsers.map(user => user.country))].filter(Boolean);
+    setAvailableCountries(countries);
+  }, [userProfile]);
+  
   // Effect to update the users list when filter changes
   useEffect(() => {
     try {
@@ -77,14 +92,27 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect }: Conn
       // Apply filters
       let filteredUsers = allUsers;
       
+      // Apply gender filter
       if (filter !== 'all') {
-        filteredUsers = allUsers.filter(user => {
+        filteredUsers = filteredUsers.filter(user => {
           if (filter === 'online') return user.isOnline !== false;
           if (filter === 'male') return user.gender === 'Male';
           if (filter === 'female') return user.gender === 'Female';
           return true;
         });
       }
+      
+      // Apply country filter
+      if (countryFilter.length > 0) {
+        filteredUsers = filteredUsers.filter(user => 
+          countryFilter.includes(user.country)
+        );
+      }
+      
+      // Apply age range filter
+      filteredUsers = filteredUsers.filter(user => 
+        user.age >= ageRange[0] && user.age <= ageRange[1]
+      );
       
       // Apply search
       if (searchQuery) {
@@ -103,7 +131,7 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect }: Conn
         isBot: true
       })));
     }
-  }, [filter, searchQuery, userProfile]);
+  }, [filter, searchQuery, userProfile, countryFilter, ageRange]);
   
   const handleFilterChange = (newFilter: string) => {
     setFilter(newFilter);
@@ -111,6 +139,25 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect }: Conn
   
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
+  };
+  
+  const toggleCountryFilter = (country: string) => {
+    setCountryFilter(prev => 
+      prev.includes(country) 
+        ? prev.filter(c => c !== country) 
+        : [...prev, country]
+    );
+  };
+  
+  const handleAgeRangeChange = (value: number[]) => {
+    setAgeRange([value[0], value[1]]);
+  };
+  
+  const clearFilters = () => {
+    setFilter('all');
+    setCountryFilter([]);
+    setAgeRange([18, 80]);
+    setSearchQuery('');
   };
   
   // Count real connected users (excluding bots and the current user)
@@ -139,43 +186,75 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect }: Conn
               {connectedUsersCount} online
             </Badge>
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <Filter className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuGroup>
-                <DropdownMenuItem 
-                  className={filter === 'all' ? 'bg-accent' : ''}
-                  onClick={() => handleFilterChange('all')}
-                >
-                  All Users
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  className={filter === 'online' ? 'bg-accent' : ''}
-                  onClick={() => handleFilterChange('online')}
-                >
-                  Online Only
-                </DropdownMenuItem>
+          <div className="flex gap-2">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => setShowFilters(!showFilters)}
+              className={showFilters ? "bg-accent" : ""}
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Filter className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>User Filters</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  className={filter === 'male' ? 'bg-accent' : ''}
-                  onClick={() => handleFilterChange('male')}
-                >
-                  Male
+                <DropdownMenuGroup>
+                  <DropdownMenuItem 
+                    className={filter === 'all' ? 'bg-accent' : ''}
+                    onClick={() => handleFilterChange('all')}
+                  >
+                    All Users
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    className={filter === 'online' ? 'bg-accent' : ''}
+                    onClick={() => handleFilterChange('online')}
+                  >
+                    Online Only
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    className={filter === 'male' ? 'bg-accent' : ''}
+                    onClick={() => handleFilterChange('male')}
+                  >
+                    Male
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    className={filter === 'female' ? 'bg-accent' : ''}
+                    onClick={() => handleFilterChange('female')}
+                  >
+                    Female
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+                
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Countries</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                
+                {availableCountries.map(country => (
+                  <DropdownMenuCheckboxItem
+                    key={country}
+                    checked={countryFilter.includes(country)}
+                    onCheckedChange={() => toggleCountryFilter(country)}
+                  >
+                    {country}
+                  </DropdownMenuCheckboxItem>
+                ))}
+                
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={clearFilters}>
+                  Clear Filters
                 </DropdownMenuItem>
-                <DropdownMenuItem 
-                  className={filter === 'female' ? 'bg-accent' : ''}
-                  onClick={() => handleFilterChange('female')}
-                >
-                  Female
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
+        
         <div className="relative mt-2">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -185,6 +264,69 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect }: Conn
             onChange={handleSearch}
           />
         </div>
+        
+        {showFilters && (
+          <div className="mt-3 p-3 border rounded-lg">
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-sm font-medium">Advanced Filters</h3>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-6 w-6 p-0" 
+                onClick={() => setShowFilters(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-muted-foreground">
+                  Age Range: {ageRange[0]} - {ageRange[1]}
+                </label>
+                <div className="pt-2 px-1">
+                  <Slider
+                    value={[ageRange[0], ageRange[1]]}
+                    min={18}
+                    max={80}
+                    step={1}
+                    onValueChange={handleAgeRangeChange}
+                  />
+                </div>
+              </div>
+              
+              {countryFilter.length > 0 && (
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1">Selected Countries:</label>
+                  <div className="flex flex-wrap gap-1">
+                    {countryFilter.map(country => (
+                      <Badge key={country} variant="outline" className="flex items-center gap-1">
+                        {country}
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-4 w-4 p-0 ml-1" 
+                          onClick={() => toggleCountryFilter(country)}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full" 
+                onClick={clearFilters}
+              >
+                Clear All Filters
+              </Button>
+            </div>
+          </div>
+        )}
       </CardHeader>
       <CardContent className="overflow-auto max-h-[calc(70vh-8rem)]">
         <div className="space-y-4">
