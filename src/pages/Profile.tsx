@@ -67,9 +67,24 @@ const ProfilePage = () => {
       return;
     }
 
-    // In a real app, this would navigate to the chat page
-    toast.success('Profile completed! Starting chat...');
-    // Future implementation: navigate to chat page
+    // Create user profile object
+    const userProfile = {
+      username,
+      age: parseInt(age),
+      gender,
+      interests: selectedInterests,
+      country: 'Unknown', // In a real app, this could be detected
+      flag: '🌍', // Default flag
+      isVIP: false,
+      isOnline: true
+    };
+
+    // Navigate to chat page with user profile
+    navigate('/chat', {
+      state: { userProfile }
+    });
+    
+    toast.success('Profile completed! Redirecting to chat...');
   };
 
   // Generate age options from 18 to 80
