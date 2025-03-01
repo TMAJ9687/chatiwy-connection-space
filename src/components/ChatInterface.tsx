@@ -1,5 +1,5 @@
-
-import React, { useState, useEffect, useRef } from 'react';
+<lov-code>
+import React, { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -37,7 +37,10 @@ import {
   Wifi,
   WifiOff,
   ShieldAlert,
-  UserMinus
+  UserMinus,
+  Eye,
+  EyeOff,
+  X
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { botProfiles, getRandomBotResponse } from '@/utils/botProfiles';
@@ -63,6 +66,10 @@ interface Message {
   timestamp: Date;
   isBot: boolean;
   isRead?: boolean;
+  image?: {
+    url: string;
+    blurred: boolean;
+  };
 }
 
 interface ChatInterfaceProps {
@@ -96,6 +103,12 @@ const emojiCategories = {
   symbols: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❤️‍🔥', '❤️‍🩹', '❣️', '💕', '💞', '💓', '💗', '💖']
 };
 
+// Key to store image uploads count in localStorage
+const IMAGE_UPLOADS_KEY = 'chatiwy_daily_image_uploads';
+const IMAGE_UPLOADS_DATE_KEY = 'chatiwy_image_uploads_date';
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB max size
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
+
 export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketConnected = false }: ChatInterfaceProps) {
   const [currentChat, setCurrentChat] = useState<{
     userId: string;
@@ -105,7 +118,6 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
   } | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [messageInput, setMessageInput] = useState('');
-  const [imageUploads, setImageUploads] = useState(0);
   const [lastMessage, setLastMessage] = useState<string>('');
   const [duplicateCount, setDuplicateCount] = useState(0);
   const [view, setView] = useState<'chat' | 'history' | 'inbox' | 'blocked'>('chat');
@@ -117,6 +129,27 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
   const [userTyping, setUserTyping] = useState(false);
   const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [imageUploads, setImageUploads] = useState<number>(0);
+
+  // Initialize daily image uploads counter from localStorage
+  useEffect(() => {
+    const today = new Date().toDateString();
+    const lastUploadDate = localStorage.getItem(IMAGE_UPLOADS_DATE_KEY);
+    
+    if (lastUploadDate !== today) {
+      // Reset counter for a new day
+      localStorage.setItem(IMAGE_UPLOADS_KEY, '0');
+      localStorage.setItem(IMAGE_UPLOADS_DATE_KEY, today);
+      setImageUploads(0);
+    } else {
+      // Load existing counter
+      const uploads = parseInt(localStorage.getItem(IMAGE_UPLOADS_KEY) || '0', 10);
+      setImageUploads(uploads);
+    }
+  }, []);
 
   // Initialize selected user as current chat
   useEffect(() => {
@@ -547,14 +580,136 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
     }
   };
 
+  // Image upload functionality
   const handleImageUpload = () => {
     if (imageUploads >= 10) {
       toast.error('Standard users can only upload 10 images per day');
       return;
     }
     
-    toast.info('Image upload feature will be available soon!');
-    setImageUploads(prev => prev + 1);
+    // Trigger file input click
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    const file = files[0];
+    
+    // Check file type
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      toast.error('Only PNG, JPG, JPEG, and GIF files are allowed');
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
+    }
+    
+    // Check file size
+    if (file.size > MAX_IMAGE_SIZE) {
+      toast.error('Image size must be less than 5MB');
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
+    }
+    
+    setSelectedImage(file);
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const cancelImageUpload = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const sendImageMessage = () => {
+    if (!selectedImage || !imagePreview || !currentChat) return;
+    
+    // Create a message with the image
+    const newMessage: Message = {
+      id: Math.random().toString(36).substring(7),
+      sender: userProfile.username,
+      senderId: userProfile.id,
+      content: 'Sent an image',
+      timestamp: new Date(),
+      isBot: false,
+      image: {
+        url: imagePreview,
+        blurred: true // Images are blurred by default
+      }
+    };
+    
+    // Add message to local display
+    setMessages(prev => [...prev, newMessage]);
+    
+    // Update history
+    if (currentChat?.userId) {
+      userChatHistories[currentChat.userId] = [
+        ...(userChatHistories[currentChat.userId] || []),
+        newMessage
+      ];
+    }
+    
+    // If this is a socket connection and not a bot, send to server
+    if (socketConnected && !currentChat.isBot) {
+      socketService.sendMessage({
+        to: currentChat.userId,
+        content: 'Sent an image',
+        image: imagePreview
+      });
+    }
+    
+    // Update image uploads counter and save to localStorage
+    const newUploadCount = imageUploads + 1;
+    setImageUploads(newUploadCount);
+    localStorage.setItem(IMAGE_UPLOADS_KEY, newUploadCount.toString());
+    localStorage.setItem(IMAGE_UPLOADS_DATE_KEY, new Date().toDateString());
+    
+    // Clear selected image and preview
+    setSelectedImage(null);
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    
+    // Enable auto-scroll for new image message
+    setShouldAutoScroll(true);
+    
+    toast.success('Image sent successfully');
+  };
+
+  const toggleImageBlur = (messageId: string) => {
+    setMessages(prevMessages => 
+      prevMessages.map(msg => 
+        msg.id === messageId && msg.image 
+          ? { ...msg, image: { ...msg.image, blurred: !msg.image.blurred } } 
+          : msg
+      )
+    );
+    
+    // Also update in chat history
+    if (currentChat?.userId) {
+      userChatHistories[currentChat.userId] = userChatHistories[currentChat.userId].map(msg => 
+        msg.id === messageId && msg.image 
+          ? { ...msg, image: { ...msg.image, blurred: !msg.image.blurred } } 
+          : msg
+      );
+    }
   };
 
   const handleVoiceMessage = () => {
@@ -726,545 +881,3 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                   onClick={() => setView('chat')}
                 >
                   Return to Chat
-                </Button>
-              </div>
-            )}
-          </div>
-        );
-      case 'history':
-        return (
-          <div className="flex-1 p-6">
-            <h3 className="text-lg font-medium mb-4">Chat History</h3>
-            {Object.entries(userChatHistories).length > 0 ? (
-              <div className="space-y-4">
-                {Object.entries(userChatHistories).map(([userId, chatHistory]) => {
-                  // Skip blocked users and empty histories
-                  if (blockedUsers.has(userId) || chatHistory.length === 0) return null;
-                  
-                  const bot = botProfiles.find(b => b.id === userId);
-                  if (!bot && !chatHistory[0].sender) return null;
-                  
-                  const lastMessage = chatHistory[chatHistory.length - 1];
-                  const chatName = bot ? bot.username : chatHistory[0].sender;
-                  const hasUnread = window.unreadMessagesPerUser.has(userId);
-                  const gender: 'male' | 'female' = bot?.gender === 'Male' ? 'male' : 'female';
-                  
-                  return (
-                    <div 
-                      key={userId}
-                      className={`p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors ${hasUnread ? 'bg-teal-50 dark:bg-teal-900/20 border-teal-200 dark:border-teal-800' : ''}`}
-                      onClick={() => {
-                        onUserSelect(userId);
-                        setView('chat');
-                      }}
-                    >
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className={`w-10 h-10 rounded-full overflow-hidden ${hasUnread ? 'ring-2 ring-teal-400' : ''}`}>
-                          <img 
-                            src={getAvatarUrl(chatName, gender)} 
-                            alt={chatName}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className={`font-medium ${hasUnread ? 'font-bold' : ''}`}>{chatName}</span>
-                            <span className="text-sm text-muted-foreground">{bot?.age}</span>
-                            <span className="ml-1 text-lg">{getCountryFlag(bot?.country)}</span>
-                            {hasUnread && (
-                              <Badge variant="success" className="ml-1">New</Badge>
-                            )}
-                          </div>
-                        </div>
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(lastMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </div>
-                      <p className={`text-sm ${hasUnread ? 'font-medium text-foreground' : 'text-muted-foreground'} truncate`}>
-                        <span className="font-medium mr-1">
-                          {lastMessage.sender === userProfile.username ? 'You:' : `${chatName}:`}
-                        </span>
-                        {lastMessage.content}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <History className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground mb-4">
-                  Your past conversations will appear here
-                </p>
-                <Button 
-                  variant="outline" 
-                  onClick={() => setView('chat')}
-                >
-                  Return to Chat
-                </Button>
-              </div>
-            )}
-          </div>
-        );
-      case 'inbox':
-        return (
-          <div className="flex-1 p-6">
-            <h3 className="text-lg font-medium mb-4">Inbox Messages</h3>
-            {window.unreadMessagesPerUser.size > 0 ? (
-              <div className="space-y-4">
-                {Array.from(window.unreadMessagesPerUser).map(userId => {
-                  // Skip blocked users
-                  if (blockedUsers.has(userId)) return null;
-                  
-                  const chatHistory = userChatHistories[userId] || [];
-                  if (chatHistory.length === 0) return null;
-                  
-                  const bot = botProfiles.find(b => b.id === userId);
-                  if (!bot && !chatHistory[0].sender) return null;
-                  
-                  const lastMessage = chatHistory[chatHistory.length - 1];
-                  const chatName = bot ? bot.username : chatHistory[0].sender;
-                  const gender: 'male' | 'female' = bot?.gender === 'Male' ? 'male' : 'female';
-                  
-                  return (
-                    <div 
-                      key={userId}
-                      className="p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors bg-teal-50 dark:bg-teal-900/20 border-teal-200 dark:border-teal-800"
-                      onClick={() => {
-                        onUserSelect(userId);
-                        setView('chat');
-                      }}
-                    >
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-teal-400">
-                          <img 
-                            src={getAvatarUrl(chatName, gender)} 
-                            alt={chatName}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold">{chatName}</span>
-                            <span className="text-sm text-muted-foreground">{bot?.age}</span>
-                            <span className="ml-1 text-lg">{getCountryFlag(bot?.country)}</span>
-                            <Badge variant="success" className="ml-1">New</Badge>
-                          </div>
-                        </div>
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(lastMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </div>
-                      <p className="text-sm font-medium truncate">
-                        <span className="font-medium mr-1">
-                          {lastMessage.sender === userProfile.username ? 'You:' : `${chatName}:`}
-                        </span>
-                        {lastMessage.content}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <Inbox className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground mb-4">
-                  Your inbox is empty
-                </p>
-                <Button 
-                  variant="outline" 
-                  onClick={() => setView('chat')}
-                >
-                  Return to Chat
-                </Button>
-              </div>
-            )}
-          </div>
-        );
-      case 'chat':
-      default:
-        return (
-          <>
-            {/* Message area */}
-            <ScrollArea className="flex-1 px-4 py-2" ref={scrollAreaRef}>
-              {blockedUsers.has(currentChat?.userId || '') ? (
-                <div className="flex items-center justify-center h-full flex-col gap-2">
-                  <AlertOctagon className="h-16 w-16 text-red-500" />
-                  <h3 className="text-lg font-medium">You've blocked this user</h3>
-                  <p className="text-muted-foreground text-center mb-4">
-                    You cannot send or receive messages from {currentChat?.username}.
-                  </p>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => handleUnblockUser(currentChat?.userId || '')}
-                  >
-                    Unblock User
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-4 py-2">
-                  {messages.map((message) => (
-                    <div 
-                      key={message.id}
-                      className={`flex ${message.sender === userProfile.username ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div 
-                        className={`max-w-[80%] ${
-                          message.sender === userProfile.username 
-                            ? 'bg-teal-500 text-white rounded-tl-2xl rounded-tr-sm rounded-br-2xl rounded-bl-2xl' 
-                            : 'bg-gray-100 dark:bg-gray-800 rounded-tr-2xl rounded-tl-sm rounded-bl-2xl rounded-br-2xl'
-                        } px-4 py-2 shadow-sm`}
-                      >
-                        <p>{message.content}</p>
-                        <div 
-                          className={`text-xs mt-1 ${
-                            message.sender === userProfile.username 
-                              ? 'text-teal-100' 
-                              : 'text-gray-500 dark:text-gray-400'
-                          }`}
-                        >
-                          {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          {message.sender === userProfile.username && (
-                            <span className="ml-1">✓</span> // Simple "sent" indicator
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  
-                  {userTyping && (
-                    <div className="flex justify-start">
-                      <div className="bg-gray-100 dark:bg-gray-800 px-4 py-2 rounded-lg">
-                        <div className="flex items-center space-x-1">
-                          <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse"></div>
-                          <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse delay-150"></div>
-                          <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse delay-300"></div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  <div ref={messageEndRef} />
-                </div>
-              )}
-            </ScrollArea>
-            
-            {/* Message input */}
-            <div className="p-4 border-t">
-              {!blockedUsers.has(currentChat?.userId || '') && (
-                <div className="flex items-end gap-2">
-                  <div className="flex-1">
-                    <Textarea
-                      placeholder="Type a message..."
-                      value={messageInput}
-                      onChange={handleInputChange}
-                      onKeyDown={handleKeyDown}
-                      className="resize-none min-h-[60px] max-h-[120px]"
-                      maxLength={140} // Enforce character limit
-                      disabled={blockedUsers.has(currentChat?.userId || '')}
-                    />
-                    <div className="flex justify-between mt-1 text-xs text-muted-foreground">
-                      <span>{messageInput.length}/140 characters</span>
-                      {socketConnected && !currentChat?.isBot && (
-                        <span className="flex items-center gap-1">
-                          {socketService.isConnected() ? (
-                            <>
-                              <Wifi className="h-3 w-3 text-green-500" />
-                              <span className="text-green-500">Connected</span>
-                            </>
-                          ) : (
-                            <>
-                              <WifiOff className="h-3 w-3 text-red-500" />
-                              <span className="text-red-500">Disconnected</span>
-                            </>
-                          )}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="icon"
-                      onClick={handleImageUpload}
-                      disabled={blockedUsers.has(currentChat?.userId || '')}
-                    >
-                      <Image className="h-5 w-5" />
-                    </Button>
-                    
-                    <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
-                      <PopoverTrigger asChild>
-                        <Button 
-                          variant="outline" 
-                          size="icon"
-                          disabled={blockedUsers.has(currentChat?.userId || '')}
-                        >
-                          <Smile className="h-5 w-5" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-72 p-0" align="end">
-                        <div className="p-2 border-b">
-                          <div className="flex flex-wrap gap-1">
-                            {Object.keys(emojiCategories).map((category) => (
-                              <Button
-                                key={category}
-                                variant={currentEmojiCategory === category ? "default" : "ghost"}
-                                size="sm"
-                                className="px-2 py-1 h-8"
-                                onClick={() => setCurrentEmojiCategory(category as keyof typeof emojiCategories)}
-                              >
-                                {category === 'smileys' ? '😀' : 
-                                 category === 'gestures' ? '👋' :
-                                 category === 'people' ? '👨‍👩‍👧‍👦' :
-                                 category === 'animals' ? '🐶' :
-                                 category === 'food' ? '🍔' :
-                                 category === 'activities' ? '⚽' :
-                                 category === 'travel' ? '✈️' : '❤️'}
-                              </Button>
-                            ))}
-                          </div>
-                        </div>
-                        <div className="p-2 max-h-48 overflow-y-auto">
-                          <div className="grid grid-cols-8 gap-1">
-                            {emojiCategories[currentEmojiCategory].map((emoji, i) => (
-                              <button
-                                key={i}
-                                className="h-8 w-8 flex items-center justify-center hover:bg-accent rounded text-lg"
-                                onClick={() => handleEmojiClick(emoji)}
-                              >
-                                {emoji}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                    
-                    <Button 
-                      variant="outline" 
-                      size="icon"
-                      onClick={handleVoiceMessage}
-                      className="opacity-50" // Disabled for standard users
-                      disabled={blockedUsers.has(currentChat?.userId || '')}
-                    >
-                      <Mic className="h-5 w-5" />
-                    </Button>
-                    <Button 
-                      onClick={handleSendMessage}
-                      disabled={!messageInput.trim() || blockedUsers.has(currentChat?.userId || '')}
-                      className="bg-teal-500 hover:bg-teal-600"
-                    >
-                      <Send className="h-5 w-5" />
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </>
-        );
-    }
-  };
-
-  return (
-    <>
-      <div className="rounded-lg border shadow-sm h-[70vh] flex flex-col bg-background">
-        {currentChat ? (
-          <>
-            {/* Chat header */}
-            <div className="p-4 border-b flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full overflow-hidden">
-                  <img 
-                    src={getAvatarUrl(
-                      currentChat.username, 
-                      botProfiles.find(b => b.id === currentChat.userId)?.gender === 'Male' ? 'male' : 'female'
-                    )} 
-                    alt={currentChat.username}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div>
-                  <div className="flex items-center gap-1">
-                    <h3 className="font-medium">{currentChat.username}</h3>
-                    {currentChat.isAdmin && (
-                      <Badge variant="outline" className="ml-1 text-xs">Admin</Badge>
-                    )}
-                    {blockedUsers.has(currentChat.userId) && (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span>
-                              <Ban className="h-4 w-4 text-red-500" />
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>This user is blocked</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    )}
-                  </div>
-                  <div className="flex items-center text-sm text-green-500">
-                    {!blockedUsers.has(currentChat.userId) && (
-                      <>
-                        <span className="h-2 w-2 rounded-full bg-green-500 mr-1"></span>
-                        Online
-                      </>
-                    )}
-                    {blockedUsers.has(currentChat.userId) && (
-                      <span className="text-red-500">Blocked</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        onClick={() => setView('history')}
-                        className={view === 'history' ? 'bg-accent' : ''}
-                      >
-                        <History className="h-5 w-5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Chat History</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        onClick={() => setView('inbox')}
-                        className={view === 'inbox' ? 'bg-accent' : ''}
-                      >
-                        {unreadCount > 0 ? (
-                          <div className="relative">
-                            <Inbox className="h-5 w-5" />
-                            <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
-                              {unreadCount}
-                            </span>
-                          </div>
-                        ) : (
-                          <Inbox className="h-5 w-5" />
-                        )}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Inbox</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-                
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        onClick={() => setView('blocked')}
-                        className={view === 'blocked' ? 'bg-accent' : ''}
-                      >
-                        <UserMinus className="h-5 w-5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Blocked Users</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-                
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <User className="h-5 w-5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>View Profile</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-                
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <MoreHorizontal className="h-5 w-5" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuLabel>Options</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <DropdownMenuItem
-                          disabled={currentChat.isAdmin || blockedUsers.has(currentChat.userId)}
-                          onSelect={(e) => e.preventDefault()}
-                        >
-                          <UserX className="h-4 w-4 mr-2 text-red-500" />
-                          <span>Block User</span>
-                        </DropdownMenuItem>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Block User</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to block {currentChat.username}? You won't be able to receive messages from them anymore.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={handleBlockUser} className="bg-red-600 hover:bg-red-700">
-                            Block User
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                    
-                    <DropdownMenuItem 
-                      onClick={() => setView('blocked')}
-                      onSelect={(e) => e.preventDefault()}
-                    >
-                      <UserMinus className="h-4 w-4 mr-2" />
-                      <span>Blocked Users</span>
-                    </DropdownMenuItem>
-                    
-                    <DropdownMenuItem 
-                      onClick={() => setIsReportFormOpen(true)}
-                      onSelect={(e) => e.preventDefault()}
-                    >
-                      <Flag className="h-4 w-4 mr-2" />
-                      <span>Report User</span>
-                    </DropdownMenuItem>
-                    
-                    <DropdownMenuSeparator />
-                    
-                    <DropdownMenuItem>
-                      <span>Clear Chat</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </div>
-            
-            {/* Content area - Chat, History, Inbox or Blocked */}
-            {renderViewContent()}
-            
-            {/* Report Form */}
-            <ReportForm 
-              isOpen={isReportFormOpen} 
-              onClose={() => setIsReportFormOpen(false)} 
-              userName={currentChat.username}
-            />
-          </>
-        ) : (
-          <div className="flex items-center justify-center h-full text-muted-foreground">
-            Select a user to start chatting
-          </div>
-        )}
-      </div>
-    </>
-  );
-}
