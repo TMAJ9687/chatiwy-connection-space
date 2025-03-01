@@ -1,6 +1,5 @@
 import { io, Socket } from 'socket.io-client';
 import { toast } from 'sonner';
-import { DefaultEventsMap } from 'socket.io/dist/typed-events';
 
 // Define the server URL with fallback options
 // The server can be configured via environment variable or explicitly defined here
@@ -25,21 +24,21 @@ class SocketService {
   private connectionInProgress: boolean = false;
 
   // Initialize the socket connection
-  connect(): Promise<Socket<DefaultEventsMap, DefaultEventsMap>> {
+  connect(): Promise<Socket> {
     if (this.connectionInProgress) {
       return Promise.reject(new Error('Connection attempt already in progress'));
     }
     
     this.connectionInProgress = true;
     
-    return new Promise<Socket<DefaultEventsMap, DefaultEventsMap>>((resolve, reject) => {
+    return new Promise<Socket>((resolve, reject) => {
       this.tryNextServer(resolve, reject);
     }).finally(() => {
       this.connectionInProgress = false;
     });
   }
   
-  private tryNextServer(resolve: (socket: Socket<DefaultEventsMap, DefaultEventsMap>) => void, reject: (error: Error) => void): void {
+  private tryNextServer(resolve: (socket: Socket) => void, reject: (error: Error) => void): void {
     if (this.currentServerIndex >= SERVER_URLS.length) {
       console.error('All server connection attempts failed');
       toast.error('Unable to connect to chat server. Using offline mode.');
@@ -80,7 +79,7 @@ class SocketService {
         clearTimeout(connectionTimeout);
         this.reconnectAttempts = 0;
         this.setupEventListeners();
-        resolve(this.socket as Socket<DefaultEventsMap, DefaultEventsMap>);
+        resolve(this.socket);
       });
 
       this.socket.on('connect_error', (error) => {
@@ -226,7 +225,7 @@ class SocketService {
   }
   
   // Retry connection
-  retryConnection(): Promise<Socket<DefaultEventsMap, DefaultEventsMap>> {
+  retryConnection(): Promise<Socket> {
     this.currentServerIndex = 0; // Reset to try all servers again
     return this.connect();
   }
