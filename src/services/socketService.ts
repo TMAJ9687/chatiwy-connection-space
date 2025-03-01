@@ -3,12 +3,16 @@ import { io, Socket } from 'socket.io-client';
 import { toast } from 'sonner';
 
 // Define the server URL with fallback options
-// In development, try connecting to the local server first
-// For the Lovable environment, we need to use a different approach
-const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-const SERVER_URL = isLocalhost 
-  ? 'http://localhost:5000' 
-  : window.location.origin.replace(/^https/, 'http');
+// The server can be configured via environment variable or explicitly defined here
+const SERVER_URLS = [
+  // Try connecting to a production server if defined
+  process.env.REACT_APP_SOCKET_SERVER,
+  // Try the origin (if this app is deployed with the backend)
+  window.location.origin.replace(/^https/, 'wss').replace(/^http/, 'ws'),
+  // Try local development server
+  'http://localhost:5000',
+  // Add additional fallback servers here if needed
+].filter(Boolean); // Remove undefined values
 
 // Create a class to manage socket connections
 class SocketService {
@@ -16,46 +20,78 @@ class SocketService {
   private registeredCallbacks: Map<string, Function[]> = new Map();
   private reconnectAttempts: number = 0;
   private maxReconnectAttempts: number = 3;
+  private currentServerIndex: number = 0;
+  private connectionInProgress: boolean = false;
 
   // Initialize the socket connection
   connect(): Promise<Socket> {
+    if (this.connectionInProgress) {
+      return Promise.reject(new Error('Connection attempt already in progress'));
+    }
+    
+    this.connectionInProgress = true;
+    
     return new Promise((resolve, reject) => {
-      try {
-        console.log('Attempting to connect to WebSocket server at:', SERVER_URL);
-        
-        // Configure socket with better connection options
-        this.socket = io(SERVER_URL, {
-          reconnectionAttempts: this.maxReconnectAttempts,
-          timeout: 5000,
-          transports: ['websocket', 'polling'], // Try WebSocket first, fall back to polling
-        });
-
-        this.socket.on('connect', () => {
-          console.log('Connected to WebSocket server');
-          this.reconnectAttempts = 0;
-          resolve(this.socket as Socket);
-        });
-
-        this.socket.on('connect_error', (error) => {
-          console.error('Connection error:', error);
-          this.reconnectAttempts++;
-          
-          if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-            toast.error('Unable to connect to chat server. Using offline mode.');
-            reject(error);
-          } else {
-            console.log(`Connection attempt ${this.reconnectAttempts} failed, retrying...`);
-          }
-        });
-
-        // Setup default event listeners
-        this.setupEventListeners();
-      } catch (error) {
-        console.error('Socket connection error:', error);
-        toast.error('Unable to connect to chat server. Using offline mode.');
-        reject(error);
-      }
+      this.tryNextServer(resolve, reject);
+    }).finally(() => {
+      this.connectionInProgress = false;
     });
+  }
+  
+  private tryNextServer(resolve: (socket: Socket) => void, reject: (error: Error) => void): void {
+    if (this.currentServerIndex >= SERVER_URLS.length) {
+      console.error('All server connection attempts failed');
+      toast.error('Unable to connect to chat server. Using offline mode.');
+      reject(new Error('All connection attempts failed'));
+      return;
+    }
+    
+    const serverUrl = SERVER_URLS[this.currentServerIndex];
+    console.log(`Attempting to connect to WebSocket server at: ${serverUrl} (attempt ${this.currentServerIndex + 1}/${SERVER_URLS.length})`);
+    
+    try {
+      // Disconnect previous socket if it exists
+      if (this.socket) {
+        this.socket.disconnect();
+        this.socket = null;
+      }
+      
+      // Configure socket with better connection options
+      this.socket = io(serverUrl, {
+        reconnectionAttempts: 2,
+        timeout: 5000,
+        transports: ['websocket', 'polling'], // Try WebSocket first, fall back to polling
+      });
+
+      // Set a connection timeout
+      const connectionTimeout = setTimeout(() => {
+        console.log(`Connection timeout for server ${serverUrl}`);
+        this.socket?.disconnect();
+        this.currentServerIndex++;
+        this.tryNextServer(resolve, reject);
+      }, 7000);
+
+      this.socket.on('connect', () => {
+        console.log(`Connected to WebSocket server: ${serverUrl}`);
+        clearTimeout(connectionTimeout);
+        this.reconnectAttempts = 0;
+        this.setupEventListeners();
+        resolve(this.socket as Socket);
+      });
+
+      this.socket.on('connect_error', (error) => {
+        console.error(`Connection error for ${serverUrl}:`, error);
+        clearTimeout(connectionTimeout);
+        
+        // Try next server in the list
+        this.currentServerIndex++;
+        this.tryNextServer(resolve, reject);
+      });
+    } catch (error) {
+      console.error(`Socket connection error for ${serverUrl}:`, error);
+      this.currentServerIndex++;
+      this.tryNextServer(resolve, reject);
+    }
   }
 
   // Setup default event listeners
@@ -74,6 +110,15 @@ class SocketService {
       if (reason !== 'io client disconnect') {
         toast.error('Disconnected from chat server. Trying to reconnect...');
       }
+    });
+
+    // Reapply all previously registered callbacks
+    this.registeredCallbacks.forEach((callbacks, event) => {
+      callbacks.forEach(callback => {
+        this.socket?.on(event, (...args) => {
+          callback(...args);
+        });
+      });
     });
   }
 
@@ -101,6 +146,7 @@ class SocketService {
   sendMessage(message: { to?: string; content: string }): void {
     if (!this.socket) {
       console.error('Cannot send message: Socket not connected');
+      toast.warning('Message sent in offline mode');
       return;
     }
     this.socket.emit('send_message', message);
@@ -173,6 +219,12 @@ class SocketService {
   // Get the socket ID
   getSocketId(): string | null {
     return this.socket?.id || null;
+  }
+  
+  // Retry connection
+  retryConnection(): Promise<Socket> {
+    this.currentServerIndex = 0; // Reset to try all servers again
+    return this.connect();
   }
 }
 
