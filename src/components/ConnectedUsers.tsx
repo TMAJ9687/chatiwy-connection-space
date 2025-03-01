@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -34,9 +33,8 @@ interface ConnectedUsersProps {
   socketConnected?: boolean;
 }
 
-// Create a mock user database for demo purposes when WebSocket is not available
-// This would be replaced by a real database in a production app
-const mockConnectedUsers = new Map();
+// Keep track of unread messages per user
+const unreadMessagesPerUser: Set<string> = new Set();
 
 export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socketConnected = false }: ConnectedUsersProps) {
   const [filter, setFilter] = useState('all');
@@ -54,6 +52,7 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
     if (socketConnected) {
       // Listen for users list updates
       socketService.on('users_update', (users: any[]) => {
+        console.log('Received users update:', users);
         setRealTimeUsers(users);
       });
       
@@ -69,7 +68,7 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
       if (socketConnected && realTimeUsers.length > 0) {
         // Use real-time users from WebSocket
         const socketUsers = realTimeUsers
-          .filter(user => user.id !== socketService.getSocketId()) // Exclude current user
+          .filter(user => user.id !== userProfile.id) // Exclude current user using profile ID
           .map(user => ({
             id: user.id,
             username: user.username,
@@ -89,20 +88,29 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
         
         return [...socketUsers, ...bots];
       } else {
-        // Fallback to mock database
-        // Create a list of all connected real users (excluding the current user)
-        const realUsers = Array.from(mockConnectedUsers.entries())
-          .filter(([id, user]) => user.sessionId !== userProfile.sessionId)
-          .map(([id, user]) => ({
-            id,
-            username: user.username,
-            age: user.age,
-            gender: user.gender,
-            country: user.country || 'Unknown',
-            flag: user.flag || '🌍',
-            isOnline: user.isOnline,
+        // Create a mock connected users list for demo purposes
+        const mockUsers = [
+          {
+            id: "mock-user-1",
+            username: "TravelBug",
+            age: 28,
+            gender: "Female",
+            country: "Canada",
+            flag: "🇨🇦",
+            isOnline: true,
             isBot: false
-          }));
+          },
+          {
+            id: "mock-user-2",
+            username: "CoffeeGuy",
+            age: 34,
+            gender: "Male",
+            country: "Italy",
+            flag: "🇮🇹",
+            isOnline: true,
+            isBot: false
+          }
+        ];
         
         // Add bot profiles
         const bots = botProfiles.map(bot => ({
@@ -110,8 +118,8 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
           isBot: true
         }));
         
-        // Combine real users and bots
-        return [...realUsers, ...bots];
+        // Combine mock users and bots
+        return [...mockUsers, ...bots];
       }
     } catch (error) {
       console.error("Error fetching connected users:", error);
@@ -174,21 +182,12 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
       if (socketConnected) {
         // Count from WebSocket users
         realConnectedCount = realTimeUsers.filter(user => 
-          user.id !== socketService.getSocketId() && 
+          user.id !== userProfile.id && 
           user.isOnline
         ).length;
       } else {
-        try {
-          // Count from mock database
-          realConnectedCount = Array.from(mockConnectedUsers.entries())
-            .filter(([id, user]) => 
-              user.sessionId !== userProfile.sessionId && 
-              user.isOnline !== false
-            ).length;
-        } catch (error) {
-          console.error("Error counting connected users:", error);
-          realConnectedCount = 0;
-        }
+        // Using mock count
+        realConnectedCount = 2; // For the mock demo users
       }
       setConnectedUsersCount(realConnectedCount);
       
@@ -416,42 +415,49 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
           </div>
               
           {usersList.length > 0 ? (
-            usersList.map((user) => (
-              <div 
-                key={user.id}
-                className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer hover:bg-accent/50 transition-colors ${
-                  selectedUser === user.id ? 'bg-accent/70' : ''
-                }`}
-                onClick={() => onUserSelect(user.id)}
-              >
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold ${
-                  user.gender === 'Male' ? 'bg-blue-500' : 'bg-pink-500'
-                }`}>
-                  {user.username.charAt(0)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1">
-                    <span className="font-medium truncate">{user.username}</span>
-                    <span className="text-xs opacity-70">{user.age}</span>
-                    <span className="ml-1 text-lg">{user.flag}</span>
-                    {user.isBot && (
-                      <Badge className="ml-auto" variant="outline">Bot</Badge>
-                    )}
+            usersList.map((user) => {
+              const hasUnread = unreadMessagesPerUser.has(user.id);
+              
+              return (
+                <div 
+                  key={user.id}
+                  className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer hover:bg-accent/50 transition-colors ${
+                    selectedUser === user.id ? 'bg-accent/70' : ''
+                  } ${hasUnread ? 'bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800' : ''}`}
+                  onClick={() => onUserSelect(user.id)}
+                >
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold ${
+                    user.gender === 'Male' ? 'bg-blue-500' : 'bg-pink-500'
+                  } ${hasUnread ? 'ring-2 ring-teal-400' : ''}`}>
+                    {user.username.charAt(0)}
                   </div>
-                  <div className="flex items-center text-sm text-green-500">
-                    {user.isOnline !== false && (
-                      <>
-                        <span className="h-2 w-2 rounded-full bg-green-500 mr-1"></span>
-                        Online
-                      </>
-                    )}
-                    {user.isOnline === false && (
-                      <span className="text-muted-foreground">Offline</span>
-                    )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1">
+                      <span className={`font-medium truncate ${hasUnread ? 'font-bold' : ''}`}>{user.username}</span>
+                      <span className="text-xs opacity-70">{user.age}</span>
+                      <span className="ml-1 text-lg">{user.flag}</span>
+                      {user.isBot && (
+                        <Badge className="ml-auto" variant="outline">Bot</Badge>
+                      )}
+                      {hasUnread && (
+                        <Badge className="ml-auto" variant="default" className="bg-teal-500">New</Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center text-sm text-green-500">
+                      {user.isOnline !== false && (
+                        <>
+                          <span className="h-2 w-2 rounded-full bg-green-500 mr-1"></span>
+                          Online
+                        </>
+                      )}
+                      {user.isOnline === false && (
+                        <span className="text-muted-foreground">Offline</span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           ) : (
             <div className="py-8 text-center">
               <Users className="h-10 w-10 mx-auto text-muted-foreground mb-2" />

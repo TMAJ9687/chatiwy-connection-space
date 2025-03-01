@@ -1,3 +1,4 @@
+
 import { io, Socket } from 'socket.io-client';
 import { toast } from 'sonner';
 
@@ -22,6 +23,7 @@ class SocketService {
   private maxReconnectAttempts: number = 3;
   private currentServerIndex: number = 0;
   private connectionInProgress: boolean = false;
+  private userId: string | null = null;
 
   // Initialize the socket connection
   connect(): Promise<Socket> {
@@ -136,6 +138,7 @@ class SocketService {
       this.socket.emit('register_user', userProfile);
 
       this.socket.once('registration_success', (data) => {
+        this.userId = data.id; // Save the user ID for message sending
         resolve(data);
       });
 
@@ -152,7 +155,14 @@ class SocketService {
       toast.warning('Message sent in offline mode');
       return;
     }
-    this.socket.emit('send_message', message);
+
+    const enhancedMessage = {
+      ...message,
+      from: this.userId, // Include sender's ID
+      recipientId: message.to // Ensure recipientId is set explicitly
+    };
+
+    this.socket.emit('send_message', enhancedMessage);
   }
 
   // Signal that the user is typing
@@ -222,6 +232,11 @@ class SocketService {
   // Get the socket ID
   getSocketId(): string | null {
     return this.socket?.id || null;
+  }
+  
+  // Get the user ID
+  getUserId(): string | null {
+    return this.userId;
   }
   
   // Retry connection
