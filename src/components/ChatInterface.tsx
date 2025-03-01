@@ -16,10 +16,24 @@ import {
   MoreHorizontal, 
   AlertTriangle,
   User,
-  Flag
+  Flag,
+  UserX,
+  History,
+  Inbox
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { botProfiles, getRandomBotResponse, getRandomConversationStarter } from '@/utils/botProfiles';
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface Message {
   id: string;
@@ -32,9 +46,14 @@ interface Message {
 
 interface ChatInterfaceProps {
   userProfile: any;
+  selectedUser: string | null;
+  onUserSelect: (userId: string | null) => void;
 }
 
-export function ChatInterface({ userProfile }: ChatInterfaceProps) {
+// Store chat histories per user
+const userChatHistories: Record<string, Message[]> = {};
+
+export function ChatInterface({ userProfile, selectedUser, onUserSelect }: ChatInterfaceProps) {
   const [currentChat, setCurrentChat] = useState<{
     userId: string;
     username: string;
@@ -43,35 +62,60 @@ export function ChatInterface({ userProfile }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [messageInput, setMessageInput] = useState('');
   const [imageUploads, setImageUploads] = useState(0);
+  const [lastMessage, setLastMessage] = useState<string>('');
+  const [duplicateCount, setDuplicateCount] = useState(0);
+  const [view, setView] = useState<'chat' | 'history' | 'inbox'>('chat');
   const messageEndRef = useRef<HTMLDivElement>(null);
 
-  // Initialize with the first bot as the current chat
+  // Initialize selected user as current chat
   useEffect(() => {
-    if (botProfiles.length > 0) {
-      const randomBot = botProfiles[Math.floor(Math.random() * botProfiles.length)];
-      setCurrentChat({
-        userId: randomBot.id,
-        username: randomBot.username,
-        isBot: true
-      });
+    if (selectedUser) {
+      const botUser = botProfiles.find(bot => bot.id === selectedUser);
+      if (botUser) {
+        setCurrentChat({
+          userId: botUser.id,
+          username: botUser.username,
+          isBot: true
+        });
+      }
+    } else {
+      setCurrentChat(null);
     }
-  }, []);
+  }, [selectedUser]);
 
-  // Bot sends initial message
+  // Load chat history for selected user
+  useEffect(() => {
+    if (currentChat?.userId) {
+      // Initialize if not exists
+      if (!userChatHistories[currentChat.userId]) {
+        userChatHistories[currentChat.userId] = [];
+      }
+      
+      // Set messages from history
+      setMessages(userChatHistories[currentChat.userId]);
+    }
+  }, [currentChat]);
+
+  // Bot sends initial message if chat is empty
   useEffect(() => {
     if (currentChat?.isBot && messages.length === 0) {
       // Add a small delay to make it feel more natural
       const timer = setTimeout(() => {
         const starter = getRandomConversationStarter();
-        setMessages([
-          {
-            id: Math.random().toString(36).substring(7),
-            sender: currentChat.username,
-            content: starter,
-            timestamp: new Date(),
-            isBot: true
-          }
-        ]);
+        const newMessage = {
+          id: Math.random().toString(36).substring(7),
+          sender: currentChat.username,
+          content: starter,
+          timestamp: new Date(),
+          isBot: true
+        };
+        
+        setMessages([newMessage]);
+        
+        // Update history
+        if (currentChat.userId) {
+          userChatHistories[currentChat.userId] = [newMessage];
+        }
       }, 1500);
       
       return () => clearTimeout(timer);
@@ -121,16 +165,20 @@ export function ChatInterface({ userProfile }: ChatInterfaceProps) {
             .replace('[weather_type]', randomWeather);
         }
         
-        setMessages(prev => [
-          ...prev,
-          {
-            id: Math.random().toString(36).substring(7),
-            sender: currentChat?.username || 'Bot',
-            content: botResponse,
-            timestamp: new Date(),
-            isBot: true
-          }
-        ]);
+        const newMessage = {
+          id: Math.random().toString(36).substring(7),
+          sender: currentChat?.username || 'Bot',
+          content: botResponse,
+          timestamp: new Date(),
+          isBot: true
+        };
+        
+        setMessages(prev => [...prev, newMessage]);
+        
+        // Update history
+        if (currentChat?.userId) {
+          userChatHistories[currentChat.userId] = [...messages, newMessage];
+        }
       }, typingDelay);
       
       return () => clearTimeout(timer);
@@ -142,45 +190,60 @@ export function ChatInterface({ userProfile }: ChatInterfaceProps) {
     messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSendMessage = () => {
-    if (!messageInput.trim()) return;
-    
+  const validateMessage = (message: string): boolean => {
     // Check for character limit (140 for standard users)
-    if (messageInput.length > 140) {
+    if (message.length > 140) {
       toast.warning('Standard users are limited to 140 characters per message');
-      return;
+      return false;
     }
     
     // Check for consecutive numbers (max 4)
-    const consecutiveNumbersMatch = messageInput.match(/\d{5,}/);
+    const consecutiveNumbersMatch = message.match(/\d{5,}/);
     if (consecutiveNumbersMatch) {
       toast.warning('Message contains too many consecutive numbers');
-      return;
+      return false;
     }
     
     // Check for duplicate messages
-    const isDuplicate = messages.some(
-      m => m.sender === userProfile.username && 
-      m.content === messageInput && 
-      new Date().getTime() - new Date(m.timestamp).getTime() < 60000 // Within last minute
-    );
-    
-    if (isDuplicate) {
-      toast.warning('Please avoid sending duplicate messages');
-      return;
+    if (message === lastMessage) {
+      setDuplicateCount(prevCount => prevCount + 1);
+      
+      if (duplicateCount >= 2) { // Third attempt
+        toast.error('Please avoid sending multiple duplicate messages');
+        setDuplicateCount(0); // Reset after warning
+        return false;
+      } else {
+        toast.warning(`Duplicate message detected (${duplicateCount + 1}/3)`);
+      }
+    } else {
+      // Reset duplicate counter for new message
+      setDuplicateCount(0);
+      setLastMessage(message);
     }
     
+    return true;
+  };
+
+  const handleSendMessage = () => {
+    if (!messageInput.trim()) return;
+    if (!validateMessage(messageInput)) return;
+    
     // Add message to chat
-    setMessages([
-      ...messages,
-      {
-        id: Math.random().toString(36).substring(7),
-        sender: userProfile.username,
-        content: messageInput,
-        timestamp: new Date(),
-        isBot: false
-      }
-    ]);
+    const newMessage = {
+      id: Math.random().toString(36).substring(7),
+      sender: userProfile.username,
+      content: messageInput,
+      timestamp: new Date(),
+      isBot: false
+    };
+    
+    const updatedMessages = [...messages, newMessage];
+    setMessages(updatedMessages);
+    
+    // Update history
+    if (currentChat?.userId) {
+      userChatHistories[currentChat.userId] = updatedMessages;
+    }
     
     // Clear input
     setMessageInput('');
@@ -207,6 +270,139 @@ export function ChatInterface({ userProfile }: ChatInterfaceProps) {
     toast.info('Voice messages are only available for VIP users');
   };
 
+  const handleBlockUser = () => {
+    if (currentChat) {
+      toast.success(`${currentChat.username} has been blocked`);
+      onUserSelect(null);
+      
+      // In a real app, we would update a blocked users list here
+    }
+  };
+
+  const renderViewContent = () => {
+    switch (view) {
+      case 'history':
+        return (
+          <div className="flex-1 p-6 flex items-center justify-center">
+            <div className="text-center">
+              <History className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium mb-2">Chat History</h3>
+              <p className="text-muted-foreground mb-4">
+                Your past conversations will appear here
+              </p>
+              <Button 
+                variant="outline" 
+                onClick={() => setView('chat')}
+              >
+                Return to Chat
+              </Button>
+            </div>
+          </div>
+        );
+      case 'inbox':
+        return (
+          <div className="flex-1 p-6 flex items-center justify-center">
+            <div className="text-center">
+              <Inbox className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium mb-2">Inbox</h3>
+              <p className="text-muted-foreground mb-4">
+                New messages from other users will appear here
+              </p>
+              <Button 
+                variant="outline" 
+                onClick={() => setView('chat')}
+              >
+                Return to Chat
+              </Button>
+            </div>
+          </div>
+        );
+      case 'chat':
+      default:
+        return (
+          <>
+            {/* Message area */}
+            <ScrollArea className="flex-1 p-4">
+              <div className="space-y-4">
+                {messages.map((message) => (
+                  <div 
+                    key={message.id}
+                    className={`flex ${message.sender === userProfile.username ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div 
+                      className={`max-w-[80%] ${
+                        message.sender === userProfile.username 
+                          ? 'bg-teal-500 text-white rounded-tl-2xl rounded-tr-sm rounded-br-2xl rounded-bl-2xl' 
+                          : 'bg-gray-100 dark:bg-gray-800 rounded-tr-2xl rounded-tl-sm rounded-bl-2xl rounded-br-2xl'
+                      } px-4 py-2 shadow-sm`}
+                    >
+                      <p>{message.content}</p>
+                      <div 
+                        className={`text-xs mt-1 ${
+                          message.sender === userProfile.username 
+                            ? 'text-teal-100' 
+                            : 'text-gray-500 dark:text-gray-400'
+                        }`}
+                      >
+                        {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {message.sender === userProfile.username && (
+                          <span className="ml-1">✓</span> // Simple "sent" indicator
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <div ref={messageEndRef} />
+              </div>
+            </ScrollArea>
+            
+            {/* Message input */}
+            <div className="p-4 border-t">
+              <div className="flex items-end gap-2">
+                <div className="flex-1">
+                  <Textarea
+                    placeholder="Type a message..."
+                    value={messageInput}
+                    onChange={(e) => setMessageInput(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    className="resize-none min-h-[60px] max-h-[120px]"
+                    maxLength={140} // Enforce character limit
+                  />
+                  <div className="flex justify-between mt-1 text-xs text-muted-foreground">
+                    <span>{messageInput.length}/140 characters</span>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    onClick={handleImageUpload}
+                  >
+                    <Image className="h-5 w-5" />
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    onClick={handleVoiceMessage}
+                    className="opacity-50" // Disabled for standard users
+                  >
+                    <Mic className="h-5 w-5" />
+                  </Button>
+                  <Button 
+                    onClick={handleSendMessage}
+                    disabled={!messageInput.trim()}
+                    className="bg-teal-500 hover:bg-teal-600"
+                  >
+                    <Send className="h-5 w-5" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </>
+        );
+    }
+  };
+
   return (
     <div className="rounded-lg border shadow-sm h-[70vh] flex flex-col bg-background">
       {currentChat ? (
@@ -229,7 +425,38 @@ export function ChatInterface({ userProfile }: ChatInterfaceProps) {
                 </div>
               </div>
             </div>
+
             <div className="flex items-center gap-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => setView('history')}
+                    >
+                      <History className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Chat History</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => setView('inbox')}
+                    >
+                      <Inbox className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Inbox</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -240,6 +467,28 @@ export function ChatInterface({ userProfile }: ChatInterfaceProps) {
                   <TooltipContent>View Profile</TooltipContent>
                 </Tooltip>
               </TooltipProvider>
+              
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <UserX className="h-5 w-5 text-red-500" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Block User</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to block {currentChat.username}? You won't be able to receive messages from them anymore.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleBlockUser} className="bg-red-600 hover:bg-red-700">
+                      Block User
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
               
               <TooltipProvider>
                 <Tooltip>
@@ -265,83 +514,8 @@ export function ChatInterface({ userProfile }: ChatInterfaceProps) {
             </div>
           </div>
           
-          {/* Message area */}
-          <ScrollArea className="flex-1 p-4">
-            <div className="space-y-4">
-              {messages.map((message) => (
-                <div 
-                  key={message.id}
-                  className={`flex ${message.sender === userProfile.username ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div 
-                    className={`max-w-[80%] ${
-                      message.sender === userProfile.username 
-                        ? 'bg-teal-500 text-white rounded-tl-2xl rounded-tr-sm rounded-br-2xl rounded-bl-2xl' 
-                        : 'bg-gray-100 dark:bg-gray-800 rounded-tr-2xl rounded-tl-sm rounded-bl-2xl rounded-br-2xl'
-                    } px-4 py-2 shadow-sm`}
-                  >
-                    <p>{message.content}</p>
-                    <div 
-                      className={`text-xs mt-1 ${
-                        message.sender === userProfile.username 
-                          ? 'text-teal-100' 
-                          : 'text-gray-500 dark:text-gray-400'
-                      }`}
-                    >
-                      {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      {message.sender === userProfile.username && (
-                        <span className="ml-1">✓</span> // Simple "sent" indicator
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-              <div ref={messageEndRef} />
-            </div>
-          </ScrollArea>
-          
-          {/* Message input */}
-          <div className="p-4 border-t">
-            <div className="flex items-end gap-2">
-              <div className="flex-1">
-                <Textarea
-                  placeholder="Type a message..."
-                  value={messageInput}
-                  onChange={(e) => setMessageInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  className="resize-none min-h-[60px] max-h-[120px]"
-                  maxLength={140} // Enforce character limit
-                />
-                <div className="flex justify-between mt-1 text-xs text-muted-foreground">
-                  <span>{messageInput.length}/140 characters</span>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="icon"
-                  onClick={handleImageUpload}
-                >
-                  <Image className="h-5 w-5" />
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="icon"
-                  onClick={handleVoiceMessage}
-                  className="opacity-50" // Disabled for standard users
-                >
-                  <Mic className="h-5 w-5" />
-                </Button>
-                <Button 
-                  onClick={handleSendMessage}
-                  disabled={!messageInput.trim()}
-                  className="bg-teal-500 hover:bg-teal-600"
-                >
-                  <Send className="h-5 w-5" />
-                </Button>
-              </div>
-            </div>
-          </div>
+          {/* Content area - Chat, History or Inbox */}
+          {renderViewContent()}
         </>
       ) : (
         <div className="flex items-center justify-center h-full text-muted-foreground">

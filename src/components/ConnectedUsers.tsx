@@ -17,12 +17,13 @@ import { botProfiles, BotProfile } from '@/utils/botProfiles';
 
 interface ConnectedUsersProps {
   userProfile: any;
+  selectedUser: string | null;
+  onUserSelect: (userId: string) => void;
 }
 
-export function ConnectedUsers({ userProfile }: ConnectedUsersProps) {
+export function ConnectedUsers({ userProfile, selectedUser, onUserSelect }: ConnectedUsersProps) {
   const [users, setUsers] = useState<BotProfile[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedUser, setSelectedUser] = useState<string | null>(null);
   
   // Initialize with bot profiles
   useEffect(() => {
@@ -58,11 +59,6 @@ export function ConnectedUsers({ userProfile }: ConnectedUsersProps) {
     )
   );
   
-  const handleUserSelect = (userId: string) => {
-    setSelectedUser(userId);
-    // In a real app, this would trigger the chat to load with this user
-  };
-  
   return (
     <div className="rounded-lg border shadow-sm h-[70vh] flex flex-col bg-background">
       <div className="p-4 border-b">
@@ -93,7 +89,7 @@ export function ConnectedUsers({ userProfile }: ConnectedUsersProps) {
                     ? 'bg-teal-50 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-800' 
                     : 'hover:bg-muted border border-transparent'
                 }`}
-                onClick={() => handleUserSelect(user.id)}
+                onClick={() => onUserSelect(user.id)}
               >
                 <div className="flex items-center gap-3">
                   <div className="relative">
@@ -115,7 +111,7 @@ export function ConnectedUsers({ userProfile }: ConnectedUsersProps) {
                       <span className="text-sm text-muted-foreground">
                         {user.age}
                       </span>
-                      <span className="ml-1">{user.flag}</span>
+                      <span className="ml-1 text-lg">{user.flag}</span>
                     </div>
                     
                     <div className="flex items-center gap-1 mt-1">

@@ -14,6 +14,7 @@ const ChatPage = () => {
   const location = useLocation();
   const [showGuidance, setShowGuidance] = useState(true);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [selectedUser, setSelectedUser] = useState<string | null>(null);
   
   useEffect(() => {
     // Check if we have user profile data from the previous page
@@ -34,6 +35,10 @@ const ChatPage = () => {
   const handleGuidanceDecline = () => {
     navigate('/');
     toast.info('You need to accept the guidelines to use Chatiwy.');
+  };
+
+  const handleUserSelect = (userId: string) => {
+    setSelectedUser(userId);
   };
 
   if (!userProfile) {
@@ -61,10 +66,18 @@ const ChatPage = () => {
           <div className="container mx-auto px-4">
             <div className="flex flex-col lg:flex-row gap-4">
               <div className="w-full lg:w-1/4">
-                <ConnectedUsers userProfile={userProfile} />
+                <ConnectedUsers 
+                  userProfile={userProfile} 
+                  selectedUser={selectedUser}
+                  onUserSelect={handleUserSelect}
+                />
               </div>
               <div className="w-full lg:w-3/4">
-                <ChatInterface userProfile={userProfile} />
+                <ChatInterface 
+                  userProfile={userProfile} 
+                  selectedUser={selectedUser}
+                  onUserSelect={setSelectedUser}
+                />
               </div>
             </div>
           </div>
