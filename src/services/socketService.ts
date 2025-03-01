@@ -1,4 +1,3 @@
-
 import { io, Socket } from 'socket.io-client';
 import { toast } from 'sonner';
 
@@ -24,6 +23,7 @@ class SocketService {
   private currentServerIndex: number = 0;
   private connectionInProgress: boolean = false;
   private userId: string | null = null;
+  private blockedUsers: Set<string> = new Set();
 
   // Initialize the socket connection
   connect(): Promise<Socket> {
@@ -105,7 +105,8 @@ class SocketService {
 
     this.socket.on('error', (error) => {
       console.error('Socket error:', error);
-      toast.error('Chat server error: ' + error);
+      // Don't show toast for socket errors, only UI relevant errors
+      // toast.error('Chat server error: ' + error);
     });
 
     this.socket.on('disconnect', (reason) => {
@@ -113,7 +114,8 @@ class SocketService {
       
       // Don't show error toast for client-initiated disconnects
       if (reason !== 'io client disconnect') {
-        toast.error('Disconnected from chat server. Trying to reconnect...');
+        // Don't show disconnection toasts to not interfere with chat
+        console.log('Disconnected from chat server:', reason);
       }
     });
 
@@ -148,11 +150,37 @@ class SocketService {
     });
   }
 
+  // Add user to blocked list
+  addBlockedUser(userId: string): void {
+    this.blockedUsers.add(userId);
+  }
+
+  // Remove user from blocked list
+  removeBlockedUser(userId: string): void {
+    this.blockedUsers.delete(userId);
+  }
+
+  // Check if user is blocked
+  isUserBlocked(userId: string): boolean {
+    return this.blockedUsers.has(userId);
+  }
+
+  // Get all blocked users
+  getBlockedUsers(): string[] {
+    return Array.from(this.blockedUsers);
+  }
+
   // Send a message
   sendMessage(message: { to?: string; content: string }): void {
     if (!this.socket) {
       console.error('Cannot send message: Socket not connected');
       toast.warning('Message sent in offline mode');
+      return;
+    }
+
+    // Check if recipient is blocked
+    if (message.to && this.blockedUsers.has(message.to)) {
+      toast.error('Cannot send message to blocked user');
       return;
     }
 
@@ -168,12 +196,23 @@ class SocketService {
   // Signal that the user is typing
   sendTyping(data: { to: string; isTyping: boolean }): void {
     if (!this.socket) return;
+    
+    // Don't send typing indicators to blocked users
+    if (data.to && this.blockedUsers.has(data.to)) {
+      return;
+    }
+    
     this.socket.emit('typing', data);
   }
 
   // Block a user
   blockUser(userId: string): void {
     if (!this.socket) return;
+    
+    // Add to local blocked list
+    this.addBlockedUser(userId);
+    
+    // Emit block event to server
     this.socket.emit('block_user', userId);
   }
 

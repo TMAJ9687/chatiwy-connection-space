@@ -34,7 +34,9 @@ import {
   Ban,
   AlertOctagon,
   Wifi,
-  WifiOff
+  WifiOff,
+  ShieldAlert,
+  UserMinus
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { botProfiles, getRandomBotResponse } from '@/utils/botProfiles';
@@ -87,7 +89,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
   const [imageUploads, setImageUploads] = useState(0);
   const [lastMessage, setLastMessage] = useState<string>('');
   const [duplicateCount, setDuplicateCount] = useState(0);
-  const [view, setView] = useState<'chat' | 'history' | 'inbox'>('chat');
+  const [view, setView] = useState<'chat' | 'history' | 'inbox' | 'blocked'>('chat');
   const [isReportFormOpen, setIsReportFormOpen] = useState(false);
   const messageEndRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -158,6 +160,12 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                           messageData.senderId === socketService.getSocketId();
         const isForCurrentChat = messageData.recipientId === currentChat?.userId;
         
+        // Check if user is blocked - don't process messages from blocked users
+        if (messageData.senderId && blockedUsers.has(messageData.senderId)) {
+          console.log('Message from blocked user, ignoring');
+          return;
+        }
+        
         console.log('Message from current chat?', isFromCurrentChat);
         console.log('Message sent by me?', isSentByMe);
         console.log('Current chat:', currentChat);
@@ -175,8 +183,8 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
           
           setMessages(prev => [...prev, newMessage]);
           
-          // Also add to chat history
-          if (currentChat?.userId) {
+          // Also add to chat history if not from blocked user
+          if (currentChat?.userId && !blockedUsers.has(currentChat.userId)) {
             userChatHistories[currentChat.userId] = [
               ...(userChatHistories[currentChat.userId] || []),
               newMessage
@@ -187,8 +195,9 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
           setShouldAutoScroll(true);
         } else {
           // Message is from another user - we need to track as unread
-          // Store in chat history for that user
-          if (messageData.senderId) {
+          // Only if the sender is not blocked
+          if (messageData.senderId && !blockedUsers.has(messageData.senderId)) {
+            // Store in chat history for that user
             if (!userChatHistories[messageData.senderId]) {
               userChatHistories[messageData.senderId] = [];
             }
@@ -217,14 +226,16 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
       
       // Listen for typing status
       socketService.on('user_typing', (data: any) => {
-        if (data.userId === currentChat?.userId) {
+        if (data.userId === currentChat?.userId && !blockedUsers.has(data.userId)) {
           setUserTyping(data.isTyping);
         }
       });
       
       // Listen for being blocked
       socketService.on('blocked_by', (userId: string) => {
-        toast.error(`You have been blocked by a user`);
+        // Don't show toast here, only show when trying to message someone
+        // toast.error(`You have been blocked by a user`);
+        
         // Maybe update UI to reflect this
       });
     }
@@ -246,8 +257,13 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
         userChatHistories[currentChat.userId] = [];
       }
       
-      // Set messages from history
-      setMessages(userChatHistories[currentChat.userId]);
+      // Set messages from history (but only if user is not blocked)
+      if (!blockedUsers.has(currentChat.userId)) {
+        setMessages(userChatHistories[currentChat.userId]);
+      } else {
+        // If user is blocked, don't show any messages
+        setMessages([]);
+      }
       
       // Reset view when switching users
       setView('chat');
@@ -374,7 +390,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
     
     // Check if user is trying to message someone who blocked them
     if (blockedUsers.has(currentChat?.userId || '')) {
-      toast.error(`${currentChat?.username} has blocked you`);
+      toast.error(`${currentChat?.username} has been blocked`);
       setMessageInput('');
       return;
     }
@@ -460,7 +476,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
     setMessageInput(e.target.value);
     
     // Send typing status to WebSocket if connected and not chatting with a bot
-    if (socketConnected && currentChat && !currentChat.isBot) {
+    if (socketConnected && currentChat && !currentChat.isBot && !blockedUsers.has(currentChat.userId)) {
       socketService.sendTyping({
         to: currentChat.userId,
         isTyping: e.target.value.length > 0
@@ -497,6 +513,9 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
         socketService.blockUser(currentChat.userId);
       }
       
+      // Clear messages since the user is blocked
+      setMessages([]);
+      
       toast.success(`${currentChat.username} has been blocked`);
       
       // Stay on the current user but update the view
@@ -504,17 +523,32 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
     }
   };
   
-  const handleUnblockUser = () => {
-    if (currentChat) {
-      blockedUsers.delete(currentChat.userId);
-      toast.success(`${currentChat.username} has been unblocked`);
-      
-      // Force re-render
-      setMessages([...messages]);
+  const handleUnblockUser = (userId: string) => {
+    // Get username for toast message
+    let username = "User";
+    const botUser = botProfiles.find(bot => bot.id === userId);
+    if (botUser) {
+      username = botUser.username;
+    } else {
+      // Try to find in chat history
+      const chatHistory = userChatHistories[userId] || [];
+      if (chatHistory.length > 0 && chatHistory[0].sender) {
+        username = chatHistory[0].sender;
+      }
+    }
+    
+    blockedUsers.delete(userId);
+    toast.success(`${username} has been unblocked`);
+    
+    // If this is the current chat, reload messages
+    if (currentChat && currentChat.userId === userId) {
+      if (userChatHistories[userId]) {
+        setMessages(userChatHistories[userId]);
+      }
     }
   };
 
-  // Function to render the fixed notification icon in the app
+  // Always render notification icon
   const renderNotificationIcon = () => {
     return (
       <div className="fixed bottom-4 right-4 z-50">
@@ -522,14 +556,14 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
           <Tooltip>
             <TooltipTrigger asChild>
               <Button 
-                variant="default" 
+                variant={unreadCount > 0 ? "success" : "outline"} 
                 size="icon" 
-                className="rounded-full shadow-lg bg-teal-500 hover:bg-teal-600"
+                className="rounded-full shadow-lg"
                 onClick={() => setView('inbox')}
               >
                 {unreadCount > 0 ? (
                   <div className="relative">
-                    <BellDot className="h-5 w-5" />
+                    <Inbox className="h-5 w-5" />
                     <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
                       {unreadCount}
                     </span>
@@ -550,6 +584,75 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
 
   const renderViewContent = () => {
     switch (view) {
+      case 'blocked':
+        return (
+          <div className="flex-1 p-6">
+            <h3 className="text-lg font-medium mb-4">Blocked Users</h3>
+            {blockedUsers.size > 0 ? (
+              <div className="space-y-4">
+                {Array.from(blockedUsers).map(userId => {
+                  const bot = botProfiles.find(b => b.id === userId);
+                  let username = "Unknown User";
+                  let gender = "Male"; // Default for UI styling
+                  
+                  // Determine user details
+                  if (bot) {
+                    username = bot.username;
+                    gender = bot.gender;
+                  } else {
+                    // Try to find in chat history
+                    const chatHistory = userChatHistories[userId] || [];
+                    if (chatHistory.length > 0 && chatHistory[0].sender) {
+                      username = chatHistory[0].sender;
+                    }
+                  }
+                  
+                  return (
+                    <div 
+                      key={userId}
+                      className="p-4 border rounded-lg flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold ${
+                          gender === 'Male' ? 'bg-blue-500' : 'bg-pink-500'
+                        }`}>
+                          {username.charAt(0)}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{username}</span>
+                            <Ban className="h-4 w-4 text-red-500" />
+                          </div>
+                          <p className="text-sm text-muted-foreground">Blocked user</p>
+                        </div>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => handleUnblockUser(userId)}
+                        size="sm"
+                      >
+                        Unblock
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <ShieldAlert className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground mb-4">
+                  You haven't blocked any users yet
+                </p>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setView('chat')}
+                >
+                  Return to Chat
+                </Button>
+              </div>
+            )}
+          </div>
+        );
       case 'history':
         return (
           <div className="flex-1 p-6">
@@ -557,13 +660,13 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
             {Object.entries(userChatHistories).length > 0 ? (
               <div className="space-y-4">
                 {Object.entries(userChatHistories).map(([userId, chatHistory]) => {
-                  if (chatHistory.length === 0) return null;
+                  // Skip blocked users and empty histories
+                  if (blockedUsers.has(userId) || chatHistory.length === 0) return null;
                   
                   const bot = botProfiles.find(b => b.id === userId);
                   if (!bot && !chatHistory[0].sender) return null;
                   
                   const lastMessage = chatHistory[chatHistory.length - 1];
-                  const isBlocked = blockedUsers.has(userId);
                   const chatName = bot ? bot.username : chatHistory[0].sender;
                   const hasUnread = unreadMessagesPerUser.has(userId);
                   
@@ -572,12 +675,8 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                       key={userId}
                       className={`p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors ${hasUnread ? 'bg-teal-50 dark:bg-teal-900/20 border-teal-200 dark:border-teal-800' : ''}`}
                       onClick={() => {
-                        if (!isBlocked) {
-                          onUserSelect(userId);
-                          setView('chat');
-                        } else {
-                          toast.error(`${chatName} is blocked. Unblock to continue chatting.`);
-                        }
+                        onUserSelect(userId);
+                        setView('chat');
                       }}
                     >
                       <div className="flex items-center gap-3 mb-2">
@@ -590,23 +689,11 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                           <div className="flex items-center gap-2">
                             <span className={`font-medium ${hasUnread ? 'font-bold' : ''}`}>{chatName}</span>
                             <span className="text-sm text-muted-foreground">{bot?.age}</span>
-                            <span className="ml-1 text-lg">{bot?.flag}</span>
-                            {hasUnread && (
-                              <Badge className="ml-1 bg-teal-500">New</Badge>
+                            {bot?.flag && (
+                              <span className="ml-1 text-lg">{bot.flag}</span>
                             )}
-                            {isBlocked && (
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <span className="ml-1">
-                                      <Ban className="h-4 w-4 text-red-500" />
-                                    </span>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>This user is blocked</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+                            {hasUnread && (
+                              <Badge variant="success" className="ml-1">New</Badge>
                             )}
                           </div>
                         </div>
@@ -647,6 +734,9 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
             {unreadMessagesPerUser.size > 0 ? (
               <div className="space-y-4">
                 {Array.from(unreadMessagesPerUser).map(userId => {
+                  // Skip blocked users
+                  if (blockedUsers.has(userId)) return null;
+                  
                   const chatHistory = userChatHistories[userId] || [];
                   if (chatHistory.length === 0) return null;
                   
@@ -675,8 +765,10 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                           <div className="flex items-center gap-2">
                             <span className="font-bold">{chatName}</span>
                             <span className="text-sm text-muted-foreground">{bot?.age}</span>
-                            <span className="ml-1 text-lg">{bot?.flag}</span>
-                            <Badge className="ml-1 bg-teal-500">New</Badge>
+                            {bot?.flag && (
+                              <span className="ml-1 text-lg">{bot.flag}</span>
+                            )}
+                            <Badge variant="success" className="ml-1">New</Badge>
                           </div>
                         </div>
                         <span className="text-xs text-muted-foreground">
@@ -724,7 +816,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                   </p>
                   <Button 
                     variant="outline" 
-                    onClick={handleUnblockUser}
+                    onClick={() => handleUnblockUser(currentChat?.userId || '')}
                   >
                     Unblock User
                   </Button>
@@ -939,6 +1031,22 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={() => setView('blocked')}
+                        className={view === 'blocked' ? 'bg-accent' : ''}
+                      >
+                        <UserMinus className="h-5 w-5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Blocked Users</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
                       <Button variant="ghost" size="icon">
                         <User className="h-5 w-5" />
                       </Button>
@@ -960,7 +1068,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <DropdownMenuItem
-                          disabled={currentChat.isAdmin}
+                          disabled={currentChat.isAdmin || blockedUsers.has(currentChat.userId)}
                           onSelect={(e) => e.preventDefault()}
                         >
                           <UserX className="h-4 w-4 mr-2 text-red-500" />
@@ -1001,7 +1109,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
               </div>
             </div>
             
-            {/* Content area - Chat, History or Inbox */}
+            {/* Content area - Chat, History, Inbox or Blocked */}
             {renderViewContent()}
             
             {/* Report Form */}
@@ -1018,8 +1126,8 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
         )}
       </div>
       
-      {/* Fixed notification icon */}
-      {!currentChat && renderNotificationIcon()}
+      {/* Fixed notification icon - always displayed now */}
+      {renderNotificationIcon()}
     </>
   );
 }
