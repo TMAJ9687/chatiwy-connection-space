@@ -24,17 +24,20 @@ import {
   X
 } from 'lucide-react';
 import { botProfiles } from '@/utils/botProfiles';
+import socketService from '@/services/socketService';
+import { countries } from '@/utils/countryData';
 
 interface ConnectedUsersProps {
   userProfile: any;
   selectedUser: string | null;
   onUserSelect: (userId: string) => void;
+  socketConnected?: boolean;
 }
 
-// Get the mockConnectedUsers from the global scope
+// Get the mockConnectedUsers from the global scope, used as fallback
 declare const mockConnectedUsers: Map<string, any>;
 
-export function ConnectedUsers({ userProfile, selectedUser, onUserSelect }: ConnectedUsersProps) {
+export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socketConnected = false }: ConnectedUsersProps) {
   const [filter, setFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [usersList, setUsersList] = useState<any[]>([]);
@@ -42,34 +45,76 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect }: Conn
   const [ageRange, setAgeRange] = useState<[number, number]>([18, 80]);
   const [availableCountries, setAvailableCountries] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
+  const [connectedUsersCount, setConnectedUsersCount] = useState(0);
+  const [realTimeUsers, setRealTimeUsers] = useState<any[]>([]);
   
-  // Function to get connected users from the mock database
+  // Setup WebSocket listeners for user updates
+  useEffect(() => {
+    if (socketConnected) {
+      // Listen for users list updates
+      socketService.on('users_update', (users: any[]) => {
+        setRealTimeUsers(users);
+      });
+      
+      return () => {
+        socketService.off('users_update');
+      };
+    }
+  }, [socketConnected]);
+  
+  // Function to get connected users from the socket or mock database
   const getConnectedUsers = () => {
     try {
-      // Create a list of all connected real users (excluding the current user)
-      const realUsers = Array.from(mockConnectedUsers.entries())
-        .filter(([id, user]) => user.sessionId !== userProfile.sessionId)
-        .map(([id, user]) => ({
-          id,
-          username: user.username,
-          age: user.age,
-          gender: user.gender,
-          country: user.country || 'Unknown',
-          flag: user.flag || '🌍',
-          isOnline: user.isOnline,
-          isBot: false
+      if (socketConnected && realTimeUsers.length > 0) {
+        // Use real-time users from WebSocket
+        const socketUsers = realTimeUsers
+          .filter(user => user.id !== socketService.getSocketId()) // Exclude current user
+          .map(user => ({
+            id: user.id,
+            username: user.username,
+            age: user.age,
+            gender: user.gender,
+            country: user.country || 'Unknown',
+            flag: user.flag || '🌍',
+            isOnline: user.isOnline,
+            isBot: false
+          }));
+        
+        // Add bot profiles
+        const bots = botProfiles.map(bot => ({
+          ...bot,
+          isBot: true
         }));
-      
-      // Add bot profiles
-      const bots = botProfiles.map(bot => ({
-        ...bot,
-        isBot: true
-      }));
-      
-      // Combine real users and bots
-      return [...realUsers, ...bots];
+        
+        return [...socketUsers, ...bots];
+      } else {
+        // Fallback to mock database
+        // Create a list of all connected real users (excluding the current user)
+        const realUsers = Array.from(mockConnectedUsers.entries())
+          .filter(([id, user]) => user.sessionId !== userProfile.sessionId)
+          .map(([id, user]) => ({
+            id,
+            username: user.username,
+            age: user.age,
+            gender: user.gender,
+            country: user.country || 'Unknown',
+            flag: user.flag || '🌍',
+            isOnline: user.isOnline,
+            isBot: false
+          }));
+        
+        // Add bot profiles
+        const bots = botProfiles.map(bot => ({
+          ...bot,
+          isBot: true
+        }));
+        
+        // Combine real users and bots
+        return [...realUsers, ...bots];
+      }
     } catch (error) {
       console.error("Error fetching connected users:", error);
+      // Fallback to just bot profiles if there's an error
       return botProfiles.map(bot => ({
         ...bot,
         isBot: true
@@ -77,12 +122,12 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect }: Conn
     }
   };
   
-  // Effect to collect available countries from all users
+  // Effect to gather all available countries from our data
   useEffect(() => {
-    const allUsers = getConnectedUsers();
-    const countries = [...new Set(allUsers.map(user => user.country))].filter(Boolean);
-    setAvailableCountries(countries);
-  }, [userProfile]);
+    // Use the full countries list from our countryData.ts
+    const countryNames = countries.map(country => country.name);
+    setAvailableCountries(countryNames);
+  }, []);
   
   // Effect to update the users list when filter changes
   useEffect(() => {
@@ -123,6 +168,29 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect }: Conn
         );
       }
       
+      // Count real connected users (excluding bots and excluding the current user)
+      let realConnectedCount = 0;
+      if (socketConnected) {
+        // Count from WebSocket users
+        realConnectedCount = realTimeUsers.filter(user => 
+          user.id !== socketService.getSocketId() && 
+          user.isOnline
+        ).length;
+      } else {
+        try {
+          // Count from mock database
+          realConnectedCount = Array.from(mockConnectedUsers.entries())
+            .filter(([id, user]) => 
+              user.sessionId !== userProfile.sessionId && 
+              user.isOnline !== false
+            ).length;
+        } catch (error) {
+          console.error("Error counting connected users:", error);
+          realConnectedCount = 0;
+        }
+      }
+      setConnectedUsersCount(realConnectedCount);
+      
       setUsersList(filteredUsers);
     } catch (error) {
       console.error("Error filtering users:", error);
@@ -131,7 +199,7 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect }: Conn
         isBot: true
       })));
     }
-  }, [filter, searchQuery, userProfile, countryFilter, ageRange]);
+  }, [filter, searchQuery, userProfile, countryFilter, ageRange, socketConnected, realTimeUsers]);
   
   const handleFilterChange = (newFilter: string) => {
     setFilter(newFilter);
@@ -160,20 +228,11 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect }: Conn
     setSearchQuery('');
   };
   
-  // Count real connected users (excluding bots and the current user)
-  const connectedUsersCount = (() => {
-    try {
-      // Count real users except current user
-      return Array.from(mockConnectedUsers.entries())
-        .filter(([id, user]) => 
-          user.sessionId !== userProfile.sessionId && 
-          user.isOnline !== false
-        ).length;
-    } catch (error) {
-      console.error("Error counting connected users:", error);
-      return 0;
-    }
-  })();
+  // Helper function to get flag emoji for a country name
+  const getCountryFlag = (countryName: string): string => {
+    const country = countries.find(c => c.name === countryName);
+    return country ? country.flag : '🌍';
+  };
 
   return (
     <Card className="h-full">
@@ -185,6 +244,9 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect }: Conn
             <Badge variant="secondary" className="ml-1">
               {connectedUsersCount} online
             </Badge>
+            {socketConnected && (
+              <Badge variant="outline" className="bg-green-100 dark:bg-green-900">Live</Badge>
+            )}
           </div>
           <div className="flex gap-2">
             <Button 
@@ -201,7 +263,7 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect }: Conn
                   <Filter className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuContent align="end" className="w-56 max-h-[60vh] overflow-auto">
                 <DropdownMenuLabel>User Filters</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
@@ -242,6 +304,7 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect }: Conn
                     checked={countryFilter.includes(country)}
                     onCheckedChange={() => toggleCountryFilter(country)}
                   >
+                    <span className="mr-2">{getCountryFlag(country)}</span>
                     {country}
                   </DropdownMenuCheckboxItem>
                 ))}
@@ -301,7 +364,7 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect }: Conn
                   <div className="flex flex-wrap gap-1">
                     {countryFilter.map(country => (
                       <Badge key={country} variant="outline" className="flex items-center gap-1">
-                        {country}
+                        <span>{getCountryFlag(country)}</span> {country}
                         <Button 
                           variant="ghost" 
                           size="sm" 

@@ -8,8 +8,9 @@ import { ChatInterface } from '@/components/ChatInterface';
 import { ConnectedUsers } from '@/components/ConnectedUsers';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
+import socketService from '@/services/socketService';
 
-// Create a mock user database for demo purposes
+// Create a mock user database for demo purposes when WebSocket is not available
 // This would be replaced by a real database in a production app
 const mockConnectedUsers = new Map();
 
@@ -22,6 +23,28 @@ const ChatPage = () => {
   const [showGuidance, setShowGuidance] = useState(true);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
+  const [socketConnected, setSocketConnected] = useState(false);
+  
+  // Connect to WebSocket server
+  useEffect(() => {
+    const connectToSocket = async () => {
+      try {
+        await socketService.connect();
+        setSocketConnected(true);
+        console.log('Connected to WebSocket server');
+      } catch (error) {
+        console.error('Failed to connect to WebSocket server:', error);
+        toast.error('Unable to connect to chat server. Using offline mode.');
+      }
+    };
+    
+    connectToSocket();
+    
+    // Cleanup on unmount
+    return () => {
+      socketService.disconnect();
+    };
+  }, []);
   
   useEffect(() => {
     // Generate a unique session ID for this browser window if it doesn't exist
@@ -42,43 +65,65 @@ const ChatPage = () => {
         return;
       }
       
-      // Check if username is already taken by someone else other than this session
-      let isUsernameTakenByOther = false;
-      mockConnectedUsers.forEach((user, key) => {
-        if (user.username.toLowerCase() === profile.username.toLowerCase() && 
-            user.sessionId !== sessionId && 
-            user.isOnline) {
-          isUsernameTakenByOther = true;
+      // If socket is connected, register user with the server
+      if (socketConnected) {
+        socketService.registerUser({
+          ...profile,
+          sessionId
+        }).then(registeredUser => {
+          // User successfully registered with WebSocket server
+          setUserProfile({
+            ...profile,
+            id: registeredUser.id,
+            sessionId
+          });
+        }).catch(error => {
+          // Registration failed, handle error
+          console.error('Registration error:', error);
+          navigate('/');
+          toast.error(error || 'Registration failed. Please try again.');
+        });
+      } else {
+        // Fallback to local storage approach when WebSocket is not available
+        
+        // Check if username is already taken by someone else other than this session
+        let isUsernameTakenByOther = false;
+        mockConnectedUsers.forEach((user, key) => {
+          if (user.username.toLowerCase() === profile.username.toLowerCase() && 
+              user.sessionId !== sessionId && 
+              user.isOnline) {
+            isUsernameTakenByOther = true;
+          }
+        });
+        
+        if (isUsernameTakenByOther) {
+          navigate('/');
+          toast.error('This username is already taken. Please choose another one');
+          return;
         }
-      });
-      
-      if (isUsernameTakenByOther) {
-        navigate('/');
-        toast.error('This username is already taken. Please choose another one');
-        return;
+        
+        // Ensure the profile has a unique identifier
+        profile.id = profile.id || sessionId;
+        profile.sessionId = sessionId;
+        
+        setUserProfile(profile);
+        
+        // Clear any previous entries with the same session ID
+        mockConnectedUsers.forEach((user, key) => {
+          if (user.sessionId === sessionId) {
+            mockConnectedUsers.delete(key);
+          }
+        });
+        
+        // Store user in our mock database with a unique ID
+        mockConnectedUsers.set(profile.id, {
+          ...profile,
+          isOnline: true,
+          lastSeen: new Date()
+        });
+        
+        console.log("Current connected users:", Array.from(mockConnectedUsers.entries()));
       }
-      
-      // Ensure the profile has a unique identifier
-      profile.id = profile.id || sessionId;
-      profile.sessionId = sessionId;
-      
-      setUserProfile(profile);
-      
-      // Clear any previous entries with the same session ID
-      mockConnectedUsers.forEach((user, key) => {
-        if (user.sessionId === sessionId) {
-          mockConnectedUsers.delete(key);
-        }
-      });
-      
-      // Store user in our mock database with a unique ID
-      mockConnectedUsers.set(profile.id, {
-        ...profile,
-        isOnline: true,
-        lastSeen: new Date()
-      });
-      
-      console.log("Current connected users:", Array.from(mockConnectedUsers.entries()));
     } else {
       // If no profile data, redirect back to home
       navigate('/');
@@ -87,7 +132,7 @@ const ChatPage = () => {
     
     // Cleanup on unmount - mark user as offline
     return () => {
-      if (userProfile && userProfile.id) {
+      if (userProfile && userProfile.id && !socketConnected) {
         const user = mockConnectedUsers.get(userProfile.id);
         if (user) {
           mockConnectedUsers.set(userProfile.id, {
@@ -98,13 +143,13 @@ const ChatPage = () => {
         }
       }
     };
-  }, [location.state, navigate]);
+  }, [location.state, navigate, socketConnected]);
 
   // This handles the before unload event to mark users as offline when closing the browser
   useEffect(() => {
     const handleBeforeUnload = () => {
       const sessionId = sessionStorage.getItem(sessionKey);
-      if (sessionId && userProfile) {
+      if (sessionId && userProfile && !socketConnected) {
         mockConnectedUsers.forEach((user, key) => {
           if (user.sessionId === sessionId) {
             mockConnectedUsers.delete(key);
@@ -118,7 +163,7 @@ const ChatPage = () => {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [userProfile]);
+  }, [userProfile, socketConnected]);
 
   const handleGuidanceAccept = () => {
     setShowGuidance(false);
@@ -164,6 +209,7 @@ const ChatPage = () => {
                   userProfile={userProfile} 
                   selectedUser={selectedUser}
                   onUserSelect={handleUserSelect}
+                  socketConnected={socketConnected}
                 />
               </div>
               <div className="w-full lg:w-3/4">
@@ -171,6 +217,7 @@ const ChatPage = () => {
                   userProfile={userProfile} 
                   selectedUser={selectedUser}
                   onUserSelect={setSelectedUser}
+                  socketConnected={socketConnected}
                 />
               </div>
             </div>

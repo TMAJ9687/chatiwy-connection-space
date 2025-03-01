@@ -30,7 +30,9 @@ import {
   History,
   Inbox,
   Ban,
-  AlertOctagon
+  AlertOctagon,
+  Wifi,
+  WifiOff
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { botProfiles, getRandomBotResponse } from '@/utils/botProfiles';
@@ -45,10 +47,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import socketService from '@/services/socketService';
 
 interface Message {
   id: string;
   sender: string;
+  senderId?: string;
   content: string;
   timestamp: Date;
   isBot: boolean;
@@ -59,6 +63,7 @@ interface ChatInterfaceProps {
   userProfile: any;
   selectedUser: string | null;
   onUserSelect: (userId: string | null) => void;
+  socketConnected?: boolean;
 }
 
 // Store chat histories per user
@@ -66,7 +71,7 @@ const userChatHistories: Record<string, Message[]> = {};
 // Store blocked users
 const blockedUsers: Set<string> = new Set();
 
-export function ChatInterface({ userProfile, selectedUser, onUserSelect }: ChatInterfaceProps) {
+export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketConnected = false }: ChatInterfaceProps) {
   const [currentChat, setCurrentChat] = useState<{
     userId: string;
     username: string;
@@ -83,6 +88,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect }: ChatI
   const messageEndRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+  const [userTyping, setUserTyping] = useState(false);
 
   // Initialize selected user as current chat
   useEffect(() => {
@@ -95,11 +101,80 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect }: ChatI
           isBot: true,
           isAdmin: botUser.isAdmin
         });
+      } else if (socketConnected) {
+        // Try to get user info from socket
+        socketService.on('users_update', (users) => {
+          const user = users.find((u: any) => u.id === selectedUser);
+          if (user) {
+            setCurrentChat({
+              userId: user.id,
+              username: user.username,
+              isBot: false
+            });
+          }
+        });
       }
     } else {
       setCurrentChat(null);
     }
-  }, [selectedUser]);
+  }, [selectedUser, socketConnected]);
+
+  // Set up WebSocket listeners for messages
+  useEffect(() => {
+    if (socketConnected) {
+      // Listen for incoming messages
+      socketService.on('receive_message', (messageData: any) => {
+        const isFromCurrentChat = messageData.senderId === currentChat?.userId;
+        const isSentByMe = messageData.senderId === socketService.getSocketId();
+        
+        if (isFromCurrentChat || isSentByMe) {
+          // This message is for the current chat
+          const newMessage: Message = {
+            id: messageData.id,
+            sender: messageData.sender,
+            content: messageData.content,
+            timestamp: new Date(messageData.timestamp),
+            isBot: false
+          };
+          
+          setMessages(prev => [...prev, newMessage]);
+          
+          // Also add to chat history
+          if (currentChat?.userId) {
+            userChatHistories[currentChat.userId] = [
+              ...(userChatHistories[currentChat.userId] || []),
+              newMessage
+            ];
+          }
+          
+          // Auto-scroll when receiving new messages in current chat
+          setShouldAutoScroll(true);
+        } else {
+          // Message is from another user
+          // Could add notification functionality here
+        }
+      });
+      
+      // Listen for typing status
+      socketService.on('user_typing', (data: any) => {
+        if (data.userId === currentChat?.userId) {
+          setUserTyping(data.isTyping);
+        }
+      });
+      
+      // Listen for being blocked
+      socketService.on('blocked_by', (userId: string) => {
+        toast.error(`You have been blocked by a user`);
+        // Maybe update UI to reflect this
+      });
+      
+      return () => {
+        socketService.off('receive_message');
+        socketService.off('user_typing');
+        socketService.off('blocked_by');
+      };
+    }
+  }, [socketConnected, currentChat]);
 
   // Load chat history for selected user
   useEffect(() => {
@@ -122,7 +197,10 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect }: ChatI
 
   // Bot responds to user messages
   useEffect(() => {
-    if (messages.length > 0 && messages[messages.length - 1].sender === userProfile.username && currentChat?.isBot && !blockedUsers.has(currentChat.userId)) {
+    if (messages.length > 0 && 
+        messages[messages.length - 1].sender === userProfile.username && 
+        currentChat?.isBot && 
+        !blockedUsers.has(currentChat.userId)) {
       // Bot is "typing" - Random delay between 3-8 seconds to seem more human-like
       const typingDelay = Math.floor(Math.random() * 5000) + 3000;
       
@@ -233,42 +311,76 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect }: ChatI
     if (!messageInput.trim()) return;
     
     // Check if user is trying to message someone who blocked them
-    if (blockedUsers.has(userProfile.id) && currentChat?.isBot) {
-      toast.error(`${currentChat.username} has blocked you`);
+    if (blockedUsers.has(currentChat?.userId || '')) {
+      toast.error(`${currentChat?.username} has blocked you`);
       setMessageInput('');
       return;
     }
     
     if (!validateMessage(messageInput)) return;
     
-    // Add message to chat
-    const newMessage = {
-      id: Math.random().toString(36).substring(7),
-      sender: userProfile.username,
-      content: messageInput,
-      timestamp: new Date(),
-      isBot: false
-    };
-    
-    const updatedMessages = [...messages, newMessage];
-    setMessages(updatedMessages);
-    
-    // Update history
-    if (currentChat?.userId) {
-      userChatHistories[currentChat.userId] = updatedMessages;
+    if (socketConnected && !currentChat?.isBot) {
+      // Send message via WebSocket
+      socketService.sendMessage({
+        to: currentChat?.userId,
+        content: messageInput
+      });
+      
+      // Clear input (actual message display will be handled by the 'receive_message' event)
+      setMessageInput('');
+      
+      // Enable auto-scroll when sending a new message
+      setShouldAutoScroll(true);
+      
+      // Send stopped typing event
+      if (currentChat?.userId) {
+        socketService.sendTyping({
+          to: currentChat.userId,
+          isTyping: false
+        });
+      }
+    } else {
+      // Add message to chat (local/bot communication)
+      const newMessage = {
+        id: Math.random().toString(36).substring(7),
+        sender: userProfile.username,
+        content: messageInput,
+        timestamp: new Date(),
+        isBot: false
+      };
+      
+      const updatedMessages = [...messages, newMessage];
+      setMessages(updatedMessages);
+      
+      // Update history
+      if (currentChat?.userId) {
+        userChatHistories[currentChat.userId] = updatedMessages;
+      }
+      
+      // Clear input
+      setMessageInput('');
+      
+      // Enable auto-scroll when sending a new message
+      setShouldAutoScroll(true);
     }
-    
-    // Clear input
-    setMessageInput('');
-    
-    // Enable auto-scroll when sending a new message
-    setShouldAutoScroll(true);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setMessageInput(e.target.value);
+    
+    // Send typing status to WebSocket if connected and not chatting with a bot
+    if (socketConnected && currentChat && !currentChat.isBot) {
+      socketService.sendTyping({
+        to: currentChat.userId,
+        isTyping: e.target.value.length > 0
+      });
     }
   };
 
@@ -295,12 +407,16 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect }: ChatI
       }
       
       blockedUsers.add(currentChat.userId);
+      
+      // If connected to WebSocket, notify server about blocking
+      if (socketConnected && !currentChat.isBot) {
+        socketService.blockUser(currentChat.userId);
+      }
+      
       toast.success(`${currentChat.username} has been blocked`);
       
       // Stay on the current user but update the view
       setView('chat');
-      
-      // In a real app, we would update a blocked users list here
     }
   };
   
@@ -326,10 +442,11 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect }: ChatI
                   if (chatHistory.length === 0) return null;
                   
                   const bot = botProfiles.find(b => b.id === userId);
-                  if (!bot) return null;
+                  if (!bot && !chatHistory[0].sender) return null;
                   
                   const lastMessage = chatHistory[chatHistory.length - 1];
                   const isBlocked = blockedUsers.has(userId);
+                  const chatName = bot ? bot.username : chatHistory[0].sender;
                   
                   return (
                     <div 
@@ -340,21 +457,21 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect }: ChatI
                           onUserSelect(userId);
                           setView('chat');
                         } else {
-                          toast.error(`${bot.username} is blocked. Unblock to continue chatting.`);
+                          toast.error(`${chatName} is blocked. Unblock to continue chatting.`);
                         }
                       }}
                     >
                       <div className="flex items-center gap-3 mb-2">
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold ${
-                          bot.gender === 'Male' ? 'bg-blue-500' : 'bg-pink-500'
+                          bot?.gender === 'Male' ? 'bg-blue-500' : 'bg-pink-500'
                         }`}>
-                          {bot.username.charAt(0)}
+                          {chatName.charAt(0)}
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
-                            <span className="font-medium">{bot.username}</span>
-                            <span className="text-sm text-muted-foreground">{bot.age}</span>
-                            <span className="ml-1 text-lg">{bot.flag}</span>
+                            <span className="font-medium">{chatName}</span>
+                            <span className="text-sm text-muted-foreground">{bot?.age}</span>
+                            <span className="ml-1 text-lg">{bot?.flag}</span>
                             {isBlocked && (
                               <TooltipProvider>
                                 <Tooltip>
@@ -377,7 +494,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect }: ChatI
                       </div>
                       <p className="text-sm text-muted-foreground truncate">
                         <span className="font-medium mr-1">
-                          {lastMessage.sender === userProfile.username ? 'You:' : `${bot.username}:`}
+                          {lastMessage.sender === userProfile.username ? 'You:' : `${chatName}:`}
                         </span>
                         {lastMessage.content}
                       </p>
@@ -469,6 +586,19 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect }: ChatI
                       </div>
                     </div>
                   ))}
+                  
+                  {userTyping && (
+                    <div className="flex justify-start">
+                      <div className="bg-gray-100 dark:bg-gray-800 px-4 py-2 rounded-lg">
+                        <div className="flex items-center space-x-1">
+                          <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse"></div>
+                          <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse delay-150"></div>
+                          <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse delay-300"></div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
                   <div ref={messageEndRef} />
                 </div>
               )}
@@ -482,7 +612,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect }: ChatI
                     <Textarea
                       placeholder="Type a message..."
                       value={messageInput}
-                      onChange={(e) => setMessageInput(e.target.value)}
+                      onChange={handleInputChange}
                       onKeyDown={handleKeyDown}
                       className="resize-none min-h-[60px] max-h-[120px]"
                       maxLength={140} // Enforce character limit
@@ -490,6 +620,21 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect }: ChatI
                     />
                     <div className="flex justify-between mt-1 text-xs text-muted-foreground">
                       <span>{messageInput.length}/140 characters</span>
+                      {socketConnected && !currentChat?.isBot && (
+                        <span className="flex items-center gap-1">
+                          {socketService.isConnected() ? (
+                            <>
+                              <Wifi className="h-3 w-3 text-green-500" />
+                              <span className="text-green-500">Connected</span>
+                            </>
+                          ) : (
+                            <>
+                              <WifiOff className="h-3 w-3 text-red-500" />
+                              <span className="text-red-500">Disconnected</span>
+                            </>
+                          )}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="flex gap-2">
