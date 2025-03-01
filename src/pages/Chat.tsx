@@ -17,6 +17,9 @@ const mockConnectedUsers = new Map();
 // Create a set to track user sessions by browser session
 const sessionKey = 'chatiwy_session_id';
 
+// Store your Render.com URL here after deployment
+const RENDER_URL = ''; // e.g. 'https://your-chatiwy-server.onrender.com'
+
 const ChatPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -29,6 +32,11 @@ const ChatPage = () => {
   useEffect(() => {
     const connectToSocket = async () => {
       try {
+        // If we have a custom Render URL, set it first
+        if (RENDER_URL) {
+          socketService.setCustomServerUrl(RENDER_URL);
+        }
+        
         await socketService.connect();
         setSocketConnected(true);
         console.log('Connected to WebSocket server');
