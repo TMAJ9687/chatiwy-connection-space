@@ -15,14 +15,17 @@ To get the real-time chat functionality working, you need to deploy the WebSocke
    - **Name**: chatiwy-server (or any name you prefer)
    - **Environment**: Node
    - **Root Directory**: server
-   - **Build Command**: `yarn install` or `npm install`
+   - **Build Command**: `npm install`
    - **Start Command**: `node server.js`
    - **Instance Type**: Free
 
-4. After deployment, copy the URL of your Render service (e.g., https://your-chatiwy-server.onrender.com)
-5. In your React app, update the `SERVER_URLS` array in the `src/services/socketService.ts` file with your Render URL
+4. After deployment, your server will be running at a URL like `https://your-service-name.onrender.com`
+5. Update the `RENDER_URL` constant in `src/pages/Chat.tsx` with your Render URL
 
-**Note**: The free tier of Render.com will spin down after periods of inactivity, which may cause some delay when connecting to the WebSocket server after it's been inactive.
+**Important Notes**:
+- The WebSocket server is meant to handle socket connections, not serve HTML pages. If you visit the URL directly in a browser, you'll see a "Cannot GET /" message, which is normal.
+- The free tier of Render.com will spin down after periods of inactivity, which may cause some delay when connecting to the WebSocket server after it's been inactive.
+- You can verify your server is running properly by checking the logs in the Render dashboard.
 
 ## How can I edit this code?
 

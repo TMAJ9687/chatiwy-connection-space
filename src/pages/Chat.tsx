@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { Navbar } from '@/components/Navbar';
@@ -18,7 +17,7 @@ const mockConnectedUsers = new Map();
 const sessionKey = 'chatiwy_session_id';
 
 // Store your Render.com URL here after deployment
-const RENDER_URL = ''; // e.g. 'https://your-chatiwy-server.onrender.com'
+const RENDER_URL = 'https://chatiwy-test.onrender.com'; // Your actual Render.com WebSocket server URL
 
 const ChatPage = () => {
   const navigate = useNavigate();
