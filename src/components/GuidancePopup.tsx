@@ -38,13 +38,15 @@ export function GuidancePopup({ onAccept, onDecline }: GuidancePopupProps) {
               
               <div>
                 <h3 className="font-bold mb-2 text-red-500">Important!</h3>
-                <p>Chatiwy is strictly for users 18 years and older. Underage users are not permitted to use this platform.</p>
+                <div className="text-red-500 font-semibold">
+                  Chatiwy is strictly for users 18 years and older. Underage users are not permitted to use this platform.
+                </div>
               </div>
 
-              <p>
+              <div>
                 By clicking "I Accept", you agree to follow these guidelines and our Terms of Service.
                 Violation of these rules may result in account suspension or termination.
-              </p>
+              </div>
             </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
