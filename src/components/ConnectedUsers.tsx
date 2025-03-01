@@ -47,6 +47,7 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect }: Conn
   const [selectedGender, setSelectedGender] = useState<string>('');
   const [ageRange, setAgeRange] = useState<[number, number]>([18, 50]);
   const [onlineCount, setOnlineCount] = useState(0);
+  const [filterError, setFilterError] = useState<string | null>(null);
   
   // Initialize with bot profiles
   useEffect(() => {
@@ -90,6 +91,30 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect }: Conn
     }
   }, []);
 
+  // Add real user to the list when loaded
+  useEffect(() => {
+    if (userProfile && userProfile.username) {
+      // Check if the user is already in the list
+      if (!users.some(u => u.id === userProfile.id)) {
+        const currentUser = {
+          id: userProfile.id || 'current-user',
+          username: userProfile.username,
+          age: userProfile.age || 25,
+          gender: userProfile.gender || 'Male',
+          country: userProfile.country || 'United States',
+          flag: userProfile.flag || '🇺🇸',
+          interests: userProfile.interests || ['Chat'],
+          isOnline: true,
+          lastActive: 'now',
+          bio: userProfile.bio || 'Currently online'
+        };
+        
+        setUsers(prevUsers => [currentUser, ...prevUsers]);
+        setOnlineCount(prevCount => prevCount + 1);
+      }
+    }
+  }, [userProfile, users]);
+
   // Get unique countries for filter
   const uniqueCountries = Array.from(new Set(botProfiles.map(bot => bot.country)));
   
@@ -110,24 +135,30 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect }: Conn
   
   // Filter users based on search query and filters
   const filteredUsers = users.filter(user => {
-    // Search query filter
-    const matchesSearch = 
-      user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.country.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.interests.some(interest => 
-        interest.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    
-    // Country filter
-    const matchesCountry = selectedCountries.length === 0 || selectedCountries.includes(user.country);
-    
-    // Gender filter
-    const matchesGender = !selectedGender || user.gender === selectedGender;
-    
-    // Age filter
-    const matchesAge = user.age >= ageRange[0] && user.age <= ageRange[1];
-    
-    return matchesSearch && matchesCountry && matchesGender && matchesAge;
+    try {
+      // Search query filter
+      const matchesSearch = 
+        user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.country.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (user.interests && user.interests.some(interest => 
+          interest.toLowerCase().includes(searchQuery.toLowerCase())
+        ));
+      
+      // Country filter
+      const matchesCountry = selectedCountries.length === 0 || selectedCountries.includes(user.country);
+      
+      // Gender filter
+      const matchesGender = !selectedGender || user.gender === selectedGender;
+      
+      // Age filter
+      const matchesAge = user.age >= ageRange[0] && user.age <= ageRange[1];
+      
+      return matchesSearch && matchesCountry && matchesGender && matchesAge;
+    } catch (error) {
+      console.error("Error filtering users:", error);
+      setFilterError("An error occurred while filtering users. Please try again.");
+      return true; // Show all users in case of error
+    }
   });
   
   return (
@@ -154,13 +185,15 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect }: Conn
           <Popover 
             open={showFilters} 
             onOpenChange={(open) => {
-              // Only update if we're closing or if opening works without issues
               try {
                 setShowFilters(open);
+                if (!open) {
+                  setFilterError(null); // Clear errors when closing
+                }
               } catch (error) {
                 console.error("Error toggling filter popover:", error);
-                // Force close if there's an error
                 setShowFilters(false);
+                setFilterError("An error occurred with filters. Please try again.");
               }
             }}
           >
@@ -278,6 +311,12 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect }: Conn
             </Button>
           )}
         </div>
+        
+        {filterError && (
+          <div className="mt-2 p-2 bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 text-sm rounded-md">
+            {filterError}
+          </div>
+        )}
       </div>
       
       <ScrollArea className="flex-1 p-4">
@@ -333,7 +372,7 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect }: Conn
                       </div>
                       
                       <div className="flex items-center gap-1 mt-1">
-                        {user.interests.slice(0, 2).map((interest, index) => (
+                        {user.interests && user.interests.slice(0, 2).map((interest, index) => (
                           <Badge 
                             key={index} 
                             variant="outline" 
@@ -342,7 +381,7 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect }: Conn
                             {interest}
                           </Badge>
                         ))}
-                        {user.interests.length > 2 && (
+                        {user.interests && user.interests.length > 2 && (
                           <span className="text-xs text-muted-foreground">+{user.interests.length - 2}</span>
                         )}
                       </div>

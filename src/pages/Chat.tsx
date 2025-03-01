@@ -9,6 +9,10 @@ import { ConnectedUsers } from '@/components/ConnectedUsers';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 
+// Create a mock user database for demo purposes
+// This would be replaced by a real database in a production app
+const mockConnectedUsers = new Map();
+
 const ChatPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -19,12 +23,38 @@ const ChatPage = () => {
   useEffect(() => {
     // Check if we have user profile data from the previous page
     if (location.state?.userProfile) {
-      setUserProfile(location.state.userProfile);
+      const profile = location.state.userProfile;
+      setUserProfile(profile);
+      
+      // Store user in our mock database
+      if (profile && profile.username) {
+        mockConnectedUsers.set(profile.id || profile.username, {
+          ...profile,
+          isOnline: true,
+          lastSeen: new Date()
+        });
+        
+        console.log("Current connected users:", Array.from(mockConnectedUsers.entries()));
+      }
     } else {
       // If no profile data, redirect back to home
       navigate('/');
       toast.error('Please complete your profile first');
     }
+    
+    // Cleanup on unmount - mark user as offline
+    return () => {
+      if (userProfile && userProfile.id) {
+        const user = mockConnectedUsers.get(userProfile.id);
+        if (user) {
+          mockConnectedUsers.set(userProfile.id, {
+            ...user,
+            isOnline: false,
+            lastSeen: new Date()
+          });
+        }
+      }
+    };
   }, [location.state, navigate]);
 
   const handleGuidanceAccept = () => {
@@ -85,7 +115,6 @@ const ChatPage = () => {
         )}
       </main>
       
-      {/* Made the footer sticky with minimal height to prevent scrolling */}
       <Footer />
     </div>
   );
