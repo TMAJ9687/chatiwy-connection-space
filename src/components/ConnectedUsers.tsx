@@ -46,30 +46,48 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect }: Conn
   const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
   const [selectedGender, setSelectedGender] = useState<string>('');
   const [ageRange, setAgeRange] = useState<[number, number]>([18, 50]);
+  const [onlineCount, setOnlineCount] = useState(0);
   
   // Initialize with bot profiles
   useEffect(() => {
-    // Randomize which bots are online
-    const randomizedBots = [...botProfiles].map(bot => ({
-      ...bot,
-      isOnline: Math.random() > 0.3, // 70% chance of being online
-      lastActive: bot.isOnline ? 'now' : `${Math.floor(Math.random() * 60) + 1}m ago`
-    }));
-    
-    setUsers(randomizedBots);
-    
-    // Simulate users going online/offline occasionally
-    const interval = setInterval(() => {
-      setUsers(prevUsers => 
-        prevUsers.map(user => ({
-          ...user,
-          isOnline: Math.random() > 0.3,
-          lastActive: user.isOnline ? 'now' : `${Math.floor(Math.random() * 60) + 1}m ago`
-        }))
-      );
-    }, 30000); // Every 30 seconds
-    
-    return () => clearInterval(interval);
+    try {
+      // Randomize which bots are online
+      const randomizedBots = [...botProfiles].map(bot => ({
+        ...bot,
+        isOnline: Math.random() > 0.3, // 70% chance of being online
+        lastActive: bot.isOnline ? 'now' : `${Math.floor(Math.random() * 60) + 1}m ago`
+      }));
+      
+      setUsers(randomizedBots);
+      
+      // Count online users
+      const onlineUsers = randomizedBots.filter(user => user.isOnline && !blockedUsers.has(user.id));
+      setOnlineCount(onlineUsers.length);
+      
+      // Simulate users going online/offline occasionally
+      const interval = setInterval(() => {
+        setUsers(prevUsers => {
+          const updatedUsers = prevUsers.map(user => ({
+            ...user,
+            isOnline: Math.random() > 0.3,
+            lastActive: user.isOnline ? 'now' : `${Math.floor(Math.random() * 60) + 1}m ago`
+          }));
+          
+          // Update online count
+          const onlineCount = updatedUsers.filter(user => user.isOnline && !blockedUsers.has(user.id)).length;
+          setOnlineCount(onlineCount);
+          
+          return updatedUsers;
+        });
+      }, 30000); // Every 30 seconds
+      
+      return () => clearInterval(interval);
+    } catch (error) {
+      console.error("Error initializing users:", error);
+      // Fallback to empty array if there's an error
+      setUsers([]);
+      setOnlineCount(0);
+    }
   }, []);
 
   // Get unique countries for filter
@@ -115,7 +133,13 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect }: Conn
   return (
     <div className="rounded-lg border shadow-sm h-[70vh] flex flex-col bg-background">
       <div className="p-4 border-b">
-        <h2 className="text-lg font-semibold">Connected Users</h2>
+        <div className="flex justify-between items-center">
+          <h2 className="text-lg font-semibold">Connected Users</h2>
+          <Badge variant="secondary" className="ml-1">
+            {onlineCount} online
+          </Badge>
+        </div>
+        
         <div className="mt-2 relative">
           <Input
             placeholder="Search users..."
@@ -127,7 +151,19 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect }: Conn
         </div>
         
         <div className="flex justify-between items-center mt-2">
-          <Popover open={showFilters} onOpenChange={setShowFilters}>
+          <Popover 
+            open={showFilters} 
+            onOpenChange={(open) => {
+              // Only update if we're closing or if opening works without issues
+              try {
+                setShowFilters(open);
+              } catch (error) {
+                console.error("Error toggling filter popover:", error);
+                // Force close if there's an error
+                setShowFilters(false);
+              }
+            }}
+          >
             <PopoverTrigger asChild>
               <Button variant="outline" size="sm" className="flex items-center gap-1">
                 <Filter className="h-4 w-4" />
@@ -139,7 +175,7 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect }: Conn
                 )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-80">
+            <PopoverContent className="w-80 p-4 shadow-lg bg-popover">
               <div className="space-y-4">
                 <div>
                   <h3 className="font-medium mb-2">Countries (Select up to 3)</h3>
@@ -174,7 +210,7 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect }: Conn
                     value={selectedGender} 
                     onValueChange={setSelectedGender}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="All genders" />
                     </SelectTrigger>
                     <SelectContent>

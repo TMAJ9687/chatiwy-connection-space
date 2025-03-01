@@ -54,7 +54,8 @@ const ChatPage = () => {
       
       <Navbar />
       
-      <main className="flex-1 py-4">
+      {/* Added padding-top to account for the fixed navbar */}
+      <main className="flex-1 py-4 pt-20">
         {showGuidance && (
           <GuidancePopup 
             onAccept={handleGuidanceAccept} 
@@ -84,6 +85,7 @@ const ChatPage = () => {
         )}
       </main>
       
+      {/* Made the footer sticky with minimal height to prevent scrolling */}
       <Footer />
     </div>
   );
