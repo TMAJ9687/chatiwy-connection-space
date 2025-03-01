@@ -40,22 +40,14 @@ export function GuidancePopup({ onAccept, onDecline }: GuidancePopupProps) {
                 <li>No sharing of explicit content.</li>
                 <li>No impersonation of others.</li>
                 <li>No promotion of illegal activities.</li>
-              </ul>
-            </div>
-            
-            <div className="space-y-2 mt-4">
-              <h3 className="font-semibold text-foreground">Standard User Limits:</h3>
-              <ul className="list-disc pl-5 space-y-1">
-                <li>Message character limit: 140 characters</li>
-                <li>Image sharing: 10 images per day</li>
-                <li>Chat history retention: 1 hour</li>
+                <li className="text-red-500 font-semibold">Underage users (under 18) are strictly prohibited from using this platform.</li>
               </ul>
             </div>
             
             <div className="mt-4">
               <p className="text-sm text-muted-foreground">
-                By clicking "I Agree", you confirm that you have read and accept these guidelines. 
-                Violations may result in temporary or permanent bans from the platform.
+                By clicking "I Agree", you confirm that you have read and accept these guidelines,
+                and that you are at least 18 years of age. Violations may result in temporary or permanent bans from the platform.
               </p>
             </div>
           </AlertDialogDescription>

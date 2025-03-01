@@ -8,6 +8,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { ReportForm } from '@/components/ReportForm';
 import { 
   Send, 
   Image, 
@@ -19,7 +20,9 @@ import {
   Flag,
   UserX,
   History,
-  Inbox
+  Inbox,
+  Ban,
+  AlertOctagon
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { botProfiles, getRandomBotResponse, getRandomConversationStarter } from '@/utils/botProfiles';
@@ -52,6 +55,8 @@ interface ChatInterfaceProps {
 
 // Store chat histories per user
 const userChatHistories: Record<string, Message[]> = {};
+// Store blocked users
+const blockedUsers: Set<string> = new Set();
 
 export function ChatInterface({ userProfile, selectedUser, onUserSelect }: ChatInterfaceProps) {
   const [currentChat, setCurrentChat] = useState<{
@@ -65,6 +70,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect }: ChatI
   const [lastMessage, setLastMessage] = useState<string>('');
   const [duplicateCount, setDuplicateCount] = useState(0);
   const [view, setView] = useState<'chat' | 'history' | 'inbox'>('chat');
+  const [isReportFormOpen, setIsReportFormOpen] = useState(false);
   const messageEndRef = useRef<HTMLDivElement>(null);
 
   // Initialize selected user as current chat
@@ -98,7 +104,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect }: ChatI
 
   // Bot sends initial message if chat is empty
   useEffect(() => {
-    if (currentChat?.isBot && messages.length === 0) {
+    if (currentChat?.isBot && messages.length === 0 && !blockedUsers.has(currentChat.userId)) {
       // Add a small delay to make it feel more natural
       const timer = setTimeout(() => {
         const starter = getRandomConversationStarter();
@@ -124,7 +130,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect }: ChatI
 
   // Bot responds to user messages
   useEffect(() => {
-    if (messages.length > 0 && messages[messages.length - 1].sender === userProfile.username) {
+    if (messages.length > 0 && messages[messages.length - 1].sender === userProfile.username && currentChat?.isBot && !blockedUsers.has(currentChat.userId)) {
       // Bot is "typing"
       const typingDelay = Math.floor(Math.random() * 3000) + 1000; // Random delay between 1-4 seconds
       
@@ -200,7 +206,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect }: ChatI
     // Check for consecutive numbers (max 4)
     const consecutiveNumbersMatch = message.match(/\d{5,}/);
     if (consecutiveNumbersMatch) {
-      toast.warning('Message contains too many consecutive numbers');
+      toast.warning('Message contains too many consecutive numbers (maximum 4)');
       return false;
     }
     
@@ -272,6 +278,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect }: ChatI
 
   const handleBlockUser = () => {
     if (currentChat) {
+      blockedUsers.add(currentChat.userId);
       toast.success(`${currentChat.username} has been blocked`);
       onUserSelect(null);
       
@@ -283,20 +290,87 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect }: ChatI
     switch (view) {
       case 'history':
         return (
-          <div className="flex-1 p-6 flex items-center justify-center">
-            <div className="text-center">
-              <History className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">Chat History</h3>
-              <p className="text-muted-foreground mb-4">
-                Your past conversations will appear here
-              </p>
-              <Button 
-                variant="outline" 
-                onClick={() => setView('chat')}
-              >
-                Return to Chat
-              </Button>
-            </div>
+          <div className="flex-1 p-6">
+            <h3 className="text-lg font-medium mb-4">Chat History</h3>
+            {Object.entries(userChatHistories).length > 0 ? (
+              <div className="space-y-4">
+                {Object.entries(userChatHistories).map(([userId, chatHistory]) => {
+                  if (chatHistory.length === 0) return null;
+                  
+                  const bot = botProfiles.find(b => b.id === userId);
+                  if (!bot) return null;
+                  
+                  const lastMessage = chatHistory[chatHistory.length - 1];
+                  const isBlocked = blockedUsers.has(userId);
+                  
+                  return (
+                    <div 
+                      key={userId}
+                      className="p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => {
+                        if (!isBlocked) {
+                          onUserSelect(userId);
+                          setView('chat');
+                        } else {
+                          toast.error(`${bot.username} is blocked. Unblock to continue chatting.`);
+                        }
+                      }}
+                    >
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold ${
+                          bot.gender === 'Male' ? 'bg-blue-500' : 'bg-pink-500'
+                        }`}>
+                          {bot.username.charAt(0)}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{bot.username}</span>
+                            <span className="text-sm text-muted-foreground">{bot.age}</span>
+                            <span className="ml-1 text-lg">{bot.flag}</span>
+                            {isBlocked && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="ml-1">
+                                      <Ban className="h-4 w-4 text-red-500" />
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>This user is blocked</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                          </div>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(lastMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground truncate">
+                        <span className="font-medium mr-1">
+                          {lastMessage.sender === userProfile.username ? 'You:' : `${bot.username}:`}
+                        </span>
+                        {lastMessage.content}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <History className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground mb-4">
+                  Your past conversations will appear here
+                </p>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setView('chat')}
+                >
+                  Return to Chat
+                </Button>
+              </div>
+            )}
           </div>
         );
       case 'inbox':
@@ -323,80 +397,106 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect }: ChatI
           <>
             {/* Message area */}
             <ScrollArea className="flex-1 p-4">
-              <div className="space-y-4">
-                {messages.map((message) => (
-                  <div 
-                    key={message.id}
-                    className={`flex ${message.sender === userProfile.username ? 'justify-end' : 'justify-start'}`}
+              {blockedUsers.has(currentChat?.userId || '') ? (
+                <div className="flex items-center justify-center h-full flex-col gap-2">
+                  <AlertOctagon className="h-16 w-16 text-red-500" />
+                  <h3 className="text-lg font-medium">You've blocked this user</h3>
+                  <p className="text-muted-foreground text-center mb-4">
+                    You cannot send or receive messages from {currentChat?.username}.
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      if (currentChat) {
+                        blockedUsers.delete(currentChat.userId);
+                        toast.success(`${currentChat.username} has been unblocked`);
+                      }
+                    }}
                   >
+                    Unblock User
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {messages.map((message) => (
                     <div 
-                      className={`max-w-[80%] ${
-                        message.sender === userProfile.username 
-                          ? 'bg-teal-500 text-white rounded-tl-2xl rounded-tr-sm rounded-br-2xl rounded-bl-2xl' 
-                          : 'bg-gray-100 dark:bg-gray-800 rounded-tr-2xl rounded-tl-sm rounded-bl-2xl rounded-br-2xl'
-                      } px-4 py-2 shadow-sm`}
+                      key={message.id}
+                      className={`flex ${message.sender === userProfile.username ? 'justify-end' : 'justify-start'}`}
                     >
-                      <p>{message.content}</p>
                       <div 
-                        className={`text-xs mt-1 ${
+                        className={`max-w-[80%] ${
                           message.sender === userProfile.username 
-                            ? 'text-teal-100' 
-                            : 'text-gray-500 dark:text-gray-400'
-                        }`}
+                            ? 'bg-teal-500 text-white rounded-tl-2xl rounded-tr-sm rounded-br-2xl rounded-bl-2xl' 
+                            : 'bg-gray-100 dark:bg-gray-800 rounded-tr-2xl rounded-tl-sm rounded-bl-2xl rounded-br-2xl'
+                        } px-4 py-2 shadow-sm`}
                       >
-                        {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        {message.sender === userProfile.username && (
-                          <span className="ml-1">✓</span> // Simple "sent" indicator
-                        )}
+                        <p>{message.content}</p>
+                        <div 
+                          className={`text-xs mt-1 ${
+                            message.sender === userProfile.username 
+                              ? 'text-teal-100' 
+                              : 'text-gray-500 dark:text-gray-400'
+                          }`}
+                        >
+                          {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {message.sender === userProfile.username && (
+                            <span className="ml-1">✓</span> // Simple "sent" indicator
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-                <div ref={messageEndRef} />
-              </div>
+                  ))}
+                  <div ref={messageEndRef} />
+                </div>
+              )}
             </ScrollArea>
             
             {/* Message input */}
             <div className="p-4 border-t">
-              <div className="flex items-end gap-2">
-                <div className="flex-1">
-                  <Textarea
-                    placeholder="Type a message..."
-                    value={messageInput}
-                    onChange={(e) => setMessageInput(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    className="resize-none min-h-[60px] max-h-[120px]"
-                    maxLength={140} // Enforce character limit
-                  />
-                  <div className="flex justify-between mt-1 text-xs text-muted-foreground">
-                    <span>{messageInput.length}/140 characters</span>
+              {!blockedUsers.has(currentChat?.userId || '') && (
+                <div className="flex items-end gap-2">
+                  <div className="flex-1">
+                    <Textarea
+                      placeholder="Type a message..."
+                      value={messageInput}
+                      onChange={(e) => setMessageInput(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      className="resize-none min-h-[60px] max-h-[120px]"
+                      maxLength={140} // Enforce character limit
+                      disabled={blockedUsers.has(currentChat?.userId || '')}
+                    />
+                    <div className="flex justify-between mt-1 text-xs text-muted-foreground">
+                      <span>{messageInput.length}/140 characters</span>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      onClick={handleImageUpload}
+                      disabled={blockedUsers.has(currentChat?.userId || '')}
+                    >
+                      <Image className="h-5 w-5" />
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      onClick={handleVoiceMessage}
+                      className="opacity-50" // Disabled for standard users
+                      disabled={blockedUsers.has(currentChat?.userId || '')}
+                    >
+                      <Mic className="h-5 w-5" />
+                    </Button>
+                    <Button 
+                      onClick={handleSendMessage}
+                      disabled={!messageInput.trim() || blockedUsers.has(currentChat?.userId || '')}
+                      className="bg-teal-500 hover:bg-teal-600"
+                    >
+                      <Send className="h-5 w-5" />
+                    </Button>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="icon"
-                    onClick={handleImageUpload}
-                  >
-                    <Image className="h-5 w-5" />
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="icon"
-                    onClick={handleVoiceMessage}
-                    className="opacity-50" // Disabled for standard users
-                  >
-                    <Mic className="h-5 w-5" />
-                  </Button>
-                  <Button 
-                    onClick={handleSendMessage}
-                    disabled={!messageInput.trim()}
-                    className="bg-teal-500 hover:bg-teal-600"
-                  >
-                    <Send className="h-5 w-5" />
-                  </Button>
-                </div>
-              </div>
+              )}
             </div>
           </>
         );
@@ -418,10 +518,33 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect }: ChatI
                 {currentChat.username.charAt(0)}
               </div>
               <div>
-                <h3 className="font-medium">{currentChat.username}</h3>
+                <div className="flex items-center gap-1">
+                  <h3 className="font-medium">{currentChat.username}</h3>
+                  {blockedUsers.has(currentChat.userId) && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span>
+                            <Ban className="h-4 w-4 text-red-500" />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>This user is blocked</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </div>
                 <div className="flex items-center text-sm text-green-500">
-                  <span className="h-2 w-2 rounded-full bg-green-500 mr-1"></span>
-                  Online
+                  {!blockedUsers.has(currentChat.userId) && (
+                    <>
+                      <span className="h-2 w-2 rounded-full bg-green-500 mr-1"></span>
+                      Online
+                    </>
+                  )}
+                  {blockedUsers.has(currentChat.userId) && (
+                    <span className="text-red-500">Blocked</span>
+                  )}
                 </div>
               </div>
             </div>
@@ -434,6 +557,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect }: ChatI
                       variant="ghost" 
                       size="icon"
                       onClick={() => setView('history')}
+                      className={view === 'history' ? 'bg-accent' : ''}
                     >
                       <History className="h-5 w-5" />
                     </Button>
@@ -449,6 +573,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect }: ChatI
                       variant="ghost" 
                       size="icon"
                       onClick={() => setView('inbox')}
+                      className={view === 'inbox' ? 'bg-accent' : ''}
                     >
                       <Inbox className="h-5 w-5" />
                     </Button>
@@ -493,7 +618,11 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect }: ChatI
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon">
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => setIsReportFormOpen(true)}
+                    >
                       <Flag className="h-5 w-5" />
                     </Button>
                   </TooltipTrigger>
@@ -516,6 +645,13 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect }: ChatI
           
           {/* Content area - Chat, History or Inbox */}
           {renderViewContent()}
+          
+          {/* Report Form */}
+          <ReportForm 
+            isOpen={isReportFormOpen} 
+            onClose={() => setIsReportFormOpen(false)} 
+            userName={currentChat.username}
+          />
         </>
       ) : (
         <div className="flex items-center justify-center h-full text-muted-foreground">

@@ -9,17 +9,22 @@ import {
   UserPlus, 
   UserX,
   MessageSquare, 
-  Check 
+  Check,
+  Ban 
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { botProfiles, BotProfile } from '@/utils/botProfiles';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface ConnectedUsersProps {
   userProfile: any;
   selectedUser: string | null;
   onUserSelect: (userId: string) => void;
 }
+
+// Define an external set so that the blocked users are shared with ChatInterface
+const blockedUsers: Set<string> = new Set();
 
 export function ConnectedUsers({ userProfile, selectedUser, onUserSelect }: ConnectedUsersProps) {
   const [users, setUsers] = useState<BotProfile[]>([]);
@@ -81,74 +86,87 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect }: Conn
               No users found
             </div>
           ) : (
-            filteredUsers.map((user) => (
-              <div 
-                key={user.id}
-                className={`p-3 rounded-lg transition-colors cursor-pointer ${
-                  selectedUser === user.id 
-                    ? 'bg-teal-50 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-800' 
-                    : 'hover:bg-muted border border-transparent'
-                }`}
-                onClick={() => onUserSelect(user.id)}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold ${
-                      user.gender === 'Male' ? 'bg-blue-500' : 'bg-pink-500'
-                    }`}>
-                      {user.username.charAt(0)}
-                    </div>
-                    {user.isOnline && (
-                      <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-background"></div>
-                    )}
-                  </div>
-                  
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1">
-                      <span className="font-medium truncate">
-                        {user.username}
-                      </span>
-                      <span className="text-sm text-muted-foreground">
-                        {user.age}
-                      </span>
-                      <span className="ml-1 text-lg">{user.flag}</span>
+            filteredUsers.map((user) => {
+              const isBlocked = blockedUsers.has(user.id);
+              
+              return (
+                <div 
+                  key={user.id}
+                  className={`p-3 rounded-lg transition-colors cursor-pointer ${
+                    selectedUser === user.id 
+                      ? 'bg-teal-50 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-800' 
+                      : 'hover:bg-muted border border-transparent'
+                  }`}
+                  onClick={() => {
+                    if (!isBlocked) {
+                      onUserSelect(user.id);
+                    }
+                  }}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold ${
+                        user.gender === 'Male' ? 'bg-blue-500' : 'bg-pink-500'
+                      }`}>
+                        {user.username.charAt(0)}
+                      </div>
+                      {user.isOnline && !isBlocked && (
+                        <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-background"></div>
+                      )}
+                      {isBlocked && (
+                        <div className="absolute -top-1 -right-1">
+                          <Ban className="h-4 w-4 text-red-500 bg-white rounded-full" />
+                        </div>
+                      )}
                     </div>
                     
-                    <div className="flex items-center gap-1 mt-1">
-                      {user.interests.slice(0, 2).map((interest, index) => (
-                        <Badge 
-                          key={index} 
-                          variant="outline" 
-                          className="text-xs px-1 py-0"
-                        >
-                          {interest}
-                        </Badge>
-                      ))}
-                      {user.interests.length > 2 && (
-                        <span className="text-xs text-muted-foreground">+{user.interests.length - 2}</span>
-                      )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1">
+                        <span className={`font-medium truncate ${isBlocked ? 'text-muted-foreground line-through' : ''}`}>
+                          {user.username}
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          {user.age}
+                        </span>
+                        <span className="ml-1 text-lg">{user.flag}</span>
+                      </div>
+                      
+                      <div className="flex items-center gap-1 mt-1">
+                        {user.interests.slice(0, 2).map((interest, index) => (
+                          <Badge 
+                            key={index} 
+                            variant="outline" 
+                            className="text-xs px-1 py-0"
+                          >
+                            {interest}
+                          </Badge>
+                        ))}
+                        {user.interests.length > 2 && (
+                          <span className="text-xs text-muted-foreground">+{user.interests.length - 2}</span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div className="flex flex-col items-end">
-                    <span className="text-xs text-muted-foreground">
-                      {user.isOnline ? 'online' : user.lastActive}
-                    </span>
-                    <div className="mt-1">
-                      {selectedUser === user.id ? (
-                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
-                          <Check className="h-4 w-4" />
-                        </Button>
-                      ) : (
-                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
-                          <MessageSquare className="h-4 w-4" />
-                        </Button>
-                      )}
+                    
+                    <div className="flex flex-col items-end">
+                      <span className="text-xs text-muted-foreground">
+                        {isBlocked ? 'blocked' : (user.isOnline ? 'online' : user.lastActive)}
+                      </span>
+                      <div className="mt-1">
+                        {selectedUser === user.id ? (
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
+                            <Check className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
+                            <MessageSquare className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </ScrollArea>
