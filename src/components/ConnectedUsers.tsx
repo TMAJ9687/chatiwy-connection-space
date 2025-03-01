@@ -6,16 +6,29 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Search, 
   Filter, 
-  UserPlus, 
-  UserX,
   MessageSquare, 
   Check,
-  Ban 
+  Ban,
+  SliderHorizontal
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { botProfiles, BotProfile } from '@/utils/botProfiles';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Checkbox } from '@/components/ui/checkbox';
+import { Slider } from '@/components/ui/slider';
 
 interface ConnectedUsersProps {
   userProfile: any;
@@ -29,6 +42,10 @@ const blockedUsers: Set<string> = new Set();
 export function ConnectedUsers({ userProfile, selectedUser, onUserSelect }: ConnectedUsersProps) {
   const [users, setUsers] = useState<BotProfile[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
+  const [selectedGender, setSelectedGender] = useState<string>('');
+  const [ageRange, setAgeRange] = useState<[number, number]>([18, 50]);
   
   // Initialize with bot profiles
   useEffect(() => {
@@ -54,15 +71,46 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect }: Conn
     
     return () => clearInterval(interval);
   }, []);
+
+  // Get unique countries for filter
+  const uniqueCountries = Array.from(new Set(botProfiles.map(bot => bot.country)));
   
-  // Filter users based on search query
-  const filteredUsers = users.filter(user => 
-    user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.country.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.interests.some(interest => 
-      interest.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-  );
+  // Toggle country selection
+  const toggleCountry = (country: string) => {
+    setSelectedCountries(prev => {
+      if (prev.includes(country)) {
+        return prev.filter(c => c !== country);
+      } else {
+        // Limit to 3 countries
+        if (prev.length >= 3) {
+          return [...prev.slice(1), country];
+        }
+        return [...prev, country];
+      }
+    });
+  };
+  
+  // Filter users based on search query and filters
+  const filteredUsers = users.filter(user => {
+    // Search query filter
+    const matchesSearch = 
+      user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.country.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.interests.some(interest => 
+        interest.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    
+    // Country filter
+    const matchesCountry = selectedCountries.length === 0 || selectedCountries.includes(user.country);
+    
+    // Gender filter
+    const matchesGender = !selectedGender || user.gender === selectedGender;
+    
+    // Age filter
+    const matchesAge = user.age >= ageRange[0] && user.age <= ageRange[1];
+    
+    return matchesSearch && matchesCountry && matchesGender && matchesAge;
+  });
   
   return (
     <div className="rounded-lg border shadow-sm h-[70vh] flex flex-col bg-background">
@@ -76,6 +124,123 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect }: Conn
             className="pr-10"
           />
           <Search className="absolute right-3 top-2.5 h-5 w-5 text-muted-foreground" />
+        </div>
+        
+        <div className="flex justify-between items-center mt-2">
+          <Popover open={showFilters} onOpenChange={setShowFilters}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="flex items-center gap-1">
+                <Filter className="h-4 w-4" />
+                <span>Filters</span>
+                {(selectedCountries.length > 0 || selectedGender || ageRange[0] !== 18 || ageRange[1] !== 50) && (
+                  <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 flex items-center justify-center">
+                    {selectedCountries.length + (selectedGender ? 1 : 0) + (ageRange[0] !== 18 || ageRange[1] !== 50 ? 1 : 0)}
+                  </Badge>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80">
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-medium mb-2">Countries (Select up to 3)</h3>
+                  <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
+                    {uniqueCountries.map(country => (
+                      <div key={country} className="flex items-center space-x-2">
+                        <Checkbox 
+                          id={`country-${country}`} 
+                          checked={selectedCountries.includes(country)}
+                          onCheckedChange={() => toggleCountry(country)}
+                          disabled={selectedCountries.length >= 3 && !selectedCountries.includes(country)}
+                        />
+                        <label 
+                          htmlFor={`country-${country}`}
+                          className="text-sm flex items-center cursor-pointer"
+                        >
+                          <span className="mr-1">
+                            {botProfiles.find(bot => bot.country === country)?.flag}
+                          </span>
+                          {country}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <Separator />
+                
+                <div>
+                  <h3 className="font-medium mb-2">Gender</h3>
+                  <Select 
+                    value={selectedGender} 
+                    onValueChange={setSelectedGender}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All genders" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All genders</SelectItem>
+                      <SelectItem value="Male">Male</SelectItem>
+                      <SelectItem value="Female">Female</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <Separator />
+                
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <h3 className="font-medium">Age Range</h3>
+                    <span className="text-sm text-muted-foreground">
+                      {ageRange[0]} - {ageRange[1]}
+                    </span>
+                  </div>
+                  <Slider
+                    defaultValue={[18, 50]}
+                    min={18}
+                    max={50}
+                    step={1}
+                    value={ageRange}
+                    onValueChange={(value) => setAgeRange(value as [number, number])}
+                    className="mb-2"
+                  />
+                </div>
+                
+                <div className="flex justify-end space-x-2 pt-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      setSelectedCountries([]);
+                      setSelectedGender('');
+                      setAgeRange([18, 50]);
+                    }}
+                  >
+                    Reset
+                  </Button>
+                  <Button 
+                    size="sm"
+                    onClick={() => setShowFilters(false)}
+                  >
+                    Apply
+                  </Button>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+          
+          {(selectedCountries.length > 0 || selectedGender || ageRange[0] !== 18 || ageRange[1] !== 50) && (
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => {
+                setSelectedCountries([]);
+                setSelectedGender('');
+                setAgeRange([18, 50]);
+              }}
+            >
+              Clear All
+            </Button>
+          )}
         </div>
       </div>
       

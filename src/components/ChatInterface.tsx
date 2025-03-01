@@ -9,6 +9,14 @@ import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { ReportForm } from '@/components/ReportForm';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { 
   Send, 
   Image, 
@@ -25,7 +33,7 @@ import {
   AlertOctagon
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { botProfiles, getRandomBotResponse, getRandomConversationStarter } from '@/utils/botProfiles';
+import { botProfiles, getRandomBotResponse } from '@/utils/botProfiles';
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -112,37 +120,11 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect }: ChatI
     }
   }, [currentChat]);
 
-  // Bot sends initial message if chat is empty
-  useEffect(() => {
-    if (currentChat?.isBot && messages.length === 0 && !blockedUsers.has(currentChat.userId)) {
-      // Add a small delay to make it feel more natural
-      const timer = setTimeout(() => {
-        const starter = getRandomConversationStarter();
-        const newMessage = {
-          id: Math.random().toString(36).substring(7),
-          sender: currentChat.username,
-          content: starter,
-          timestamp: new Date(),
-          isBot: true
-        };
-        
-        setMessages([newMessage]);
-        
-        // Update history
-        if (currentChat.userId) {
-          userChatHistories[currentChat.userId] = [newMessage];
-        }
-      }, 1500);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [currentChat, messages.length]);
-
   // Bot responds to user messages
   useEffect(() => {
     if (messages.length > 0 && messages[messages.length - 1].sender === userProfile.username && currentChat?.isBot && !blockedUsers.has(currentChat.userId)) {
-      // Bot is "typing"
-      const typingDelay = Math.floor(Math.random() * 3000) + 1000; // Random delay between 1-4 seconds
+      // Bot is "typing" - Random delay between 3-8 seconds to seem more human-like
+      const typingDelay = Math.floor(Math.random() * 5000) + 3000;
       
       const timer = setTimeout(() => {
         const lastUserMessage = messages[messages.length - 1].content.toLowerCase();
@@ -637,57 +619,57 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect }: ChatI
                 </Tooltip>
               </TooltipProvider>
               
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    disabled={currentChat.isAdmin}
-                  >
-                    <UserX className="h-5 w-5 text-red-500" />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <MoreHorizontal className="h-5 w-5" />
                   </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Block User</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Are you sure you want to block {currentChat.username}? You won't be able to receive messages from them anymore.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleBlockUser} className="bg-red-600 hover:bg-red-700">
-                      Block User
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-              
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      onClick={() => setIsReportFormOpen(true)}
-                    >
-                      <Flag className="h-5 w-5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Report User</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <MoreHorizontal className="h-5 w-5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>More Options</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuLabel>Options</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <DropdownMenuItem
+                        disabled={currentChat.isAdmin}
+                        onSelect={(e) => e.preventDefault()}
+                      >
+                        <UserX className="h-4 w-4 mr-2 text-red-500" />
+                        <span>Block User</span>
+                      </DropdownMenuItem>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Block User</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to block {currentChat.username}? You won't be able to receive messages from them anymore.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleBlockUser} className="bg-red-600 hover:bg-red-700">
+                          Block User
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                  
+                  <DropdownMenuItem 
+                    onClick={() => setIsReportFormOpen(true)}
+                    onSelect={(e) => e.preventDefault()}
+                  >
+                    <Flag className="h-4 w-4 mr-2" />
+                    <span>Report User</span>
+                  </DropdownMenuItem>
+                  
+                  <DropdownMenuSeparator />
+                  
+                  <DropdownMenuItem>
+                    <span>Clear Chat</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
           

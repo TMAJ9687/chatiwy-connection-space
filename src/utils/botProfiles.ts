@@ -1,3 +1,4 @@
+
 // Create diverse bot profiles with different genders, countries, ages, and interests
 export interface BotProfile {
   id: string;
@@ -114,6 +115,56 @@ export const botProfiles: BotProfile[] = [
     isAdmin: false
   },
   {
+    id: 'bot-11',
+    username: 'Mia',
+    age: 24,
+    gender: 'Female',
+    country: 'South Korea',
+    flag: '🇰🇷',
+    interests: ['K-pop', 'Fashion', 'Photography'],
+    isAdmin: false
+  },
+  {
+    id: 'bot-12',
+    username: 'Ethan',
+    age: 27,
+    gender: 'Male',
+    country: 'Mexico',
+    flag: '🇲🇽',
+    interests: ['Cooking', 'Dancing', 'History'],
+    isAdmin: false
+  },
+  {
+    id: 'bot-13',
+    username: 'Charlotte',
+    age: 29,
+    gender: 'Female',
+    country: 'Sweden',
+    flag: '🇸🇪',
+    interests: ['Hiking', 'Music', 'Design'],
+    isAdmin: false
+  },
+  {
+    id: 'bot-14',
+    username: 'Daniel',
+    age: 32,
+    gender: 'Male',
+    country: 'India',
+    flag: '🇮🇳',
+    interests: ['Cricket', 'Cooking', 'Technology'],
+    isAdmin: false
+  },
+  {
+    id: 'bot-15',
+    username: 'Amelia',
+    age: 25,
+    gender: 'Female',
+    country: 'Russia',
+    flag: '🇷🇺',
+    interests: ['Literature', 'Ballet', 'Art'],
+    isAdmin: false
+  },
+  {
     id: 'admin-1',
     username: 'Admin',
     age: 35,
@@ -142,31 +193,31 @@ export const botConversationStarters = [
 export const botResponses = {
   greeting: [
     "I'm doing great, thanks for asking! How about you?",
-    "Pretty good! Just taking a break and chatting with people. How's your day going?",
-    "I'm good! Excited to meet new people here. What about you?",
-    "Doing well! Just relaxing and enjoying some conversations. How are you?"
+    "Pretty good! Just taking a break. How's your day?",
+    "I'm good! Excited to meet new people here. You?",
+    "Doing well! Just relaxing a bit. How are you?"
   ],
   interests: [
-    "I've been into [interest] for years now. What got you interested in it?",
-    "Oh, I love [interest]! Do you have any favorite [interest] that you'd recommend?",
-    "[Interest] is such a great hobby. What's your favorite thing about it?",
-    "I'm actually just getting into [interest] more seriously. Any tips for beginners?"
+    "I like [interest] too. What got you into it?",
+    "Oh, I love [interest]! Any favorites you'd recommend?",
+    "[Interest] is fun. What do you enjoy most about it?",
+    "I'm fairly new to [interest]. Any tips?"
   ],
   weather: [
-    "The weather in [country] is [weather_type] today. How is it where you are?",
-    "It's a beautiful day here in [country]! How's the weather there?",
-    "It's been raining here in [country], but I don't mind. What's it like where you are?",
-    "The weather is perfect for staying inside and chatting today. How is it on your end?"
+    "It's [weather_type] in [country] today. How is it there?",
+    "Beautiful day here in [country]! How's your weather?",
+    "Bit rainy in [country] today. How is it where you are?",
+    "Perfect weather for chatting. How is it on your end?"
   ],
   generic: [
-    "That's interesting! Tell me more about that.",
-    "Oh, I see what you mean. I've had similar experiences.",
-    "That's cool! I've never thought about it that way before.",
-    "Really? That's fascinating. What else do you enjoy?",
-    "I can definitely relate to that. What do you think about...?",
-    "That makes a lot of sense. Have you always felt that way?",
-    "I appreciate you sharing that with me. What made you interested in that?",
-    "That sounds fun! I've been wanting to try something like that."
+    "That's interesting! Tell me more.",
+    "I see what you mean. I've had similar experiences.",
+    "That's cool! Never thought about it that way.",
+    "Really? That's fascinating.",
+    "I can relate to that. What do you think about...?",
+    "Makes sense. Have you always felt that way?",
+    "Thanks for sharing that. What got you interested?",
+    "Sounds fun! I've wanted to try something like that."
   ]
 };
 

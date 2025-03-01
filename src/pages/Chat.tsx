@@ -46,7 +46,7 @@ const ChatPage = () => {
   }
 
   return (
-    <>
+    <div className="flex flex-col min-h-screen">
       <Helmet>
         <title>Chat | Chatiwy</title>
         <meta name="description" content="Chat with people from around the world on Chatiwy" />
@@ -54,7 +54,7 @@ const ChatPage = () => {
       
       <Navbar />
       
-      <main className="min-h-screen py-10">
+      <main className="flex-1 py-4">
         {showGuidance && (
           <GuidancePopup 
             onAccept={handleGuidanceAccept} 
@@ -85,7 +85,7 @@ const ChatPage = () => {
       </main>
       
       <Footer />
-    </>
+    </div>
   );
 };
 
