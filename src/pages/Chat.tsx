@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { Navbar } from '@/components/Navbar';
@@ -10,15 +9,9 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import socketService from '@/services/socketService';
 
-// Create a mock user database for demo purposes when WebSocket is not available
-// This would be replaced by a real database in a production app
 const mockConnectedUsers = new Map();
-
-// Create a set to track user sessions by browser session
 const sessionKey = 'chatiwy_session_id';
-
-// Store your Render.com URL here after deployment
-const RENDER_URL = 'https://chatiwy-test.onrender.com'; // Your actual Render.com WebSocket server URL
+const RENDER_URL = 'https://chatiwy-test.onrender.com';
 
 const ChatPage = () => {
   const navigate = useNavigate();
@@ -28,13 +21,11 @@ const ChatPage = () => {
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [socketConnected, setSocketConnected] = useState(false);
   
-  // Connect to WebSocket server
   useEffect(() => {
     let isConnected = false;
     
     const connectToSocket = async () => {
       try {
-        // If we have a custom Render URL, set it first
         if (RENDER_URL) {
           socketService.setCustomServerUrl(RENDER_URL);
         }
@@ -51,15 +42,13 @@ const ChatPage = () => {
     
     connectToSocket();
     
-    // Add reconnection logic
     const reconnectionInterval = setInterval(() => {
       if (!socketService.isConnected() && !isConnected) {
         console.log('Attempting to reconnect to WebSocket server...');
         connectToSocket();
       }
-    }, 10000); // Try to reconnect every 10 seconds if not connected
+    }, 10000);
     
-    // Cleanup on unmount
     return () => {
       clearInterval(reconnectionInterval);
       socketService.disconnect();
@@ -67,46 +56,37 @@ const ChatPage = () => {
   }, []);
   
   useEffect(() => {
-    // Generate a unique session ID for this browser window if it doesn't exist
     let sessionId = sessionStorage.getItem(sessionKey);
     if (!sessionId) {
       sessionId = Math.random().toString(36).substring(2, 15);
       sessionStorage.setItem(sessionKey, sessionId);
     }
     
-    // Check if we have user profile data from the previous page
     if (location.state?.userProfile) {
       const profile = location.state.userProfile;
       
-      // Check if username contains "admin" in any form
       if (profile.username.toLowerCase().includes('admin')) {
         navigate('/');
         toast.error('The username "admin" is reserved and cannot be used');
         return;
       }
       
-      // If socket is connected, register user with the server
       if (socketConnected) {
         socketService.registerUser({
           ...profile,
           sessionId
         }).then(registeredUser => {
-          // User successfully registered with WebSocket server
           setUserProfile({
             ...profile,
             id: registeredUser.id,
             sessionId
           });
         }).catch(error => {
-          // Registration failed, handle error
           console.error('Registration error:', error);
           navigate('/');
           toast.error(error || 'Registration failed. Please try again.');
         });
       } else {
-        // Fallback to local storage approach when WebSocket is not available
-        
-        // Check if username is already taken by someone else other than this session
         let isUsernameTakenByOther = false;
         mockConnectedUsers.forEach((user, key) => {
           if (user.username.toLowerCase() === profile.username.toLowerCase() && 
@@ -122,20 +102,17 @@ const ChatPage = () => {
           return;
         }
         
-        // Ensure the profile has a unique identifier
         profile.id = profile.id || sessionId;
         profile.sessionId = sessionId;
         
         setUserProfile(profile);
         
-        // Clear any previous entries with the same session ID
         mockConnectedUsers.forEach((user, key) => {
           if (user.sessionId === sessionId) {
             mockConnectedUsers.delete(key);
           }
         });
         
-        // Store user in our mock database with a unique ID
         mockConnectedUsers.set(profile.id, {
           ...profile,
           isOnline: true,
@@ -145,12 +122,10 @@ const ChatPage = () => {
         console.log("Current connected users:", Array.from(mockConnectedUsers.entries()));
       }
     } else {
-      // If no profile data, redirect back to home
       navigate('/');
       toast.error('Please complete your profile first');
     }
     
-    // Cleanup on unmount - mark user as offline
     return () => {
       if (userProfile && userProfile.id && !socketConnected) {
         const user = mockConnectedUsers.get(userProfile.id);
@@ -164,8 +139,7 @@ const ChatPage = () => {
       }
     };
   }, [location.state, navigate, socketConnected]);
-
-  // This handles the before unload event to mark users as offline when closing the browser
+  
   useEffect(() => {
     const handleBeforeUnload = () => {
       const sessionId = sessionStorage.getItem(sessionKey);
@@ -184,7 +158,7 @@ const ChatPage = () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [userProfile, socketConnected]);
-
+  
   const handleGuidanceAccept = () => {
     setShowGuidance(false);
     toast.success('Welcome to Chatiwy! You can now start chatting.');
@@ -200,7 +174,7 @@ const ChatPage = () => {
   };
 
   if (!userProfile) {
-    return null; // Don't render anything until we check for user profile
+    return null;
   }
 
   return (
@@ -212,7 +186,6 @@ const ChatPage = () => {
       
       <Navbar />
       
-      {/* Added padding-top to account for the fixed navbar */}
       <main className="flex-1 py-4 pt-20">
         {showGuidance && (
           <GuidancePopup 
