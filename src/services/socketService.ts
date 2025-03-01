@@ -1,4 +1,3 @@
-
 import { io, Socket } from 'socket.io-client';
 import { toast } from 'sonner';
 
@@ -7,6 +6,9 @@ import { toast } from 'sonner';
 const SERVER_URLS = [
   // Try connecting to a production server if defined
   process.env.REACT_APP_SOCKET_SERVER,
+  // Try the user's Render.com deployment if provided
+  // Replace this with your actual Render deployment URL once you have it
+  "https://your-chatiwy-server.onrender.com",
   // Try the origin (if this app is deployed with the backend)
   window.location.origin.replace(/^https/, 'wss').replace(/^http/, 'ws'),
   // Try local development server
@@ -61,6 +63,9 @@ class SocketService {
         reconnectionAttempts: 2,
         timeout: 5000,
         transports: ['websocket', 'polling'], // Try WebSocket first, fall back to polling
+        extraHeaders: {
+          "Access-Control-Allow-Origin": "*"
+        }
       });
 
       // Set a connection timeout
@@ -225,6 +230,16 @@ class SocketService {
   retryConnection(): Promise<Socket> {
     this.currentServerIndex = 0; // Reset to try all servers again
     return this.connect();
+  }
+
+  // Update the server URL array with a custom URL
+  setCustomServerUrl(url: string): void {
+    if (url && typeof url === 'string' && url.trim() !== '') {
+      // Insert the custom URL at the beginning of the array
+      SERVER_URLS.splice(1, 0, url.trim());
+      console.log("Added custom server URL:", url);
+      console.log("Server URLs:", SERVER_URLS);
+    }
   }
 }
 

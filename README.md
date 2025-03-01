@@ -1,8 +1,28 @@
+
 # Welcome to your Lovable project
 
 ## Project info
 
 **URL**: https://lovable.dev/projects/b90804d5-3ea3-4a3c-99e8-2272dd0dc1d8
+
+## Deploying the WebSocket Server to Render.com
+
+To get the real-time chat functionality working, you need to deploy the WebSocket server to Render.com:
+
+1. Create a new Web Service on Render.com
+2. Connect your GitHub repository or use the Render Git integration
+3. Configure your service as follows:
+   - **Name**: chatiwy-server (or any name you prefer)
+   - **Environment**: Node
+   - **Root Directory**: server
+   - **Build Command**: `yarn install` or `npm install`
+   - **Start Command**: `node server.js`
+   - **Instance Type**: Free
+
+4. After deployment, copy the URL of your Render service (e.g., https://your-chatiwy-server.onrender.com)
+5. In your React app, update the `SERVER_URLS` array in the `src/services/socketService.ts` file with your Render URL
+
+**Note**: The free tier of Render.com will spin down after periods of inactivity, which may cause some delay when connecting to the WebSocket server after it's been inactive.
 
 ## How can I edit this code?
 
