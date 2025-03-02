@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, ReactNode } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Moon, Sun, LogOut, Inbox } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -7,9 +7,13 @@ import { toast } from 'sonner';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 
-export function Navbar() {
+interface NavbarProps {
+  children?: ReactNode;
+}
+
+export function Navbar({ children }: NavbarProps) {
   const navigate = useNavigate();
-  const location = useLocation(); // Add location to check current route
+  const location = useLocation();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -92,6 +96,9 @@ export function Navbar() {
         </Link>
         
         <div className="flex items-center space-x-3">
+          {/* Render children first if provided */}
+          {children}
+
           {/* Only show inbox button if logged in and not on landing page */}
           {isLoggedIn && !isLandingPage && (
             <TooltipProvider>
