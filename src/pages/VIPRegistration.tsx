@@ -19,7 +19,9 @@ import {
   MapPin,
   Heart,
   ChevronsUpDown,
-  Users
+  Users,
+  Mail,
+  Key
 } from "lucide-react";
 
 export default function VIPRegistration() {
@@ -27,18 +29,19 @@ export default function VIPRegistration() {
   const [selectedPlan, setSelectedPlan] = useState<string>("monthly");
   const [formData, setFormData] = useState({
     nickname: "",
+    email: "",
     age: "",
     country: "",
     interests: "",
     gender: ""
   });
 
-  // Plans data
+  // Plans data with updated pricing
   const plans = [
     {
       id: "monthly",
       name: "Monthly",
-      price: "$3.99/month",
+      price: "$5.00/month",
       billingInfo: "Billed every month",
       features: [
         "Send unlimited photos",
@@ -58,8 +61,8 @@ export default function VIPRegistration() {
     {
       id: "biannual",
       name: "6 Months",
-      price: "$20.99/6 months",
-      billingInfo: "$3.50/month, billed every 6 months",
+      price: "$25.00/6 months",
+      billingInfo: "$4.17/month, billed every 6 months",
       popular: true,
       features: [
         "Send unlimited photos",
@@ -79,8 +82,8 @@ export default function VIPRegistration() {
     {
       id: "annual",
       name: "Annual",
-      price: "$39.99/year",
-      billingInfo: "$3.33/month, billed annually",
+      price: "$45.00/year",
+      billingInfo: "$3.75/month, billed annually",
       features: [
         "Send unlimited photos",
         "Send unlimited voice messages",
@@ -109,8 +112,15 @@ export default function VIPRegistration() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate email is provided
+    if (!formData.email) {
+      toast.error("Email is required for account confirmation");
+      return;
+    }
+    
     // Here you would integrate with a payment processor
-    toast.success("Registration submitted successfully!");
+    toast.success("Registration submitted successfully! Please check your email for confirmation.");
     navigate("/chat");
   };
 
@@ -145,6 +155,22 @@ export default function VIPRegistration() {
                   onChange={handleInputChange}
                   required
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Address</Label>
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    id="email" 
+                    name="email" 
+                    type="email" 
+                    placeholder="your.email@example.com" 
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">Required for account confirmation and password reset</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="age">Age</Label>

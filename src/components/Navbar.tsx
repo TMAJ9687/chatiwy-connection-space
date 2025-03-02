@@ -81,6 +81,10 @@ export function Navbar({ children }: NavbarProps) {
     }
   };
 
+  const handleVIPClick = () => {
+    navigate('/vip/register');
+  };
+
   return (
     <header 
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -146,6 +150,7 @@ export function Navbar({ children }: NavbarProps) {
           
           <Button 
             className="btn-vip hidden sm:flex"
+            onClick={handleVIPClick}
           >
             VIP Membership
           </Button>

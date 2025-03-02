@@ -14,7 +14,10 @@ const vipFeatures = [
   "Priority in user listing",
   "Enhanced protection against bans",
   "Editable interests",
-  "Free location selection"
+  "Free location selection",
+  "Can't be disconnected due to inactivity",
+  "Real-time translation",
+  "Password reset via email"
 ];
 
 export function VIPSection() {
@@ -61,7 +64,7 @@ export function VIPSection() {
               <div className="text-center mb-6">
                 <h3 className="text-2xl font-bold mb-2">VIP Membership</h3>
                 <div className="flex items-center justify-center gap-1">
-                  <span className="text-4xl font-bold">$9.99</span>
+                  <span className="text-4xl font-bold">$5.00</span>
                   <span className="text-gray-500">/month</span>
                 </div>
                 <p className="text-gray-500 mt-2">Cancel anytime</p>

@@ -13,7 +13,9 @@ import {
   MessageSquare, 
   MapPin, 
   Clock, 
-  Settings
+  Settings,
+  Languages,
+  Mail
 } from "lucide-react";
 
 export default function VIPPage() {
@@ -43,8 +45,8 @@ export default function VIPPage() {
           </CardHeader>
           <CardContent className="space-y-2">
             <p>• Unlimited high-resolution photo uploads</p>
-            <p>• No waiting period for content approval</p>
-            <p>• Access to premium filters and effects</p>
+            <p>• VIP can't be disconnected due to inactivity</p>
+            <p>• Real-time translation of messages</p>
           </CardContent>
         </Card>
 
@@ -78,7 +80,7 @@ export default function VIPPage() {
           <CardContent className="space-y-2">
             <p>• Enhanced protection against bans</p>
             <p>• Priority customer support</p>
-            <p>• Profile verification badge</p>
+            <p>• Password reset via email</p>
           </CardContent>
         </Card>
       </div>
@@ -93,7 +95,7 @@ export default function VIPPage() {
           <Card>
             <CardHeader className="text-center">
               <CardTitle>Monthly</CardTitle>
-              <div className="text-3xl font-bold mt-2">$3.99<span className="text-base font-normal text-muted-foreground">/month</span></div>
+              <div className="text-3xl font-bold mt-2">$5.00<span className="text-base font-normal text-muted-foreground">/month</span></div>
             </CardHeader>
             <CardContent className="space-y-4">
               <ul className="space-y-2">
@@ -122,8 +124,8 @@ export default function VIPPage() {
             </div>
             <CardHeader className="text-center">
               <CardTitle>6 Months</CardTitle>
-              <div className="text-3xl font-bold mt-2">$20.99<span className="text-base font-normal text-muted-foreground">/6 months</span></div>
-              <p className="text-sm text-muted-foreground">$3.50/month</p>
+              <div className="text-3xl font-bold mt-2">$25.00<span className="text-base font-normal text-muted-foreground">/6 months</span></div>
+              <p className="text-sm text-muted-foreground">$4.17/month</p>
             </CardHeader>
             <CardContent className="space-y-4">
               <ul className="space-y-2">
@@ -133,7 +135,7 @@ export default function VIPPage() {
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
-                  <span>Save $2.95 vs monthly</span>
+                  <span>Save $5.00 vs monthly</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
@@ -149,8 +151,8 @@ export default function VIPPage() {
           <Card>
             <CardHeader className="text-center">
               <CardTitle>Annual</CardTitle>
-              <div className="text-3xl font-bold mt-2">$39.99<span className="text-base font-normal text-muted-foreground">/year</span></div>
-              <p className="text-sm text-muted-foreground">$3.33/month</p>
+              <div className="text-3xl font-bold mt-2">$45.00<span className="text-base font-normal text-muted-foreground">/year</span></div>
+              <p className="text-sm text-muted-foreground">$3.75/month</p>
             </CardHeader>
             <CardContent className="space-y-4">
               <ul className="space-y-2">
@@ -160,7 +162,7 @@ export default function VIPPage() {
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
-                  <span>Save $7.89 vs monthly</span>
+                  <span>Save $15.00 vs monthly</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
@@ -177,21 +179,26 @@ export default function VIPPage() {
       
       <div className="mt-16">
         <h2 className="text-2xl font-bold text-center mb-8">Why Choose VIP?</h2>
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-4">
           <div className="flex flex-col items-center text-center p-4">
             <MapPin className="h-10 w-10 text-amber-500 mb-4" />
             <h3 className="text-xl font-medium mb-2">Location Selection</h3>
-            <p className="text-muted-foreground">Choose any location to appear from and connect with users worldwide</p>
+            <p className="text-muted-foreground">Choose any location to appear from and connect globally</p>
           </div>
           <div className="flex flex-col items-center text-center p-4">
             <Clock className="h-10 w-10 text-amber-500 mb-4" />
             <h3 className="text-xl font-medium mb-2">Extended History</h3>
-            <p className="text-muted-foreground">Access your chat history for up to 10 hours with full search functionality</p>
+            <p className="text-muted-foreground">Access chat history for up to 10 hours with search</p>
           </div>
           <div className="flex flex-col items-center text-center p-4">
-            <Settings className="h-10 w-10 text-amber-500 mb-4" />
-            <h3 className="text-xl font-medium mb-2">Customization</h3>
-            <p className="text-muted-foreground">Fully customize your profile and chat experience with exclusive options</p>
+            <Languages className="h-10 w-10 text-amber-500 mb-4" />
+            <h3 className="text-xl font-medium mb-2">Translation</h3>
+            <p className="text-muted-foreground">Real-time translation of messages in different languages</p>
+          </div>
+          <div className="flex flex-col items-center text-center p-4">
+            <Mail className="h-10 w-10 text-amber-500 mb-4" />
+            <h3 className="text-xl font-medium mb-2">Account Security</h3>
+            <p className="text-muted-foreground">Log in with email or nickname and reset password via email</p>
           </div>
         </div>
       </div>
