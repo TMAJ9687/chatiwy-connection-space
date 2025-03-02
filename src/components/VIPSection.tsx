@@ -1,7 +1,7 @@
 
 import { CheckCircle2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
+import { useNavigate } from 'react-router-dom';
 
 const vipFeatures = [
   "Unlimited image uploads",
@@ -18,8 +18,10 @@ const vipFeatures = [
 ];
 
 export function VIPSection() {
+  const navigate = useNavigate();
+
   const handleVIPClick = () => {
-    toast("VIP Membership coming soon!");
+    navigate('/vip');
   };
 
   return (
@@ -69,6 +71,7 @@ export function VIPSection() {
                 <Button 
                   onClick={handleVIPClick}
                   className="btn-vip w-full"
+                  variant="warning"
                 >
                   Get VIP Access
                 </Button>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -664,7 +663,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                       {message.image ? (
                         <div className="mb-2">
                           <div 
-                            className={`relative cursor-pointer ${message.image.blurred ? 'blur-xl hover:blur-none transition-all' : ''}`}
+                            className={`relative cursor-pointer ${message.image.blurred ? 'blur-xl' : ''}`}
                             onClick={() => openImageInFullResolution(message.image!.url)}
                           >
                             <img 
@@ -677,7 +676,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                                 <Button 
                                   variant="secondary" 
                                   size="sm" 
-                                  className="opacity-90"
+                                  className="opacity-90 z-10"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     toggleImageBlur(message.id);
