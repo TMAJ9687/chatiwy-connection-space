@@ -327,11 +327,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
       if (socketConnected) {
         socketService.sendMessage({ 
           to: currentChat?.userId, 
-          content: '',
-          image: {
-            url: '',
-            blurred: true
-          }
+          content: messageInput
         });
       } else {
         handleReceiveMessage({

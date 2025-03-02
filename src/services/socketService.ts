@@ -1,4 +1,3 @@
-
 import { io, Socket } from 'socket.io-client';
 import { toast } from 'sonner';
 
@@ -24,6 +23,16 @@ interface ConnectedUser {
   isOnline?: boolean;
   lastSeen?: Date;
   sessionId?: string;
+}
+
+// Define the message interface
+interface MessageData {
+  to?: string;
+  content: string;
+  image?: {
+    url: string;
+    blurred: boolean;
+  };
 }
 
 // Create a class to manage socket connections
@@ -184,7 +193,7 @@ class SocketService {
   }
 
   // Send a message
-  sendMessage(message: { to?: string; content: string }): void {
+  sendMessage(message: MessageData): void {
     if (!this.socket) {
       console.error('Cannot send message: Socket not connected');
       toast.warning('Message sent in offline mode');
