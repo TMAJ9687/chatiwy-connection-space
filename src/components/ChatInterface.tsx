@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -116,6 +115,22 @@ const emojiCategories = {
   symbols: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❤️‍🔥', '❤️‍🩹', '❣️', '💕', '💞', '💓', '💗', '💖']
 };
 
+const allEmojis = [
+  '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '🥲', '☺️', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘',
+  '👋', '🤚', '🖐', '✋', '🖖', '👌', '🤌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '👇', '👍', '👎',
+  '👶', '👧', '🧒', '👦', '👩', '🧑', '👨', '👩‍🦱', '🧑‍🦱', '👨‍🦱', '👩‍🦰', '🧑‍🦰', '👨‍🦰', '👱‍♀️', '👱',
+  '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐻‍❄️', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🙈', '🙉',
+  '🍏', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅',
+  '⚽️', '🏀', '🏈', '⚾️', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏',
+  '🚗', '🚕', '🚙', '🚌', '🚎', '🏎', '🚓', '🚑', '🚒', '🚐', '🛻', '🚚', '🚛', '🚜', '🦯', '🦽', '🦼', '🛴',
+  '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❤️‍🔥', '❤️‍🩹', '❣️', '💕', '💞', '💓', '💗', '💖',
+  '😎', '🤓', '🧐', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭',
+  '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🫣', '🤗', '🫡', '🤔', '🫢',
+  '👨‍👩‍👧‍👦', '👨‍👩‍👧', '👨‍👩‍👦‍👦', '👨‍👩‍👧‍👧', '👩‍👩‍👦', '👩‍👩‍👧', '👩‍👩‍👧‍👦', '👩‍👩‍👦‍👦', '👩‍👩‍👧‍👧',
+  '🌍', '🌎', '🌏', '🌱', '🌲', '🌳', '🌴', '🌵', '🌷', '🌸', '🌹', '🌺', '🌻', '🌼', '🌽', '🌾', '🌿', '☘️', '🍀',
+  '🎄', '🎉', '🎊', '🎈', '🎁', '🎂', '🎀', '🪄', '🧨', '✨', '🎐', '🎏', '🎎', '🎌', '🧧', '📮', '📫', '📯'
+];
+
 const IMAGE_UPLOADS_KEY = 'chatiwy_daily_image_uploads';
 const IMAGE_UPLOADS_DATE_KEY = 'chatiwy_image_uploads_date';
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
@@ -145,22 +160,6 @@ const getCountryFlag = (countryCode: string | undefined) => {
 
 const MAX_MESSAGE_LENGTH = 140;
 
-const allEmojis = [
-  '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '🥲', '☺️', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘',
-  '👋', '🤚', '🖐', '✋', '🖖', '👌', '🤌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '👇', '👍', '👎',
-  '👶', '👧', '🧒', '👦', '👩', '🧑', '👨', '👩‍🦱', '🧑‍🦱', '👨‍🦱', '👩‍🦰', '🧑‍🦰', '👨‍🦰', '👱‍♀️', '👱',
-  '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐻‍❄️', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🙈', '🙉',
-  '🍏', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅',
-  '⚽️', '🏀', '🏈', '⚾️', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏',
-  '🚗', '🚕', '🚙', '🚌', '🚎', '🏎', '🚓', '🚑', '🚒', '🚐', '🛻', '🚚', '🚛', '🚜', '🦯', '🦽', '🦼', '🛴',
-  '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❤️‍🔥', '❤️‍🩹', '❣️', '💕', '💞', '💓', '💗', '💖',
-  '😎', '🤓', '🧐', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭',
-  '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🫣', '🤗', '🫡', '🤔', '🫢',
-  '👨‍👩‍👧‍👦', '👨‍👩‍👧', '👨‍👩‍👦‍👦', '👨‍👩‍👧‍👧', '👩‍👩‍👦', '👩‍👩‍👧', '👩‍👩‍👧‍👦', '👩‍👩‍👦‍👦', '👩‍👩‍👧‍👧',
-  '🌍', '🌎', '🌏', '🌱', '🌲', '🌳', '🌴', '🌵', '🌷', '🌸', '🌹', '🌺', '🌻', '🌼', '🌽', '🌾', '🌿', '☘️', '🍀',
-  '🎄', '🎉', '🎊', '🎈', '🎁', '🎂', '🎀', '🪄', '🧨', '✨', '🎐', '🎏', '🎎', '🎌', '🧧', '📮', '📫', '📯'
-];
-
 export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketConnected = false }: ChatInterfaceProps) {
   const [currentChat, setCurrentChat] = useState<{
     userId: string;
@@ -179,7 +178,6 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
   const messageEndRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
-  const [userTyping, setUserTyping] = useState(false);
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -197,7 +195,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
           mockConnectedUsers.set(bot.id, {
             id: bot.id,
             username: bot.username,
-            isBot: false, // Changed from true to false to remove bot tags
+            isBot: false,
             interests: bot.interests,
             gender: bot.gender,
             country: bot.country,
@@ -211,7 +209,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
         ? { 
             id: selectedUser, 
             username: botProfiles.find(b => b.id === selectedUser)?.username || 'User',
-            isBot: false // Changed from checking botProfiles to false to remove bot tags
+            isBot: false
           }
         : mockConnectedUsers.get(selectedUser);
 
@@ -219,7 +217,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
         setCurrentChat({
           userId: user.id,
           username: user.username,
-          isBot: false, // Changed to always false to remove bot tags
+          isBot: false,
           isAdmin: !!user.isAdmin
         });
       }
@@ -248,13 +246,9 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
   useEffect(() => {
     if (socketConnected) {
       socketService.on('message', handleReceiveMessage);
-      socketService.on('userTyping', handleUserTyping);
-      socketService.on('userStoppedTyping', handleUserStoppedTyping);
-
+      
       return () => {
         socketService.off('message', handleReceiveMessage);
-        socketService.off('userTyping', handleUserTyping);
-        socketService.off('userStoppedTyping', handleUserStoppedTyping);
       };
     } else {
       const timeoutId = setTimeout(() => {
@@ -265,7 +259,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
               sender: currentChat.username,
               content: botResponse,
               timestamp: new Date(),
-              isBot: false // Changed from true to false to remove bot indication
+              isBot: false
             });
           }
         }
@@ -300,7 +294,6 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
   };
 
   const handleReceiveMessage = (messageData: any) => {
-    // Only handle messages from the current chat user
     if (currentChat && messageData.senderId && messageData.senderId !== currentChat.userId) {
       return;
     }
@@ -312,7 +305,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
         senderId: messageData.senderId,
         content: messageData.content,
         timestamp: new Date(messageData.timestamp),
-        isBot: false, // Changed from messageData.isBot || false to always false
+        isBot: false,
         image: messageData.image
       };
 
@@ -365,13 +358,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
           content: messageInput
         });
         
-        // Only send typing indication to the specific user
-        socketService.sendTyping({ 
-          to: currentChat.userId, 
-          isTyping: false 
-        });
       } else {
-        // Only show bot typing to the specific user in offline mode
         if (currentChat && currentChat.isBot) {
           handleReceiveMessage({
             sender: currentChat.username,
@@ -385,7 +372,6 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
 
       setLastMessage(messageInput);
       setMessageInput('');
-      setUserTyping(false);
     }
   };
 
@@ -393,23 +379,6 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
     const value = e.target.value;
     if (value.length <= MAX_MESSAGE_LENGTH) {
       setMessageInput(value);
-      if (value.trim() !== '') {
-        if (!userTyping) {
-          setUserTyping(true);
-          if (socketConnected && currentChat) {
-            // Only send typing indication to the specific user
-            socketService.sendTyping({ to: currentChat.userId, isTyping: true });
-          }
-        }
-      } else {
-        if (userTyping) {
-          setUserTyping(false);
-          if (socketConnected && currentChat) {
-            // Only send typing indication to the specific user
-            socketService.sendTyping({ to: currentChat.userId, isTyping: false });
-          }
-        }
-      }
     }
   };
 
@@ -417,20 +386,6 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
-    }
-  };
-
-  const handleUserTyping = (userId: string) => {
-    // Only show typing indicator if the typing user is the current chat user
-    if (currentChat?.userId === userId) {
-      setUserTyping(true);
-    }
-  };
-
-  const handleUserStoppedTyping = (userId: string) => {
-    // Only update typing state if the user is the current chat user
-    if (currentChat?.userId === userId) {
-      setUserTyping(false);
     }
   };
 
@@ -749,16 +704,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                     </Card>
                   </div>
                 ))}
-                {userTyping && (
-                  <div className="flex items-center space-x-2 text-sm text-gray-500">
-                    <span>{currentChat?.username} is typing...</span>
-                    <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '200ms' }}></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '400ms' }}></div>
-                    </div>
-                  </div>
-                )}
+                
                 <div ref={messageEndRef}></div>
               </div>
             </ScrollArea>
@@ -927,7 +873,6 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
         return (
           <div className="p-4">
             <h3 className="text-lg font-semibold mb-4">Message History</h3>
-            {/* Message history UI here */}
             <Button onClick={() => setView('chat')} variant="ghost">
               Return to Chat
             </Button>
@@ -936,57 +881,3 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
       
       case 'blocked':
         return (
-          <div className="p-4">
-            <h3 className="text-lg font-semibold mb-4">Blocked Users</h3>
-            {blockedUsers.size === 0 ? (
-              <p className="text-muted-foreground">You haven't blocked any users.</p>
-            ) : (
-              <div className="space-y-2">
-                {Array.from(blockedUsers).map(userId => (
-                  <div key={userId} className="flex justify-between items-center p-2 border rounded">
-                    <span>Blocked User</span>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => {
-                        blockedUsers.delete(userId);
-                        setView('chat');
-                      }}
-                    >
-                      Unblock
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-            <Button onClick={() => setView('chat')} variant="ghost" className="mt-4">
-              Return to Chat
-            </Button>
-          </div>
-        );
-      
-      default:
-        return null;
-    }
-  };
-
-  if (!selectedUser) {
-    return (
-      <div className="h-full flex flex-col items-center justify-center p-4">
-        <div className="text-center space-y-4">
-          <MessageSquare size={48} className="mx-auto text-primary" />
-          <h3 className="text-xl font-semibold">Select a user to start chatting</h3>
-          <p className="text-muted-foreground">
-            Choose a user from the list on the left to begin a conversation.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="h-full flex flex-col rounded-md border shadow-sm">
-      {renderContent()}
-    </div>
-  );
-}

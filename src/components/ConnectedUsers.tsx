@@ -33,7 +33,6 @@ interface ConnectedUsersProps {
   socketConnected?: boolean;
 }
 
-// Get unread messages from global
 declare global {
   interface Window {
     unreadMessagesPerUser: Set<string>;
@@ -85,7 +84,7 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
         
         const bots = botProfiles.map(bot => ({
           ...bot,
-          isBot: true
+          isBot: false
         }));
         
         return [...socketUsers, ...bots];
@@ -116,7 +115,7 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
         const bots = botProfiles.map(bot => ({
           ...bot,
           flag: getCountryFlag(bot.country),
-          isBot: true
+          isBot: false
         }));
         
         return [...mockUsers, ...bots];
@@ -126,7 +125,7 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
       return botProfiles.map(bot => ({
         ...bot,
         flag: getCountryFlag(bot.country),
-        isBot: true
+        isBot: false
       }));
     }
   };
@@ -176,7 +175,7 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
           user.isOnline
         ).length;
       } else {
-        realConnectedCount = 2;
+        realConnectedCount = 2 + botProfiles.length;
       }
       setConnectedUsersCount(realConnectedCount);
       
@@ -186,7 +185,7 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
       setUsersList(botProfiles.map(bot => ({
         ...bot,
         flag: getCountryFlag(bot.country),
-        isBot: true
+        isBot: false
       })));
     }
   }, [filter, searchQuery, userProfile, countryFilter, ageRange, socketConnected, realTimeUsers]);
@@ -226,7 +225,6 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
     return country?.flag || '🌍';
   };
 
-  // Get modern avatar URL based on gender
   const getAvatarUrl = (name: string, gender: string): string => {
     // Generate a consistent hash for the name to get the same avatar each time
     let hash = 0;
@@ -446,9 +444,7 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
                       <span className={`font-medium truncate ${hasUnread ? 'font-bold' : ''}`}>{user.username}</span>
                       <span className="text-xs opacity-70">{user.age}</span>
                       <span className="ml-1 text-lg">{user.flag || getCountryFlag(user.country)}</span>
-                      {user.isBot && (
-                        <Badge className="ml-auto" variant="outline">Bot</Badge>
-                      )}
+                      
                       {hasUnread && (
                         <Badge className="ml-auto" variant="default">New</Badge>
                       )}

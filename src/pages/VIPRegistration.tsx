@@ -1,362 +1,76 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
-import { countries } from "@/utils/countryData";
-import { toast } from "sonner";
-import { 
-  CreditCard, 
-  CheckCircle, 
-  Gift,
-  User,
-  Calendar,
-  MapPin,
-  Heart,
-  ChevronsUpDown,
-  Users,
-  Mail,
-  Key
-} from "lucide-react";
 
-export default function VIPRegistration() {
+import React from 'react';
+import { Helmet } from 'react-helmet';
+import { Navbar } from '@/components/Navbar';
+import { Footer } from '@/components/Footer';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { useNavigate } from 'react-router-dom';
+import { X } from 'lucide-react';
+
+const VIPRegistrationPage = () => {
   const navigate = useNavigate();
-  const [selectedPlan, setSelectedPlan] = useState<string>("monthly");
-  const [formData, setFormData] = useState({
-    nickname: "",
-    email: "",
-    age: "",
-    country: "",
-    interests: "",
-    gender: ""
-  });
 
-  const plans = [
-    {
-      id: "monthly",
-      name: "Monthly",
-      price: "$5.00/month",
-      billingInfo: "Billed every month",
-      features: [
-        "Send unlimited photos",
-        "Send unlimited voice messages",
-        "Chat history view",
-        "Find matches according to interests",
-        "Customer Support",
-        "Customized avatars",
-        "Appear at the top of the list",
-        "Ad free",
-        "React, reply, edit, unsend messages",
-        "View message status",
-        "Hide your own message status",
-        "Control your online status"
-      ]
-    },
-    {
-      id: "biannual",
-      name: "6 Months",
-      price: "$25.00/6 months",
-      billingInfo: "$4.17/month, billed every 6 months",
-      popular: true,
-      features: [
-        "Send unlimited photos",
-        "Send unlimited voice messages",
-        "Chat history view",
-        "Find matches according to interests",
-        "Customer Support",
-        "Customized avatars",
-        "Appear at the top of the list",
-        "Ad free",
-        "React, reply, edit, unsend messages",
-        "View message status",
-        "Hide your own message status",
-        "Control your online status"
-      ]
-    },
-    {
-      id: "annual",
-      name: "Annual",
-      price: "$45.00/year",
-      billingInfo: "$3.75/month, billed annually",
-      features: [
-        "Send unlimited photos",
-        "Send unlimited voice messages",
-        "Chat history view",
-        "Find matches according to interests",
-        "Customer Support",
-        "Customized avatars",
-        "Appear at the top of the list",
-        "Ad free",
-        "React, reply, edit, unsend messages",
-        "View message status",
-        "Hide your own message status",
-        "Control your online status"
-      ]
-    }
-  ];
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handlePlanSelect = (planId: string) => {
-    setSelectedPlan(planId);
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.email) {
-      toast.error("Email is required for account confirmation");
-      return;
-    }
-    
-    toast.success("Registration submitted successfully! Please check your email for confirmation.");
-    navigate("/chat");
+  const handleClose = () => {
+    navigate('/');
   };
 
   return (
-    <div className="container max-w-6xl mx-auto py-10 px-4">
-      <h1 className="text-4xl font-bold text-center mb-2">Create Your VIP Account</h1>
-      <p className="text-center text-muted-foreground mb-10">
-        Complete your profile and select a membership plan
-      </p>
-
-      <div className="grid lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-1">
-          <Card className="h-full">
+    <div className="flex flex-col min-h-screen">
+      <Helmet>
+        <title>VIP Registration | Chatiwy</title>
+        <meta name="description" content="Register for VIP membership on Chatiwy" />
+      </Helmet>
+      
+      <Navbar>
+        <Button 
+          onClick={handleClose} 
+          variant="ghost" 
+          size="sm"
+          className="mr-2"
+        >
+          <X className="h-4 w-4 mr-1" />
+          Close
+        </Button>
+      </Navbar>
+      
+      <main className="flex-1 py-4 pt-20">
+        <div className="container mx-auto px-4">
+          <Card className="max-w-2xl mx-auto">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5 text-amber-500" />
-                <span>Your Information</span>
-              </CardTitle>
+              <CardTitle>VIP Registration</CardTitle>
               <CardDescription>
-                Tell us about yourself
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="nickname">Nickname</Label>
-                <Input 
-                  id="nickname" 
-                  name="nickname" 
-                  placeholder="Your nickname" 
-                  value={formData.nickname}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
-                <div className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
-                  <Input 
-                    id="email" 
-                    name="email" 
-                    type="email" 
-                    placeholder="your.email@example.com" 
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground">Required for account confirmation and password reset</p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="age">Age</Label>
-                <Input 
-                  id="age" 
-                  name="age" 
-                  type="number" 
-                  placeholder="Your age" 
-                  min="18" 
-                  max="120"
-                  value={formData.age}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="country">Country</Label>
-                <div className="relative">
-                  <select
-                    id="country"
-                    name="country"
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 appearance-none"
-                    value={formData.country}
-                    onChange={handleInputChange}
-                    required
-                  >
-                    <option value="">Select your country</option>
-                    {countries.map((country) => (
-                      <option key={country.code} value={country.name}>
-                        {country.flag} {country.name}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronsUpDown className="absolute right-3 top-3 h-4 w-4 opacity-50" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="gender">Gender</Label>
-                <div className="relative">
-                  <select
-                    id="gender"
-                    name="gender"
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 appearance-none"
-                    value={formData.gender}
-                    onChange={handleInputChange}
-                    required
-                  >
-                    <option value="">Select your gender</option>
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                  </select>
-                  <ChevronsUpDown className="absolute right-3 top-3 h-4 w-4 opacity-50" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="interests">Interests</Label>
-                <Textarea 
-                  id="interests" 
-                  name="interests" 
-                  placeholder="Share your interests (music, movies, sports, etc.)"
-                  value={formData.interests}
-                  onChange={handleInputChange}
-                  className="min-h-[120px]"
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="lg:col-span-2">
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Gift className="h-5 w-5 text-amber-500" />
-                <span>Select Your Plan</span>
-              </CardTitle>
-              <CardDescription>
-                Choose the membership plan that works best for you
+                Register for VIP membership to unlock premium features on Chatiwy.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid md:grid-cols-3 gap-4">
-                {plans.map((plan) => (
-                  <div 
-                    key={plan.id} 
-                    className={`border rounded-xl p-4 relative cursor-pointer transition-all ${
-                      selectedPlan === plan.id 
-                        ? "border-amber-500 bg-amber-50 dark:bg-amber-950/20" 
-                        : "border-gray-200 dark:border-gray-700 hover:border-amber-300"
-                    }`}
-                    onClick={() => handlePlanSelect(plan.id)}
-                  >
-                    {plan.popular && (
-                      <div className="absolute -top-3 right-4 bg-amber-500 text-white px-2 py-1 rounded-md text-xs font-medium">
-                        Most popular!
-                      </div>
-                    )}
-                    <div className="mb-4 flex justify-between items-start">
-                      <div>
-                        <h3 className="font-bold">{plan.name}</h3>
-                        <p className="text-xs text-muted-foreground">{plan.billingInfo}</p>
-                      </div>
-                      {selectedPlan === plan.id && (
-                        <CheckCircle className="h-5 w-5 text-amber-500" />
-                      )}
-                    </div>
-                    <p className="text-2xl font-bold mb-2">{plan.price}</p>
-                  </div>
-                ))}
+              {/* VIP registration content would go here */}
+              <p className="mb-4">Complete your VIP registration below to enjoy these benefits:</p>
+              <ul className="list-disc pl-5 mb-8 space-y-2">
+                <li>Ad-free experience across the platform</li>
+                <li>Unlimited image sharing</li>
+                <li>Voice message support</li>
+                <li>Priority customer support</li>
+                <li>Exclusive profile badges</li>
+              </ul>
+              
+              <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 p-4 rounded-md">
+                <p className="text-amber-700 dark:text-amber-300 text-center">
+                  VIP registration is coming soon! This is a preview of the registration page.
+                </p>
               </div>
             </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CreditCard className="h-5 w-5 text-amber-500" />
-                <span>Payment Method</span>
-              </CardTitle>
-              <CardDescription>
-                Choose your preferred payment method
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Tabs defaultValue="card" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="card" className="flex items-center gap-2">
-                    <CreditCard className="h-4 w-4" /> Credit Card
-                  </TabsTrigger>
-                  <TabsTrigger value="paypal" className="flex items-center gap-2">
-                    <CreditCard className="h-4 w-4" /> PayPal
-                  </TabsTrigger>
-                </TabsList>
-                <TabsContent value="card" className="space-y-4">
-                  <div className="space-y-4 pt-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="first-name">First name</Label>
-                        <Input id="first-name" placeholder="First name" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="last-name">Last name</Label>
-                        <Input id="last-name" placeholder="Last name" />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="card-number">Card number</Label>
-                      <Input id="card-number" placeholder="XXXX XXXX XXXX XXXX" />
-                    </div>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="month">Month</Label>
-                        <Input id="month" placeholder="MM" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="year">Year</Label>
-                        <Input id="year" placeholder="YYYY" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="cvc">CVC</Label>
-                        <Input id="cvc" placeholder="CVC" />
-                      </div>
-                    </div>
-                  </div>
-                </TabsContent>
-                <TabsContent value="paypal" className="space-y-4">
-                  <div className="text-center p-6">
-                    <p className="mb-6">Click the button below to proceed to PayPal for payment processing</p>
-                    <Button className="bg-blue-500 hover:bg-blue-600 w-full">
-                      Pay with PayPal
-                    </Button>
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-            <CardFooter>
-              <Button 
-                onClick={handleSubmit} 
-                className="w-full" 
-                variant="warning"
-              >
-                Complete Registration
-              </Button>
+            <CardFooter className="flex justify-between">
+              <Button variant="outline" onClick={handleClose}>Cancel</Button>
+              <Button disabled>Complete Registration</Button>
             </CardFooter>
           </Card>
         </div>
-      </div>
+      </main>
       
-      <div className="mt-6 text-center text-sm text-muted-foreground">
-        By subscribing, you agree to our Terms of Service and Privacy Policy
-      </div>
+      <Footer />
     </div>
   );
-}
+};
+
+export default VIPRegistrationPage;
