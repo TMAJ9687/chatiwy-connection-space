@@ -1,4 +1,5 @@
 
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -16,6 +17,12 @@ import {
 } from "lucide-react";
 
 export default function VIPPage() {
+  const navigate = useNavigate();
+
+  const handleGetStarted = () => {
+    navigate("/vip/register");
+  };
+
   return (
     <div className="container max-w-6xl mx-auto py-10 px-4">
       <h1 className="text-4xl font-bold text-center mb-2">VIP Membership</h1>
@@ -77,104 +84,95 @@ export default function VIPPage() {
       </div>
 
       <div className="mt-16 max-w-3xl mx-auto">
-        <Tabs defaultValue="card" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="card" className="flex items-center gap-2">
-              <CreditCard className="h-4 w-4" /> Credit Card
-            </TabsTrigger>
-            <TabsTrigger value="paypal" className="flex items-center gap-2">
-              <CreditCard className="h-4 w-4" /> PayPal
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="card" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Credit Card Payment</CardTitle>
-                <CardDescription>
-                  Secure payment via Stripe
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" htmlFor="first-name">
-                        First name
-                      </label>
-                      <input className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" id="first-name" placeholder="First name" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" htmlFor="last-name">
-                        Last name
-                      </label>
-                      <input className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" id="last-name" placeholder="Last name" />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" htmlFor="card-number">
-                      Card number
-                    </label>
-                    <input className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" id="card-number" placeholder="XXXX XXXX XXXX XXXX" />
-                  </div>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" htmlFor="month">
-                        Month
-                      </label>
-                      <input className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" id="month" placeholder="MM" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" htmlFor="year">
-                        Year
-                      </label>
-                      <input className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" id="year" placeholder="YYYY" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" htmlFor="cvc">
-                        CVC
-                      </label>
-                      <input className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" id="cvc" placeholder="CVC" />
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button className="w-full bg-amber-500 hover:bg-amber-600">
-                  Subscribe for $9.99/month
-                </Button>
-              </CardFooter>
-            </Card>
-            <p className="text-xs text-center text-muted-foreground">
-              By subscribing, you agree to our Terms of Service and Privacy Policy
-            </p>
-          </TabsContent>
-          <TabsContent value="paypal" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>PayPal Payment</CardTitle>
-                <CardDescription>
-                  Quick and secure payment via PayPal
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="text-center p-6">
-                <p className="mb-6">Click the button below to proceed to PayPal for payment processing</p>
-                <Button className="bg-blue-500 hover:bg-blue-600">
-                  Pay with PayPal
-                </Button>
-              </CardContent>
-              <CardFooter className="flex flex-col space-y-4">
-                <Separator />
-                <div className="text-sm text-muted-foreground">
-                  <p>You will be redirected to PayPal to complete your purchase securely.</p>
-                  <p>The subscription will be processed immediately after confirmation.</p>
-                </div>
-              </CardFooter>
-            </Card>
-            <p className="text-xs text-center text-muted-foreground">
-              By subscribing, you agree to our Terms of Service and Privacy Policy
-            </p>
-          </TabsContent>
-        </Tabs>
+        <div className="text-center mb-8">
+          <h2 className="text-2xl font-bold">Choose Your Plan</h2>
+          <p className="text-muted-foreground">Select the plan that works best for you</p>
+        </div>
+        
+        <div className="grid md:grid-cols-3 gap-6">
+          <Card>
+            <CardHeader className="text-center">
+              <CardTitle>Monthly</CardTitle>
+              <div className="text-3xl font-bold mt-2">$3.99<span className="text-base font-normal text-muted-foreground">/month</span></div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <ul className="space-y-2">
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
+                  <span>All premium features</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
+                  <span>Billed monthly</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
+                  <span>Cancel anytime</span>
+                </li>
+              </ul>
+            </CardContent>
+            <CardFooter>
+              <Button className="w-full" variant="outline" onClick={handleGetStarted}>Get Started</Button>
+            </CardFooter>
+          </Card>
+          
+          <Card className="border-amber-500 shadow-lg relative">
+            <div className="absolute -top-3 right-0 left-0 mx-auto w-max px-3 py-1 bg-amber-500 text-white text-xs font-semibold rounded-full">
+              Most Popular
+            </div>
+            <CardHeader className="text-center">
+              <CardTitle>6 Months</CardTitle>
+              <div className="text-3xl font-bold mt-2">$20.99<span className="text-base font-normal text-muted-foreground">/6 months</span></div>
+              <p className="text-sm text-muted-foreground">$3.50/month</p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <ul className="space-y-2">
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
+                  <span>All premium features</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
+                  <span>Save $2.95 vs monthly</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
+                  <span>Billed every 6 months</span>
+                </li>
+              </ul>
+            </CardContent>
+            <CardFooter>
+              <Button className="w-full bg-amber-500 hover:bg-amber-600" onClick={handleGetStarted}>Get Started</Button>
+            </CardFooter>
+          </Card>
+          
+          <Card>
+            <CardHeader className="text-center">
+              <CardTitle>Annual</CardTitle>
+              <div className="text-3xl font-bold mt-2">$39.99<span className="text-base font-normal text-muted-foreground">/year</span></div>
+              <p className="text-sm text-muted-foreground">$3.33/month</p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <ul className="space-y-2">
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
+                  <span>All premium features</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
+                  <span>Save $7.89 vs monthly</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
+                  <span>Billed annually</span>
+                </li>
+              </ul>
+            </CardContent>
+            <CardFooter>
+              <Button className="w-full" variant="outline" onClick={handleGetStarted}>Get Started</Button>
+            </CardFooter>
+          </Card>
+        </div>
       </div>
       
       <div className="mt-16">

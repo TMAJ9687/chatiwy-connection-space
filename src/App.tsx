@@ -10,6 +10,7 @@ import ProfilePage from "./pages/Profile";
 import ChatPage from "./pages/Chat";
 import NotFound from "./pages/NotFound";
 import VIP from "./pages/VIP";
+import VIPRegistration from "./pages/VIPRegistration";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +24,7 @@ const App = () => (
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/chat" element={<ChatPage />} />
             <Route path="/vip" element={<VIP />} />
+            <Route path="/vip/register" element={<VIPRegistration />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

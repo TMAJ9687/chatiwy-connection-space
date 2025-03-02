@@ -21,7 +21,7 @@ export function VIPSection() {
   const navigate = useNavigate();
 
   const handleVIPClick = () => {
-    navigate('/vip');
+    navigate('/vip/register');
   };
 
   return (
