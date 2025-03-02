@@ -1,4 +1,4 @@
-<lov-code>
+
 import React, { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -930,4 +930,53 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                   </li>
                 ) : null;
               })}
-            
+            </ul>
+            <Button onClick={() => setView('chat')}>Back to Chat</Button>
+          </div>
+        );
+    }
+  };
+
+  return (
+    <>
+      <Card className="h-full overflow-hidden">
+        {currentChat ? (
+          renderContent()
+        ) : (
+          <div className="h-full flex flex-col items-center justify-center p-8 text-center">
+            <MessageSquare size={48} className="text-primary mb-4" />
+            <h2 className="text-2xl font-bold mb-2">Welcome to Chatiwy</h2>
+            <p className="mb-6 text-muted-foreground max-w-md">
+              Select a user from the list to start chatting or find new friends to connect with
+            </p>
+          </div>
+        )}
+      </Card>
+
+      {showImageModal && fullResImage && (
+        <div 
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+          onClick={() => setShowImageModal(false)}
+        >
+          <div 
+            className="relative max-w-4xl max-h-[90vh] overflow-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Button 
+              className="absolute top-2 right-2 bg-black/50 hover:bg-black/70"
+              size="icon"
+              onClick={() => setShowImageModal(false)}
+            >
+              <X size={20} />
+            </Button>
+            <img 
+              src={fullResImage} 
+              alt="Full resolution image" 
+              className="max-w-full max-h-[90vh] object-contain rounded-md" 
+            />
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
