@@ -145,23 +145,46 @@ const VIPSignupPage = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-white">
       <Helmet>
         <title>VIP Signup | Chatiwy</title>
         <meta name="description" content="Register for VIP membership on Chatiwy" />
       </Helmet>
       
-      <Navbar>
-        <Button 
-          onClick={handleClose} 
-          variant="ghost" 
-          size="sm"
-          className="mr-2"
-        >
-          <X className="h-4 w-4 mr-1" />
-          Close
-        </Button>
-      </Navbar>
+      <header className="border-b border-gray-200 py-3 px-4 flex items-center justify-between bg-white fixed w-full z-10">
+        <div className="flex items-center">
+          <div className="text-xl font-bold text-teal-500">Chatiwy</div>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button 
+            onClick={handleClose}
+            variant="ghost" 
+            size="sm"
+            className="mr-2"
+          >
+            <X className="h-4 w-4 mr-1" />
+            Close
+          </Button>
+          <div className="h-7 w-7 flex items-center justify-center rounded-full border">
+            <span className="sr-only">Toggle theme</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+              <circle cx="12" cy="12" r="4"></circle>
+              <path d="M12 2v2"></path>
+              <path d="M12 20v2"></path>
+              <path d="M5 5l1.5 1.5"></path>
+              <path d="M17.5 17.5L19 19"></path>
+              <path d="M5 19l1.5-1.5"></path>
+              <path d="M17.5 6.5L19 5"></path>
+            </svg>
+          </div>
+          <div className="h-8 w-8 overflow-hidden rounded-full">
+            <img src="https://i.pravatar.cc/32" alt="User avatar" className="h-full w-full object-cover" />
+          </div>
+          <Button variant="warning" size="sm" className="flex items-center gap-1">
+            <span>VIP Membership</span>
+          </Button>
+        </div>
+      </header>
       
       <main className="flex-1 py-4 pt-20">
         <div className="container mx-auto px-4">
@@ -201,7 +224,7 @@ const VIPSignupPage = () => {
                   </div>
                 </div>
                 
-                {step === 1 && (
+                {
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="nickname">Nickname</Label>
@@ -287,9 +310,9 @@ const VIPSignupPage = () => {
                       </div>
                     </div>
                   </div>
-                )}
+                }
                 
-                {step === 2 && (
+                {
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="email">Email Address</Label>
@@ -353,9 +376,9 @@ const VIPSignupPage = () => {
                       </div>
                     </div>
                   </div>
-                )}
+                }
                 
-                {step === 3 && (
+                {
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label>Select Plan Duration</Label>
@@ -452,7 +475,7 @@ const VIPSignupPage = () => {
                       By completing your purchase, you agree to our <a href="#" className="text-amber-500 hover:underline">Terms of Service</a> and <a href="#" className="text-amber-500 hover:underline">Privacy Policy</a>.
                     </div>
                   </div>
-                )}
+                }
               </CardContent>
               <CardFooter className="flex justify-between border-t p-6">
                 {step > 1 ? (
