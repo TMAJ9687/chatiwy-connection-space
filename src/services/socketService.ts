@@ -1,3 +1,4 @@
+
 import { io, Socket } from 'socket.io-client';
 import { toast } from 'sonner';
 
@@ -14,6 +15,17 @@ const SERVER_URLS = [
   // Add additional fallback servers here if needed
 ].filter(Boolean); // Remove undefined values
 
+// Create an interface for connected users
+interface ConnectedUser {
+  id: string;
+  username: string;
+  isBot?: boolean;
+  isAdmin?: boolean;
+  isOnline?: boolean;
+  lastSeen?: Date;
+  sessionId?: string;
+}
+
 // Create a class to manage socket connections
 class SocketService {
   private socket: Socket | null = null;
@@ -24,6 +36,7 @@ class SocketService {
   private connectionInProgress: boolean = false;
   private userId: string | null = null;
   private blockedUsers: Set<string> = new Set();
+  public connectedUsers: Map<string, ConnectedUser> = new Map();
 
   // Initialize the socket connection
   connect(): Promise<Socket> {

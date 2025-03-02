@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -82,11 +81,19 @@ interface ChatInterfaceProps {
   socketConnected?: boolean;
 }
 
+interface ConnectedUser {
+  id: string;
+  username: string;
+  isBot?: boolean;
+  isAdmin?: boolean;
+  interests?: string[];
+}
+
 const userChatHistories: Record<string, Message[]> = {};
 const blockedUsers: Set<string> = new Set();
 
 // Mock connected users for non-socket mode
-const mockConnectedUsers = new Map();
+const mockConnectedUsers = new Map<string, ConnectedUser>();
 
 declare global {
   interface Window {
@@ -129,7 +136,7 @@ const getCountryFlag = (countryCode: string | undefined) => {
   if (!countryCode) return null;
   const country = countries.find(c => c.code === countryCode);
   if (!country) return null;
-  return country.emoji;
+  return country.flag || country.code;
 };
 
 export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketConnected = false }: ChatInterfaceProps) {
@@ -162,16 +169,32 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
 
   useEffect(() => {
     if (selectedUser) {
+      // Create dummy connected users for testing without socket
+      if (!socketConnected && mockConnectedUsers.size === 0) {
+        botProfiles.forEach(bot => {
+          mockConnectedUsers.set(bot.id, {
+            id: bot.id,
+            username: bot.username,
+            isBot: true,
+            interests: bot.interests
+          });
+        });
+      }
+
       const user = socketConnected
-        ? Array.from(socketService.connectedUsers.values()).find(user => user.id === selectedUser)
-        : Array.from(mockConnectedUsers.values()).find(user => user.id === selectedUser);
+        ? { 
+            id: selectedUser, 
+            username: botProfiles.find(b => b.id === selectedUser)?.username || 'User',
+            isBot: botProfiles.some(b => b.id === selectedUser)
+          }
+        : mockConnectedUsers.get(selectedUser);
 
       if (user) {
         setCurrentChat({
           userId: user.id,
           username: user.username,
-          isBot: user.isBot || false,
-          isAdmin: user.isAdmin || false
+          isBot: !!user.isBot,
+          isAdmin: !!user.isAdmin
         });
       }
     } else {
@@ -302,7 +325,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
       });
 
       if (socketConnected) {
-        socketService.sendMessage(currentChat?.userId, messageData);
+        socketService.sendMessage({ to: currentChat?.userId, content: messageInput });
       } else {
         handleReceiveMessage({
           sender: userProfile.username,
@@ -322,15 +345,15 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
     if (e.target.value.trim() !== '') {
       if (!userTyping) {
         setUserTyping(true);
-        if (socketConnected) {
-          socketService.sendUserTyping(currentChat?.userId);
+        if (socketConnected && currentChat) {
+          socketService.sendTyping({ to: currentChat.userId, isTyping: true });
         }
       }
     } else {
       if (userTyping) {
         setUserTyping(false);
-        if (socketConnected) {
-          socketService.sendUserStoppedTyping(currentChat?.userId);
+        if (socketConnected && currentChat) {
+          socketService.sendTyping({ to: currentChat.userId, isTyping: false });
         }
       }
     }
@@ -579,8 +602,9 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                     
                     {currentChat && (
                       <ReportForm 
-                        username={currentChat.username} 
+                        userName={currentChat.username} 
                         onClose={() => {}} 
+                        isOpen={true}
                       />
                     )}
                     
