@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from 'sonner';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
+import VIPAuthModal from './VIPAuthModal';
 
 interface NavbarProps {
   children?: ReactNode;
@@ -16,6 +17,7 @@ export function Navbar({ children }: NavbarProps) {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [showVIPModal, setShowVIPModal] = useState(false);
   
   // Check if user is logged in by looking for userProfile in localStorage
   const isLoggedIn = localStorage.getItem('userProfile') !== null;
@@ -83,7 +85,13 @@ export function Navbar({ children }: NavbarProps) {
   };
 
   const handleVIPClick = () => {
-    navigate('/vip/register');
+    // If we're already on a VIP page, navigate to registration
+    if (location.pathname.startsWith('/vip')) {
+      navigate('/vip/register');
+    } else {
+      // Otherwise show the modal
+      setShowVIPModal(true);
+    }
   };
 
   const handleLogoClick = (e: React.MouseEvent) => {
@@ -180,6 +188,12 @@ export function Navbar({ children }: NavbarProps) {
           )}
         </div>
       </div>
+
+      {/* VIP Auth Modal */}
+      <VIPAuthModal 
+        isOpen={showVIPModal} 
+        onClose={() => setShowVIPModal(false)} 
+      />
     </header>
   );
 }

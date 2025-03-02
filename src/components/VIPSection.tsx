@@ -1,7 +1,8 @@
-
+import { useState } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { useNavigate } from 'react-router-dom';
+import VIPAuthModal from './VIPAuthModal';
 
 const vipFeatures = [
   "Unlimited image uploads",
@@ -22,9 +23,28 @@ const vipFeatures = [
 
 export function VIPSection() {
   const navigate = useNavigate();
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   const handleVIPClick = () => {
-    navigate('/vip/register');
+    // Check if user is logged in
+    const userProfile = localStorage.getItem('userProfile');
+    if (userProfile) {
+      const user = JSON.parse(userProfile);
+      // If user is already a VIP, go to chat
+      if (user.isVIP) {
+        navigate('/chat');
+      } else {
+        // Otherwise go to registration
+        setShowAuthModal(true);
+      }
+    } else {
+      // If not logged in, show auth modal
+      setShowAuthModal(true);
+    }
+  };
+
+  const handleLearnMore = () => {
+    navigate('/vip');
   };
 
   return (
@@ -58,6 +78,13 @@ export function VIPSection() {
                   </li>
                 ))}
               </ul>
+              <Button 
+                onClick={handleLearnMore}
+                className="mt-4"
+                variant="outline"
+              >
+                Learn More
+              </Button>
             </div>
             
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl border border-gray-100 dark:border-gray-700">
@@ -86,6 +113,12 @@ export function VIPSection() {
           </div>
         </div>
       </div>
+
+      {/* VIP Auth Modal */}
+      <VIPAuthModal 
+        isOpen={showAuthModal} 
+        onClose={() => setShowAuthModal(false)} 
+      />
     </section>
   );
 }
