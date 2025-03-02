@@ -121,8 +121,16 @@ const ChatPage = () => {
         
         setUserProfile(profile);
         
+        // Clean up existing user with the same session ID
         mockConnectedUsers.forEach((user, key) => {
           if (user.sessionId === sessionId) {
+            mockConnectedUsers.delete(key);
+          }
+        });
+        
+        // Remove any offline users immediately
+        mockConnectedUsers.forEach((user, key) => {
+          if (!user.isOnline) {
             mockConnectedUsers.delete(key);
           }
         });
@@ -144,11 +152,8 @@ const ChatPage = () => {
       if (userProfile && userProfile.id && !socketConnected) {
         const user = mockConnectedUsers.get(userProfile.id);
         if (user) {
-          mockConnectedUsers.set(userProfile.id, {
-            ...user,
-            isOnline: false,
-            lastSeen: new Date()
-          });
+          // Immediately remove the user when they disconnect
+          mockConnectedUsers.delete(userProfile.id);
         }
       }
     };

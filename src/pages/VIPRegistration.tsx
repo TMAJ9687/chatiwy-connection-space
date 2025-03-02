@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -36,7 +35,6 @@ export default function VIPRegistration() {
     gender: ""
   });
 
-  // Plans data with updated pricing
   const plans = [
     {
       id: "monthly",
@@ -113,13 +111,11 @@ export default function VIPRegistration() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate email is provided
     if (!formData.email) {
       toast.error("Email is required for account confirmation");
       return;
     }
     
-    // Here you would integrate with a payment processor
     toast.success("Registration submitted successfully! Please check your email for confirmation.");
     navigate("/chat");
   };
@@ -132,7 +128,6 @@ export default function VIPRegistration() {
       </p>
 
       <div className="grid lg:grid-cols-3 gap-8">
-        {/* Left side - Personal information */}
         <div className="lg:col-span-1">
           <Card className="h-full">
             <CardHeader>
@@ -221,9 +216,6 @@ export default function VIPRegistration() {
                     <option value="">Select your gender</option>
                     <option value="male">Male</option>
                     <option value="female">Female</option>
-                    <option value="non-binary">Non-binary</option>
-                    <option value="other">Other</option>
-                    <option value="prefer-not-to-say">Prefer not to say</option>
                   </select>
                   <ChevronsUpDown className="absolute right-3 top-3 h-4 w-4 opacity-50" />
                 </div>
@@ -243,7 +235,6 @@ export default function VIPRegistration() {
           </Card>
         </div>
 
-        {/* Right side - Plan selection and payment */}
         <div className="lg:col-span-2">
           <Card className="mb-8">
             <CardHeader>

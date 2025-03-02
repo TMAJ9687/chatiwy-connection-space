@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -143,6 +142,22 @@ const getCountryFlag = (countryCode: string | undefined) => {
 };
 
 const MAX_MESSAGE_LENGTH = 140;
+
+const allEmojis = [
+  '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '🥲', '☺️', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘',
+  '👋', '🤚', '🖐', '✋', '🖖', '👌', '🤌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '👇', '👍', '👎',
+  '👶', '👧', '🧒', '👦', '👩', '🧑', '👨', '👩‍🦱', '🧑‍🦱', '👨‍🦱', '👩‍🦰', '🧑‍🦰', '👨‍🦰', '👱‍♀️', '👱',
+  '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐻‍❄️', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🙈', '🙉',
+  '🍏', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅',
+  '⚽️', '🏀', '🏈', '⚾️', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏',
+  '🚗', '🚕', '🚙', '🚌', '🚎', '🏎', '🚓', '🚑', '🚒', '🚐', '🛻', '🚚', '🚛', '🚜', '🦯', '🦽', '🦼', '🛴',
+  '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❤️‍🔥', '❤️‍🩹', '❣️', '💕', '💞', '💓', '💗', '💖',
+  '😎', '🤓', '🧐', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭',
+  '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🫣', '🤗', '🫡', '🤔', '🫢',
+  '👨‍👩‍👧‍👦', '👨‍👩‍👧', '👨‍👩‍👦‍👦', '👨‍👩‍👧‍👧', '👩‍👩‍👦', '👩‍👩‍👧', '👩‍👩‍👧‍👦', '👩‍👩‍👦‍👦', '👩‍👩‍👧‍👧',
+  '🌍', '🌎', '🌏', '🌱', '🌲', '🌳', '🌴', '🌵', '🌷', '🌸', '🌹', '🌺', '🌻', '🌼', '🌽', '🌾', '🌿', '☘️', '🍀',
+  '🎄', '🎉', '🎊', '🎈', '🎁', '🎂', '🎀', '🪄', '🧨', '✨', '🎐', '🎏', '🎎', '🎌', '🧧', '📮', '📫', '📯'
+];
 
 export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketConnected = false }: ChatInterfaceProps) {
   const [currentChat, setCurrentChat] = useState<{
@@ -511,7 +526,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
     }
   };
 
-  const toggleImageBlur = (messageId: string) => {
+  const toggleImageBlur = (messageId: string, shouldBlur: boolean) => {
     setMessages(prevMessages => {
       return prevMessages.map(msg => {
         if (msg.id === messageId && msg.image) {
@@ -519,7 +534,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
             ...msg,
             image: {
               ...msg.image,
-              blurred: !msg.image.blurred
+              blurred: shouldBlur
             }
           };
         }
@@ -529,7 +544,11 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
   };
 
   const handleVoiceMessage = () => {
-    toast.info('Voice messages are available for VIP users only.');
+    if (!isVipUser) {
+      toast.info('Voice messages are available for VIP users only.');
+    } else {
+      toast.info('Voice recording started...');
+    }
   };
 
   const handleLogout = () => {
@@ -564,11 +583,6 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                     {currentChat?.isAdmin && (
                       <Badge variant="success" className="ml-1 text-[10px]">
                         Admin
-                      </Badge>
-                    )}
-                    {currentChat?.isBot && (
-                      <Badge variant="secondary" className="ml-1 text-[10px]">
-                        Bot
                       </Badge>
                     )}
                   </div>
@@ -641,11 +655,6 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                         <span>Block User</span>
                       </DropdownMenuItem>
                     )}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleLogout}>
-                      <LogOut className="mr-2 h-4 w-4" />
-                      <span>Logout</span>
-                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -668,8 +677,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                       {message.image ? (
                         <div className="mb-2">
                           <div 
-                            className={`relative cursor-pointer ${message.image.blurred ? 'blur-xl' : ''}`}
-                            onClick={() => openImageInFullResolution(message.image!.url)}
+                            className={`relative ${message.image.blurred ? 'blur-xl' : ''}`}
                           >
                             <img 
                               src={message.image.url} 
@@ -682,12 +690,9 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                                   variant="secondary" 
                                   size="sm" 
                                   className="opacity-90 z-10"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    toggleImageBlur(message.id);
-                                  }}
+                                  onClick={() => toggleImageBlur(message.id, false)}
                                 >
-                                  <Eye size={16} className="mr-1" /> View image
+                                  <Eye size={16} className="mr-1" /> Reveal image
                                 </Button>
                               </div>
                             )}
@@ -697,7 +702,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                               variant="ghost" 
                               size="sm" 
                               className="mt-1 text-xs"
-                              onClick={() => toggleImageBlur(message.id)}
+                              onClick={() => toggleImageBlur(message.id, true)}
                             >
                               <EyeOff size={12} className="mr-1" /> Blur image
                             </Button>
@@ -762,21 +767,8 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                   <div className="flex-1 relative">
                     {showEmojiPicker && (
                       <Card className="absolute bottom-full mb-2 p-2 max-h-[300px] w-full overflow-auto">
-                        <div className="flex gap-2 mb-2 overflow-x-auto pb-2">
-                          {Object.keys(emojiCategories).map((category) => (
-                            <Button
-                              key={category}
-                              variant={currentEmojiCategory === category ? "default" : "outline"}
-                              size="sm"
-                              onClick={() => setCurrentEmojiCategory(category as keyof typeof emojiCategories)}
-                              className="text-xs whitespace-nowrap"
-                            >
-                              {category}
-                            </Button>
-                          ))}
-                        </div>
                         <div className="grid grid-cols-8 gap-1">
-                          {emojiCategories[currentEmojiCategory].map((emoji, index) => (
+                          {allEmojis.map((emoji, index) => (
                             <Button 
                               key={index} 
                               variant="ghost" 

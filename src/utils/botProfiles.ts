@@ -1,4 +1,3 @@
-
 // Create diverse bot profiles with different genders, countries, ages, and interests
 export interface BotProfile {
   id: string;
@@ -22,7 +21,8 @@ export const botProfiles: BotProfile[] = [
     country: 'United States',
     flag: '🇺🇸',
     interests: ['Photography', 'Hiking', 'Cooking'],
-    isAdmin: false
+    isAdmin: false,
+    isOnline: true
   },
   {
     id: 'bot-2',

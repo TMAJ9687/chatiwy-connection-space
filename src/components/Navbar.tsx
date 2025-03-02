@@ -1,4 +1,3 @@
-
 import { useState, useEffect, ReactNode } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Moon, Sun, LogOut, Inbox } from 'lucide-react';
@@ -22,6 +21,8 @@ export function Navbar({ children }: NavbarProps) {
   const isLoggedIn = localStorage.getItem('userProfile') !== null;
   // Check if we're on the landing page
   const isLandingPage = location.pathname === '/';
+  // Check if we're on the chat page
+  const isChatPage = location.pathname === '/chat';
 
   useEffect(() => {
     const handleScroll = () => {
@@ -85,6 +86,15 @@ export function Navbar({ children }: NavbarProps) {
     navigate('/vip/register');
   };
 
+  const handleLogoClick = (e: React.MouseEvent) => {
+    // If we're on the chat page, prevent default behavior and just refresh the chat
+    if (isChatPage) {
+      e.preventDefault();
+      window.location.reload();
+    }
+    // Otherwise, the default Link behavior will navigate to "/"
+  };
+
   return (
     <header 
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -95,6 +105,7 @@ export function Navbar({ children }: NavbarProps) {
         <Link 
           to="/" 
           className="text-2xl font-bold text-foreground hover:text-teal-500 transition-colors duration-300"
+          onClick={handleLogoClick}
         >
           <span className="text-teal-500">chati</span>wy<span className="text-coral-500">.</span>
         </Link>
