@@ -1,4 +1,4 @@
-<lov-code>
+
 import React, { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -120,6 +120,7 @@ const IMAGE_UPLOADS_KEY = 'chatiwy_daily_image_uploads';
 const IMAGE_UPLOADS_DATE_KEY = 'chatiwy_image_uploads_date';
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
+const GUIDANCE_ACCEPTED_KEY = 'chatiwy_guidance_accepted';
 
 const getAvatarUrl = (username: string, gender: string = 'male') => {
   const nameHash = username.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -171,7 +172,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
   const [messageInput, setMessageInput] = useState('');
   const [lastMessage, setLastMessage] = useState<string>('');
   const [duplicateCount, setDuplicateCount] = useState(0);
-  const [view, setView<'chat' | 'history' | 'inbox' | 'blocked'>>('chat');
+  const [view, setView] = useState<'chat' | 'history' | 'inbox' | 'blocked'>('chat');
   const [isReportFormOpen, setIsReportFormOpen] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [currentEmojiCategory, setCurrentEmojiCategory] = useState<keyof typeof emojiCategories>('smileys');
@@ -196,7 +197,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
           mockConnectedUsers.set(bot.id, {
             id: bot.id,
             username: bot.username,
-            isBot: true,
+            isBot: false, // Changed from true to false to remove bot tags
             interests: bot.interests,
             gender: bot.gender,
             country: bot.country,
@@ -210,7 +211,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
         ? { 
             id: selectedUser, 
             username: botProfiles.find(b => b.id === selectedUser)?.username || 'User',
-            isBot: botProfiles.some(b => b.id === selectedUser)
+            isBot: false // Changed from checking botProfiles to false to remove bot tags
           }
         : mockConnectedUsers.get(selectedUser);
 
@@ -218,7 +219,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
         setCurrentChat({
           userId: user.id,
           username: user.username,
-          isBot: !!user.isBot,
+          isBot: false, // Changed to always false to remove bot tags
           isAdmin: !!user.isAdmin
         });
       }
@@ -264,7 +265,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
               sender: currentChat.username,
               content: botResponse,
               timestamp: new Date(),
-              isBot: true
+              isBot: false // Changed from true to false to remove bot indication
             });
           }
         }
@@ -299,6 +300,11 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
   };
 
   const handleReceiveMessage = (messageData: any) => {
+    // Only handle messages from the current chat user
+    if (currentChat && messageData.senderId && messageData.senderId !== currentChat.userId) {
+      return;
+    }
+    
     setMessages(prevMessages => {
       const newMessage = {
         id: Math.random().toString(36).substring(2, 15),
@@ -306,11 +312,13 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
         senderId: messageData.senderId,
         content: messageData.content,
         timestamp: new Date(messageData.timestamp),
-        isBot: messageData.isBot || false,
+        isBot: false, // Changed from messageData.isBot || false to always false
         image: messageData.image
       };
 
-      userChatHistories[currentChat?.userId || ''] = [...(userChatHistories[currentChat?.userId || ''] || []), newMessage];
+      if (currentChat) {
+        userChatHistories[currentChat.userId] = [...(userChatHistories[currentChat.userId] || []), newMessage];
+      }
       return [...prevMessages, newMessage];
     });
   };
@@ -345,26 +353,39 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
           isBot: false
         };
 
-        userChatHistories[currentChat?.userId || ''] = [...(userChatHistories[currentChat?.userId || ''] || []), newMessage];
+        if (currentChat) {
+          userChatHistories[currentChat.userId] = [...(userChatHistories[currentChat.userId] || []), newMessage];
+        }
         return [...prevMessages, newMessage];
       });
 
-      if (socketConnected) {
+      if (socketConnected && currentChat) {
         socketService.sendMessage({ 
-          to: currentChat?.userId, 
+          to: currentChat.userId, 
           content: messageInput
         });
-      } else {
-        handleReceiveMessage({
-          sender: userProfile.username,
-          content: messageInput,
-          timestamp: new Date(),
-          isBot: false
+        
+        // Only send typing indication to the specific user
+        socketService.sendTyping({ 
+          to: currentChat.userId, 
+          isTyping: false 
         });
+      } else {
+        // Only show bot typing to the specific user in offline mode
+        if (currentChat && currentChat.isBot) {
+          handleReceiveMessage({
+            sender: currentChat.username,
+            senderId: currentChat.userId,
+            content: messageInput,
+            timestamp: new Date(),
+            isBot: false
+          });
+        }
       }
 
       setLastMessage(messageInput);
       setMessageInput('');
+      setUserTyping(false);
     }
   };
 
@@ -376,6 +397,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
         if (!userTyping) {
           setUserTyping(true);
           if (socketConnected && currentChat) {
+            // Only send typing indication to the specific user
             socketService.sendTyping({ to: currentChat.userId, isTyping: true });
           }
         }
@@ -383,6 +405,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
         if (userTyping) {
           setUserTyping(false);
           if (socketConnected && currentChat) {
+            // Only send typing indication to the specific user
             socketService.sendTyping({ to: currentChat.userId, isTyping: false });
           }
         }
@@ -398,12 +421,14 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
   };
 
   const handleUserTyping = (userId: string) => {
+    // Only show typing indicator if the typing user is the current chat user
     if (currentChat?.userId === userId) {
       setUserTyping(true);
     }
   };
 
   const handleUserStoppedTyping = (userId: string) => {
+    // Only update typing state if the user is the current chat user
     if (currentChat?.userId === userId) {
       setUserTyping(false);
     }
@@ -496,13 +521,15 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
           }
         };
 
-        userChatHistories[currentChat?.userId || ''] = [...(userChatHistories[currentChat?.userId || ''] || []), newMessage];
+        if (currentChat) {
+          userChatHistories[currentChat.userId] = [...(userChatHistories[currentChat.userId] || []), newMessage];
+        }
         return [...prevMessages, newMessage];
       });
 
-      if (socketConnected) {
+      if (socketConnected && currentChat) {
         socketService.sendMessage({ 
-          to: currentChat?.userId, 
+          to: currentChat.userId, 
           content: '',
           image: {
             url: imageUrl,
@@ -676,40 +703,38 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                         : 'bg-muted'
                     }`}>
                       {message.image ? (
-                        <div className="mb-2">
-                          <div className="relative">
-                            <div className={message.image.blurred ? 'blur-xl' : ''}>
-                              <img 
-                                src={message.image.url} 
-                                alt="Shared image" 
-                                className="max-w-full rounded-md max-h-[300px] object-contain" 
-                              />
-                            </div>
-                            {message.image.blurred && (
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                <Button 
-                                  variant="secondary" 
-                                  size="sm" 
-                                  className="opacity-90 z-10"
-                                  onClick={() => toggleImageBlur(message.id, false)}
-                                >
-                                  <Eye size={16} className="mr-1" /> Reveal image
-                                </Button>
-                              </div>
-                            )}
-                            {!message.image.blurred && (
-                              <div className="absolute bottom-2 right-2">
-                                <Button 
-                                  variant="secondary" 
-                                  size="sm" 
-                                  className="opacity-75 hover:opacity-100"
-                                  onClick={() => toggleImageBlur(message.id, true)}
-                                >
-                                  <EyeOff size={12} className="mr-1" /> Blur
-                                </Button>
-                              </div>
-                            )}
+                        <div className="mb-2 relative">
+                          <div className={message.image.blurred ? 'blur-xl' : ''}>
+                            <img 
+                              src={message.image.url} 
+                              alt="Shared image" 
+                              className="max-w-full rounded-md max-h-[300px] object-contain" 
+                            />
                           </div>
+                          {message.image.blurred && (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <Button 
+                                variant="secondary" 
+                                size="sm" 
+                                className="opacity-90 z-10"
+                                onClick={() => toggleImageBlur(message.id, false)}
+                              >
+                                <Eye size={16} className="mr-1" /> Reveal image
+                              </Button>
+                            </div>
+                          )}
+                          {!message.image.blurred && (
+                            <div className="absolute bottom-2 right-2">
+                              <Button 
+                                variant="secondary" 
+                                size="sm" 
+                                className="opacity-75 hover:opacity-100"
+                                onClick={() => toggleImageBlur(message.id, true)}
+                              >
+                                <EyeOff size={12} className="mr-1" /> Blur
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <div className="break-words">{message.content}</div>
@@ -776,7 +801,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                               key={index} 
                               variant="ghost" 
                               size="sm" 
-                              className="h-10 w-10 p-0 text-lg"
+                              className="h-12 w-12 p-0 text-xl"
                               onClick={() => handleEmojiClick(emoji)}
                             >
                               {emoji}
@@ -843,8 +868,125 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                       </Tooltip>
                     </TooltipProvider>
                     
-                    <input 
-                      type="file" 
-                      ref={fileInputRef} 
-                      onChange={handleFileChange}
-                      accept="image/jpeg,image/png
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            onClick={handleVoiceMessage}
+                            className="h-10 w-10"
+                          >
+                            <Mic size={20} />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Voice messages (VIP only)</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant="default" 
+                            size="icon" 
+                            onClick={handleSendMessage}
+                            className="h-10 w-10 bg-primary"
+                            disabled={!messageInput.trim() && !selectedImage}
+                          >
+                            <Send size={20} />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Send message</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 text-center text-muted-foreground">
+                You have blocked this user.
+              </div>
+            )}
+            
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleFileChange}
+              accept="image/jpeg,image/png,image/gif,image/jpg"
+              className="hidden"
+            />
+          </div>
+        );
+      
+      case 'history':
+        return (
+          <div className="p-4">
+            <h3 className="text-lg font-semibold mb-4">Message History</h3>
+            {/* Message history UI here */}
+            <Button onClick={() => setView('chat')} variant="ghost">
+              Return to Chat
+            </Button>
+          </div>
+        );
+      
+      case 'blocked':
+        return (
+          <div className="p-4">
+            <h3 className="text-lg font-semibold mb-4">Blocked Users</h3>
+            {blockedUsers.size === 0 ? (
+              <p className="text-muted-foreground">You haven't blocked any users.</p>
+            ) : (
+              <div className="space-y-2">
+                {Array.from(blockedUsers).map(userId => (
+                  <div key={userId} className="flex justify-between items-center p-2 border rounded">
+                    <span>Blocked User</span>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        blockedUsers.delete(userId);
+                        setView('chat');
+                      }}
+                    >
+                      Unblock
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <Button onClick={() => setView('chat')} variant="ghost" className="mt-4">
+              Return to Chat
+            </Button>
+          </div>
+        );
+      
+      default:
+        return null;
+    }
+  };
+
+  if (!selectedUser) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center p-4">
+        <div className="text-center space-y-4">
+          <MessageSquare size={48} className="mx-auto text-primary" />
+          <h3 className="text-xl font-semibold">Select a user to start chatting</h3>
+          <p className="text-muted-foreground">
+            Choose a user from the list on the left to begin a conversation.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-full flex flex-col rounded-md border shadow-sm">
+      {renderContent()}
+    </div>
+  );
+}

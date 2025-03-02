@@ -31,7 +31,7 @@ if (!window.unreadMessagesPerUser) {
 const ChatPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [showGuidance, setShowGuidance] = useState(true);
+  const [showGuidance, setShowGuidance] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [socketConnected, setSocketConnected] = useState(false);
@@ -39,9 +39,7 @@ const ChatPage = () => {
   // Check if guidance was previously accepted
   useEffect(() => {
     const guidanceAccepted = localStorage.getItem(GUIDANCE_ACCEPTED_KEY) === 'true';
-    if (guidanceAccepted) {
-      setShowGuidance(false);
-    }
+    setShowGuidance(!guidanceAccepted);
   }, []);
   
   useEffect(() => {
