@@ -1,4 +1,4 @@
-<lov-code>
+
 import React, { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -84,6 +84,9 @@ interface ChatInterfaceProps {
 
 const userChatHistories: Record<string, Message[]> = {};
 const blockedUsers: Set<string> = new Set();
+
+// Mock connected users for non-socket mode
+const mockConnectedUsers = new Map();
 
 declare global {
   interface Window {
@@ -622,7 +625,6 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
             
             <ScrollArea 
               className="flex-1 p-4 overflow-auto"
-              ref={scrollAreaRef}
             >
               <div className="space-y-4">
                 {messages.map((message, index) => (
@@ -922,4 +924,28 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
 
       {showImageModal && fullResImage && (
         <div 
-          
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+          onClick={() => setShowImageModal(false)}
+        >
+          <div 
+            className="relative max-w-4xl max-h-[90vh] overflow-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Button 
+              className="absolute top-2 right-2 bg-black/50 hover:bg-black/70"
+              size="icon"
+              onClick={() => setShowImageModal(false)}
+            >
+              <X size={20} />
+            </Button>
+            <img 
+              src={fullResImage} 
+              alt="Full resolution image" 
+              className="max-w-full max-h-[90vh] object-contain rounded-md" 
+            />
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
