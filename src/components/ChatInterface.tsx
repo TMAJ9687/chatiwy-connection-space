@@ -1,3 +1,4 @@
+<lov-code>
 import React, { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -170,7 +171,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
   const [messageInput, setMessageInput] = useState('');
   const [lastMessage, setLastMessage] = useState<string>('');
   const [duplicateCount, setDuplicateCount] = useState(0);
-  const [view, setView] = useState<'chat' | 'history' | 'inbox' | 'blocked'>('chat');
+  const [view, setView<'chat' | 'history' | 'inbox' | 'blocked'>>('chat');
   const [isReportFormOpen, setIsReportFormOpen] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [currentEmojiCategory, setCurrentEmojiCategory] = useState<keyof typeof emojiCategories>('smileys');
@@ -676,14 +677,14 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                     }`}>
                       {message.image ? (
                         <div className="mb-2">
-                          <div 
-                            className={`relative ${message.image.blurred ? 'blur-xl' : ''}`}
-                          >
-                            <img 
-                              src={message.image.url} 
-                              alt="Shared image" 
-                              className="max-w-full rounded-md max-h-[300px] object-contain" 
-                            />
+                          <div className="relative">
+                            <div className={message.image.blurred ? 'blur-xl' : ''}>
+                              <img 
+                                src={message.image.url} 
+                                alt="Shared image" 
+                                className="max-w-full rounded-md max-h-[300px] object-contain" 
+                              />
+                            </div>
                             {message.image.blurred && (
                               <div className="absolute inset-0 flex items-center justify-center">
                                 <Button 
@@ -696,17 +697,19 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                                 </Button>
                               </div>
                             )}
+                            {!message.image.blurred && (
+                              <div className="absolute bottom-2 right-2">
+                                <Button 
+                                  variant="secondary" 
+                                  size="sm" 
+                                  className="opacity-75 hover:opacity-100"
+                                  onClick={() => toggleImageBlur(message.id, true)}
+                                >
+                                  <EyeOff size={12} className="mr-1" /> Blur
+                                </Button>
+                              </div>
+                            )}
                           </div>
-                          {!message.image.blurred && (
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="mt-1 text-xs"
-                              onClick={() => toggleImageBlur(message.id, true)}
-                            >
-                              <EyeOff size={12} className="mr-1" /> Blur image
-                            </Button>
-                          )}
                         </div>
                       ) : (
                         <div className="break-words">{message.content}</div>
@@ -773,7 +776,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                               key={index} 
                               variant="ghost" 
                               size="sm" 
-                              className="h-8 w-8 p-0"
+                              className="h-10 w-10 p-0 text-lg"
                               onClick={() => handleEmojiClick(emoji)}
                             >
                               {emoji}
@@ -844,131 +847,4 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                       type="file" 
                       ref={fileInputRef} 
                       onChange={handleFileChange}
-                      accept="image/jpeg,image/png,image/gif,image/jpg"
-                      className="hidden"
-                    />
-                    
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            variant="outline" 
-                            size="icon" 
-                            onClick={handleVoiceMessage}
-                            className="h-10 w-10"
-                            disabled={!isVipUser}
-                          >
-                            <Mic size={20} className={!isVipUser ? "text-muted-foreground" : ""} />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Voice message (VIP only)</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    
-                    <Button 
-                      onClick={handleSendMessage} 
-                      disabled={!messageInput.trim()} 
-                      className="h-10"
-                    >
-                      <Send size={18} className="mr-1" /> Send
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="p-4 border-t text-center text-muted-foreground">
-                <AlertTriangle className="h-5 w-5 mx-auto mb-2" />
-                <p>You have blocked this user. Unblock them to send messages.</p>
-              </div>
-            )}
-          </div>
-        );
-      case 'history':
-        return (
-          <div className="p-4">
-            <h2 className="text-lg font-semibold mb-4">Message History</h2>
-            <Button onClick={() => setView('chat')}>Back to Chat</Button>
-          </div>
-        );
-      case 'inbox':
-        return (
-          <div className="p-4">
-            <h2 className="text-lg font-semibold mb-4">Inbox</h2>
-            <Button onClick={() => setView('chat')}>Back to Chat</Button>
-          </div>
-        );
-      case 'blocked':
-        return (
-          <div className="p-4">
-            <h2 className="text-lg font-semibold mb-4">Blocked Users</h2>
-            <ul>
-              {Array.from(blockedUsers).map(userId => {
-                const user = socketConnected
-                  ? Array.from(socketService.connectedUsers.values()).find(user => user.id === userId)
-                  : mockConnectedUsers.get(userId);
-                
-                return user ? (
-                  <li key={userId} className="py-2 flex items-center justify-between">
-                    <span>{user.username}</span>
-                    <Button onClick={() => {
-                      blockedUsers.delete(userId);
-                      setView('blocked');
-                      toast.success(`You have unblocked ${user.username}.`);
-                    }}>
-                      Unblock
-                    </Button>
-                  </li>
-                ) : null;
-              })}
-            </ul>
-            <Button onClick={() => setView('chat')}>Back to Chat</Button>
-          </div>
-        );
-    }
-  };
-
-  return (
-    <>
-      <Card className="h-full overflow-hidden">
-        {currentChat ? (
-          renderContent()
-        ) : (
-          <div className="h-full flex flex-col items-center justify-center p-8 text-center">
-            <MessageSquare size={48} className="text-primary mb-4" />
-            <h2 className="text-2xl font-bold mb-2">Welcome to Chatiwy</h2>
-            <p className="mb-6 text-muted-foreground max-w-md">
-              Select a user from the list to start chatting or find new friends to connect with
-            </p>
-          </div>
-        )}
-      </Card>
-
-      {showImageModal && fullResImage && (
-        <div 
-          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
-          onClick={() => setShowImageModal(false)}
-        >
-          <div 
-            className="relative max-w-4xl max-h-[90vh] overflow-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Button 
-              className="absolute top-2 right-2 bg-black/50 hover:bg-black/70"
-              size="icon"
-              onClick={() => setShowImageModal(false)}
-            >
-              <X size={20} />
-            </Button>
-            <img 
-              src={fullResImage} 
-              alt="Full resolution image" 
-              className="max-w-full max-h-[90vh] object-contain rounded-md" 
-            />
-          </div>
-        </div>
-      )}
-    </>
-  );
-}
+                      accept="image/jpeg,image/png

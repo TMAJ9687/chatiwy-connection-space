@@ -15,6 +15,7 @@ import { LogOut } from 'lucide-react';
 const mockConnectedUsers = new Map();
 const sessionKey = 'chatiwy_session_id';
 const RENDER_URL = 'https://chatiwy-test.onrender.com';
+const GUIDANCE_ACCEPTED_KEY = 'chatiwy_guidance_accepted';
 
 // Initialize global for unread messages
 declare global {
@@ -34,6 +35,14 @@ const ChatPage = () => {
   const [userProfile, setUserProfile] = useState<any>(null);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [socketConnected, setSocketConnected] = useState(false);
+  
+  // Check if guidance was previously accepted
+  useEffect(() => {
+    const guidanceAccepted = localStorage.getItem(GUIDANCE_ACCEPTED_KEY) === 'true';
+    if (guidanceAccepted) {
+      setShowGuidance(false);
+    }
+  }, []);
   
   useEffect(() => {
     let isConnected = false;
@@ -180,6 +189,8 @@ const ChatPage = () => {
   
   const handleGuidanceAccept = () => {
     setShowGuidance(false);
+    // Save guidance acceptance to localStorage
+    localStorage.setItem(GUIDANCE_ACCEPTED_KEY, 'true');
     toast.success('Welcome to Chatiwy! You can now start chatting.');
   };
 
