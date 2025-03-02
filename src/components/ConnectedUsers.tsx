@@ -55,7 +55,9 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
     if (socketConnected) {
       socketService.on('users_update', (users: any[]) => {
         console.log('Received users update:', users);
-        setRealTimeUsers(users);
+        // Only include online users and remove offline users immediately
+        const onlineUsers = users.filter(user => user.isOnline);
+        setRealTimeUsers(onlineUsers);
       });
       
       return () => {
@@ -67,8 +69,9 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
   const getConnectedUsers = () => {
     try {
       if (socketConnected && realTimeUsers.length > 0) {
+        // Only return users that are not the current user and are online
         const socketUsers = realTimeUsers
-          .filter(user => user.id !== userProfile.id)
+          .filter(user => user.id !== userProfile.id && user.isOnline)
           .map(user => ({
             id: user.id,
             username: user.username,
@@ -76,7 +79,7 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
             gender: user.gender,
             country: user.country || 'Unknown',
             flag: user.flag || getCountryFlag(user.country),
-            isOnline: user.isOnline,
+            isOnline: true,
             isBot: false
           }));
         

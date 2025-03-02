@@ -41,7 +41,6 @@ import {
   EyeOff,
   X,
   MessageSquare,
-  LogOut
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { botProfiles, getRandomBotResponse } from '@/utils/botProfiles';
@@ -95,7 +94,6 @@ interface ConnectedUser {
 
 const userChatHistories: Record<string, Message[]> = {};
 const blockedUsers: Set<string> = new Set();
-// Mock connected users for non-socket mode
 const mockConnectedUsers = new Map<string, ConnectedUser>();
 
 declare global {
@@ -142,6 +140,8 @@ const getCountryFlag = (countryCode: string | undefined) => {
   return country.flag || country.code;
 };
 
+const MAX_MESSAGE_LENGTH = 140;
+
 export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketConnected = false }: ChatInterfaceProps) {
   const [currentChat, setCurrentChat] = useState<{
     userId: string;
@@ -169,10 +169,10 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
   const navigate = useNavigate();
   const [showImageModal, setShowImageModal] = useState(false);
   const [fullResImage, setFullResImage] = useState<string | null>(null);
+  const [isVipUser, setIsVipUser] = useState(false);
 
   useEffect(() => {
     if (selectedUser) {
-      // Initialize mockConnectedUsers if it's empty
       if (!socketConnected && mockConnectedUsers.size === 0) {
         botProfiles.forEach(bot => {
           mockConnectedUsers.set(bot.id, {
@@ -350,20 +350,23 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
     }
   };
 
-  const handleInputChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
-    setMessageInput(e.target.value);
-    if (e.target.value.trim() !== '') {
-      if (!userTyping) {
-        setUserTyping(true);
-        if (socketConnected && currentChat) {
-          socketService.sendTyping({ to: currentChat.userId, isTyping: true });
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value.length <= MAX_MESSAGE_LENGTH) {
+      setMessageInput(value);
+      if (value.trim() !== '') {
+        if (!userTyping) {
+          setUserTyping(true);
+          if (socketConnected && currentChat) {
+            socketService.sendTyping({ to: currentChat.userId, isTyping: true });
+          }
         }
-      }
-    } else {
-      if (userTyping) {
-        setUserTyping(false);
-        if (socketConnected && currentChat) {
-          socketService.sendTyping({ to: currentChat.userId, isTyping: false });
+      } else {
+        if (userTyping) {
+          setUserTyping(false);
+          if (socketConnected && currentChat) {
+            socketService.sendTyping({ to: currentChat.userId, isTyping: false });
+          }
         }
       }
     }
@@ -753,7 +756,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
             
             {!blockedUsers.has(currentChat?.userId || '') ? (
               <div className="p-4 border-t">
-                <div className="flex items-end gap-2">
+                <div className="flex items-center gap-2">
                   <div className="flex-1 relative">
                     {showEmojiPicker && (
                       <Card className="absolute bottom-full mb-2 p-2 max-h-[300px] w-full overflow-auto">
@@ -786,13 +789,19 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                       </Card>
                     )}
                     
-                    <Textarea
-                      value={messageInput}
-                      onChange={handleInputChange}
-                      onKeyDown={handleKeyDown}
-                      placeholder="Type a message..."
-                      className="min-h-[60px] max-h-[120px] resize-none"
-                    />
+                    <div className="flex h-10 w-full items-center relative">
+                      <Input
+                        value={messageInput}
+                        onChange={handleInputChange}
+                        onKeyDown={handleKeyDown}
+                        placeholder="Type a message..."
+                        className="pr-16 h-10"
+                        maxLength={MAX_MESSAGE_LENGTH}
+                      />
+                      <div className="absolute right-2 text-xs text-muted-foreground pointer-events-none">
+                        {messageInput.length}/{MAX_MESSAGE_LENGTH}
+                      </div>
+                    </div>
                   </div>
                   
                   <div className="flex gap-1">
@@ -853,8 +862,9 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                             size="icon" 
                             onClick={handleVoiceMessage}
                             className="h-10 w-10"
+                            disabled={!isVipUser}
                           >
-                            <Mic size={20} />
+                            <Mic size={20} className={!isVipUser ? "text-muted-foreground" : ""} />
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>
@@ -937,10 +947,6 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
             <p className="mb-6 text-muted-foreground max-w-md">
               Select a user from the list to start chatting or find new friends to connect with
             </p>
-            <Button onClick={handleLogout}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Logout
-            </Button>
           </div>
         )}
       </Card>
