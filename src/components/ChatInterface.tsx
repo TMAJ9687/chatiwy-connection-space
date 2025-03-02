@@ -119,10 +119,10 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
   const [messageInput, setMessageInput] = useState('');
   const [lastMessage, setLastMessage] = useState<string>('');
   const [duplicateCount, setDuplicateCount] = useState(0);
-  const [view, setView] = useState<'chat' | 'history' | 'inbox' | 'blocked'>('chat');
+  const [view, setView<'chat' | 'history' | 'inbox' | 'blocked'>>('chat');
   const [isReportFormOpen, setIsReportFormOpen] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [currentEmojiCategory, setCurrentEmojiCategory] = useState<keyof typeof emojiCategories>('smileys');
+  const [currentEmojiCategory, setCurrentEmojiCategory<keyof typeof emojiCategories>]('smileys');
   const messageEndRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
@@ -248,7 +248,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
         if (messageData.senderId && blockedUsers.has(messageData.senderId)) {
           console.log('Message from blocked user, ignoring');
           return;
-        }
+        }\
         
         console.log('Message from current chat?', isFromCurrentChat);
         console.log('Message sent by me?', isSentByMe);
@@ -806,3 +806,76 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
     let hash = 0;
     for (let i = 0; i < name.length; i++) {
       hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    
+    // Convert hash to string and ensure it's positive
+    const hashStr = Math.abs(hash).toString();
+    
+    // Use the hash to select an avatar number between 1 and 70
+    const avatarNumber = (parseInt(hashStr.slice(-2), 10) % 70) + 1;
+    
+    // Generate the avatar URL based on gender
+    return `https://avatar.iran.liara.run/public/${gender === 'female' ? 'woman' : 'man'}/${avatarNumber}`;
+  };
+
+  // Render content based on current view
+  const renderContent = () => {
+    switch (view) {
+      case 'chat':
+        return (
+          <div className="flex flex-col h-full">
+            {/* Chat header */}
+            <div className="bg-primary text-white p-4 rounded-t-md flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <img 
+                  src={getAvatarUrl(
+                    currentChat?.username || 'User', 
+                    getGenderForAvatar(currentChat?.username || 'User', currentChat?.isBot)
+                  )} 
+                  alt="Avatar" 
+                  className="w-10 h-10 rounded-full" 
+                />
+                <div>
+                  <div className="font-semibold flex items-center gap-1">
+                    {currentChat?.username} 
+                    {currentChat?.isAdmin && (
+                      <Badge variant="success" className="ml-1 text-[10px]">
+                        Admin
+                      </Badge>
+                    )}
+                    {currentChat?.isBot && (
+                      <Badge variant="secondary" className="ml-1 text-[10px]">
+                        Bot
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="text-xs opacity-80 flex items-center gap-1">
+                    {/* Show user interests instead of online status */}
+                    {currentChat?.isBot ? (
+                      <>
+                        {getCountryFlag(botProfiles.find(b => b.id === currentChat.userId)?.country)}
+                        {' '}
+                        {botProfiles.find(b => b.id === currentChat.userId)?.interests.slice(0, 2).join(', ')}
+                      </>
+                    ) : (
+                      'Chatiwy user'
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-1">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className="text-white hover:bg-primary-foreground/20">
+                      <Flag size={18} />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Report User</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Please provide details about why you're reporting this user.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    
+                    {currentChat && (
