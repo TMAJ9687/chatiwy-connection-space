@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -119,10 +120,12 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
   const [messageInput, setMessageInput] = useState('');
   const [lastMessage, setLastMessage] = useState<string>('');
   const [duplicateCount, setDuplicateCount] = useState(0);
-  const [view, setView<'chat' | 'history' | 'inbox' | 'blocked'>>('chat');
+  // Fix: Correctly define useState for view type
+  const [view, setView] = useState<'chat' | 'history' | 'inbox' | 'blocked'>('chat');
   const [isReportFormOpen, setIsReportFormOpen] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [currentEmojiCategory, setCurrentEmojiCategory<keyof typeof emojiCategories>]('smileys');
+  // Fix: Correctly define useState for currentEmojiCategory
+  const [currentEmojiCategory, setCurrentEmojiCategory] = useState<keyof typeof emojiCategories>('smileys');
   const messageEndRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
@@ -132,7 +135,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imageUploads, setImageUploads] = useState<number>(0);
-
+  
   // Initialize daily image uploads counter from localStorage
   useEffect(() => {
     const today = new Date().toDateString();
@@ -248,7 +251,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
         if (messageData.senderId && blockedUsers.has(messageData.senderId)) {
           console.log('Message from blocked user, ignoring');
           return;
-        }\
+        }
         
         console.log('Message from current chat?', isFromCurrentChat);
         console.log('Message sent by me?', isSentByMe);
@@ -879,3 +882,556 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                     </AlertDialogHeader>
                     
                     {currentChat && (
+                      <ReportForm userId={currentChat.userId} username={currentChat.username} onClose={() => {}} />
+                    )}
+                    
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+                
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="text-white hover:bg-primary-foreground/20">
+                      <MoreHorizontal size={18} />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleBlockUser} className="cursor-pointer text-red-500">
+                      <UserX className="mr-2 h-4 w-4" />
+                      <span>Block user</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+
+            {/* Chat messages */}
+            <ScrollArea className="flex-1 p-4" viewportRef={scrollAreaRef}>
+              {messages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                  <Message className="h-12 w-12 mb-2 opacity-20" />
+                  <p>No messages yet</p>
+                  <p className="text-sm">Send a message to start chatting!</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {messages.map((message) => (
+                    <div
+                      key={message.id}
+                      className={`flex ${
+                        message.sender === userProfile.username ? 'justify-end' : 'justify-start'
+                      }`}
+                    >
+                      <div
+                        className={`max-w-[80%] rounded-lg p-3 ${
+                          message.sender === userProfile.username
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted'
+                        }`}
+                      >
+                        {message.image ? (
+                          <div className="flex flex-col gap-2">
+                            <p className="text-sm font-medium mb-1">{message.content}</p>
+                            <div className="relative">
+                              <div 
+                                className={`cursor-pointer ${message.image.blurred ? 'blur-lg' : ''}`}
+                                onClick={() => {
+                                  if (!message.image?.blurred) {
+                                    openImageInFullResolution(message.image?.url);
+                                  }
+                                }}
+                              >
+                                <img
+                                  src={message.image.url}
+                                  alt="Shared image"
+                                  className="rounded-md max-h-60 object-contain"
+                                />
+                              </div>
+                              <div className="absolute top-2 right-2 flex space-x-1">
+                                <Button 
+                                  variant="secondary" 
+                                  size="sm" 
+                                  className="h-8 w-8 p-0 rounded-full"
+                                  onClick={() => toggleImageBlur(message.id)}
+                                >
+                                  {message.image.blurred ? (
+                                    <Eye className="h-4 w-4" />
+                                  ) : (
+                                    <EyeOff className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </div>
+                            </div>
+                            <div className="flex justify-between items-center mt-1">
+                              <p className="text-[10px] opacity-70">
+                                {new Date(message.timestamp).toLocaleTimeString([], {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
+                              </p>
+                              {!message.image.blurred && (
+                                <Button 
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 text-xs"
+                                  onClick={() => openImageInFullResolution(message.image?.url)}
+                                >
+                                  Full Resolution
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <p>{message.content}</p>
+                            <p className="text-[10px] opacity-70 mt-1 text-right">
+                              {new Date(message.timestamp).toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  <div ref={messageEndRef} />
+                </div>
+              )}
+              
+              {/* Typing indicator */}
+              {userTyping && (
+                <div className="flex items-center gap-2 text-muted-foreground text-sm p-2">
+                  <div className="flex space-x-1">
+                    <span className="animate-bounce delay-0">.</span>
+                    <span className="animate-bounce delay-150">.</span>
+                    <span className="animate-bounce delay-300">.</span>
+                  </div>
+                  <span>{currentChat?.username} is typing</span>
+                </div>
+              )}
+            </ScrollArea>
+
+            {/* Image upload preview */}
+            {selectedImage && imagePreview && (
+              <div className="p-3 border-t bg-slate-50">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium">Image Preview</p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={cancelImageUpload}
+                    className="h-8 w-8 p-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="relative">
+                  <img
+                    src={imagePreview}
+                    alt="Upload preview"
+                    className="h-40 object-contain rounded-md"
+                  />
+                  <div className="mt-2 flex justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={cancelImageUpload}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={sendImageMessage}
+                    >
+                      Send Image
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Image usage counter */}
+            <div className="px-4 py-2 bg-slate-50 text-xs text-muted-foreground">
+              <p>{imageUploads}/10 daily image uploads used</p>
+            </div>
+
+            {/* Chat input */}
+            <div className="p-3 border-t">
+              <div className="flex space-x-2">
+                <div className="flex-1 relative">
+                  <Textarea
+                    value={messageInput}
+                    onChange={handleInputChange}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Type a message..."
+                    className="min-h-[64px] w-[95%] resize-none pr-10"
+                  />
+                  
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    className="hidden"
+                    accept={ALLOWED_IMAGE_TYPES.join(',')}
+                  />
+                  
+                  <div className="absolute bottom-3 right-3 flex gap-2">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 rounded-full"
+                            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                          >
+                            <Smile className="h-5 w-5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Add emoji</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 rounded-full"
+                            onClick={handleImageUpload}
+                          >
+                            <Image className="h-5 w-5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Upload image</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 rounded-full"
+                            onClick={handleVoiceMessage}
+                          >
+                            <Mic className="h-5 w-5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Send voice message (VIP)</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                </div>
+                <Button
+                  onClick={handleSendMessage}
+                  size="icon"
+                  className="h-[64px] w-[64px] rounded-full"
+                  disabled={!messageInput.trim() && !selectedImage}
+                >
+                  <Send className="h-6 w-6" />
+                </Button>
+              </div>
+              
+              {/* Emoji Picker */}
+              {showEmojiPicker && (
+                <div className="mt-2 p-2 border rounded-lg bg-white">
+                  <div className="flex space-x-2 mb-2 border-b pb-2 overflow-x-auto">
+                    {Object.keys(emojiCategories).map((category) => (
+                      <Button
+                        key={category}
+                        variant={currentEmojiCategory === category ? "default" : "ghost"}
+                        size="sm"
+                        onClick={() => setCurrentEmojiCategory(category as keyof typeof emojiCategories)}
+                        className="text-xs rounded-full"
+                      >
+                        {category}
+                      </Button>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-8 gap-1">
+                    {emojiCategories[currentEmojiCategory].map((emoji) => (
+                      <Button
+                        key={emoji}
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEmojiClick(emoji)}
+                        className="text-xl hover:bg-muted"
+                      >
+                        {emoji}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+        
+      case 'history':
+        return (
+          <div className="p-4">
+            <h2 className="text-xl font-semibold mb-4">Chat History</h2>
+            <div className="space-y-4">
+              {Object.keys(userChatHistories).length === 0 ? (
+                <p className="text-muted-foreground">No chat history available.</p>
+              ) : (
+                Object.entries(userChatHistories).map(([userId, messages]) => {
+                  // Skip if no messages
+                  if (messages.length === 0) return null;
+                  
+                  const lastMessage = messages[messages.length - 1];
+                  const botUser = botProfiles.find(bot => bot.id === userId);
+                  const username = botUser ? botUser.username : lastMessage.sender;
+                  const isBot = !!botUser;
+                  
+                  return (
+                    <Card
+                      key={userId}
+                      className="p-3 cursor-pointer hover:bg-slate-50"
+                      onClick={() => {
+                        onUserSelect(userId);
+                        setView('chat');
+                      }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white">
+                          <img 
+                            src={getAvatarUrl(username, getGenderForAvatar(username, isBot))} 
+                            alt="Avatar" 
+                            className="w-10 h-10 rounded-full" 
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex justify-between">
+                            <p className="font-medium">{username}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(lastMessage.timestamp).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <p className="text-sm text-muted-foreground truncate">
+                            {lastMessage.content}
+                          </p>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        );
+        
+      case 'inbox':
+        // Get users with unread messages
+        const unreadUsers = Array.from(window.unreadMessagesPerUser);
+        
+        return (
+          <div className="p-4">
+            <h2 className="text-xl font-semibold mb-4">Inbox</h2>
+            <div className="space-y-4">
+              {unreadUsers.length === 0 ? (
+                <p className="text-muted-foreground">No unread messages.</p>
+              ) : (
+                unreadUsers.map(userId => {
+                  const messages = userChatHistories[userId] || [];
+                  if (messages.length === 0) return null;
+                  
+                  const lastMessage = messages[messages.length - 1];
+                  const botUser = botProfiles.find(bot => bot.id === userId);
+                  const username = botUser ? botUser.username : lastMessage.sender;
+                  const isBot = !!botUser;
+                  
+                  return (
+                    <Card
+                      key={userId}
+                      className="p-3 cursor-pointer hover:bg-slate-50 border-l-4 border-l-blue-500"
+                      onClick={() => {
+                        // Mark as read
+                        window.unreadMessagesPerUser.delete(userId);
+                        // Update unread count
+                        setUnreadCount(window.unreadMessagesPerUser.size);
+                        // Select the user and go to chat
+                        onUserSelect(userId);
+                        setView('chat');
+                      }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="relative">
+                          <img 
+                            src={getAvatarUrl(username, getGenderForAvatar(username, isBot))} 
+                            alt="Avatar" 
+                            className="w-10 h-10 rounded-full" 
+                          />
+                          <span className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full"></span>
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex justify-between">
+                            <p className="font-medium">{username}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(lastMessage.timestamp).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <p className="text-sm text-muted-foreground truncate">
+                            {lastMessage.content}
+                          </p>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        );
+        
+      case 'blocked':
+        // Get blocked users list
+        const blockedUsersList = Array.from(blockedUsers);
+        
+        return (
+          <div className="p-4">
+            <h2 className="text-xl font-semibold mb-4">Blocked Users</h2>
+            <div className="space-y-4">
+              {blockedUsersList.length === 0 ? (
+                <p className="text-muted-foreground">No blocked users.</p>
+              ) : (
+                blockedUsersList.map(userId => {
+                  const botUser = botProfiles.find(bot => bot.id === userId);
+                  let username = "Unknown User";
+                  
+                  if (botUser) {
+                    username = botUser.username;
+                  } else {
+                    // Try to find username in chat history
+                    const chatHistory = userChatHistories[userId] || [];
+                    if (chatHistory.length > 0 && chatHistory[0].sender) {
+                      username = chatHistory[0].sender;
+                    }
+                  }
+                  
+                  return (
+                    <Card
+                      key={userId}
+                      className="p-3 cursor-pointer hover:bg-slate-50 border-l-4 border-l-red-500"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="relative">
+                          <img 
+                            src={getAvatarUrl(username, getGenderForAvatar(username, !!botUser))} 
+                            alt="Avatar" 
+                            className="w-10 h-10 rounded-full opacity-50" 
+                          />
+                          <span className="absolute top-0 right-0 w-full h-full flex items-center justify-center">
+                            <Ban className="w-6 h-6 text-red-500" />
+                          </span>
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex justify-between">
+                            <p className="font-medium">{username}</p>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleUnblockUser(userId)}
+                              className="h-6 text-xs text-blue-500"
+                            >
+                              Unblock
+                            </Button>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            Blocked user
+                          </p>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        );
+        
+      default:
+        return null;
+    }
+  };
+  
+  return (
+    <div className="h-full flex flex-col">
+      {/* Navigation tabs */}
+      <div className="bg-white border-b p-2">
+        <div className="flex space-x-1">
+          <Button
+            variant={view === 'chat' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setView('chat')}
+            className="flex-1"
+          >
+            <User className="mr-2 h-4 w-4" />
+            Chat
+          </Button>
+          <Button
+            variant={view === 'history' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setView('history')}
+            className="flex-1"
+          >
+            <History className="mr-2 h-4 w-4" />
+            History
+          </Button>
+          <Button
+            variant={view === 'inbox' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setView('inbox')}
+            className="flex-1 relative"
+          >
+            {unreadCount > 0 ? (
+              <BellDot className="mr-2 h-4 w-4" />
+            ) : (
+              <Bell className="mr-2 h-4 w-4" />
+            )}
+            Inbox
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white">
+                {unreadCount}
+              </span>
+            )}
+          </Button>
+          <Button
+            variant={view === 'blocked' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setView('blocked')}
+            className="flex-1"
+          >
+            <Ban className="mr-2 h-4 w-4" />
+            Blocked
+          </Button>
+        </div>
+      </div>
+
+      {/* Main content area */}
+      <div className="flex-1 overflow-hidden">
+        {currentChat || view !== 'chat' ? (
+          renderContent()
+        ) : (
+          <div className="h-full flex flex-col items-center justify-center p-4 text-center">
+            <div className="mb-4 p-4 rounded-full bg-muted">
+              <User className="h-12 w-12 text-muted-foreground" />
+            </div>
+            <h2 className="text-2xl font-bold">No Chat Selected</h2>
+            <p className="text-muted-foreground mt-2 max-w-md">
+              Select a user from the list to start chatting or view your chat history.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
