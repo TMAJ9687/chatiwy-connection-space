@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -91,6 +92,8 @@ interface ConnectedUser {
 
 const userChatHistories: Record<string, Message[]> = {};
 const blockedUsers: Set<string> = new Set();
+// Mock connected users for non-socket mode
+const mockConnectedUsers = new Map<string, ConnectedUser>();
 
 declare global {
   interface Window {
@@ -892,7 +895,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
               {Array.from(blockedUsers).map(userId => {
                 const user = socketConnected
                   ? Array.from(socketService.connectedUsers.values()).find(user => user.id === userId)
-                  : Array.from(mockConnectedUsers.values()).find(user => user.id === userId);
+                  : mockConnectedUsers.get(userId);
                 
                 return user ? (
                   <li key={userId} className="py-2 flex items-center justify-between">
