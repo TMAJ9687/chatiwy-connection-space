@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Moon, Sun, LogOut, Inbox } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { toast } from 'sonner';
@@ -9,9 +9,15 @@ import { Badge } from '@/components/ui/badge';
 
 export function Navbar() {
   const navigate = useNavigate();
+  const location = useLocation(); // Add location to check current route
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  
+  // Check if user is logged in by looking for userProfile in localStorage
+  const isLoggedIn = localStorage.getItem('userProfile') !== null;
+  // Check if we're on the landing page
+  const isLandingPage = location.pathname === '/';
 
   useEffect(() => {
     const handleScroll = () => {
@@ -86,35 +92,38 @@ export function Navbar() {
         </Link>
         
         <div className="flex items-center space-x-3">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  variant={unreadCount > 0 ? "success" : "outline"} 
-                  size="icon" 
-                  className="rounded-full"
-                  onClick={handleInboxClick}
-                >
-                  {unreadCount > 0 ? (
-                    <div className="relative">
+          {/* Only show inbox button if logged in and not on landing page */}
+          {isLoggedIn && !isLandingPage && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant={unreadCount > 0 ? "success" : "outline"} 
+                    size="icon" 
+                    className="rounded-full"
+                    onClick={handleInboxClick}
+                  >
+                    {unreadCount > 0 ? (
+                      <div className="relative">
+                        <Inbox className="h-5 w-5" />
+                        <Badge 
+                          variant="destructive" 
+                          className="absolute -top-2 -right-2 w-5 h-5 p-0 flex items-center justify-center"
+                        >
+                          {unreadCount}
+                        </Badge>
+                      </div>
+                    ) : (
                       <Inbox className="h-5 w-5" />
-                      <Badge 
-                        variant="destructive" 
-                        className="absolute -top-2 -right-2 w-5 h-5 p-0 flex items-center justify-center"
-                      >
-                        {unreadCount}
-                      </Badge>
-                    </div>
-                  ) : (
-                    <Inbox className="h-5 w-5" />
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{unreadCount > 0 ? `${unreadCount} unread messages` : 'Inbox'}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{unreadCount > 0 ? `${unreadCount} unread messages` : 'Inbox'}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         
           <button 
             onClick={toggleDarkMode} 
@@ -134,15 +143,18 @@ export function Navbar() {
             VIP Membership
           </Button>
 
-          <Button 
-            variant="ghost"
-            size="sm"
-            className="text-destructive hover:text-destructive/90 hover:bg-destructive/10"
-            onClick={handleLogout}
-          >
-            <LogOut className="mr-1 h-4 w-4" />
-            <span className="hidden sm:inline">Logout</span>
-          </Button>
+          {/* Only show logout button if logged in and not on landing page */}
+          {isLoggedIn && !isLandingPage && (
+            <Button 
+              variant="ghost"
+              size="sm"
+              className="text-destructive hover:text-destructive/90 hover:bg-destructive/10"
+              onClick={handleLogout}
+            >
+              <LogOut className="mr-1 h-4 w-4" />
+              <span className="hidden sm:inline">Logout</span>
+            </Button>
+          )}
         </div>
       </div>
     </header>
