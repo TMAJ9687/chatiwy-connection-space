@@ -9,6 +9,8 @@ import { ConnectedUsers } from '@/components/ConnectedUsers';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import socketService from '@/services/socketService';
+import { Button } from '@/components/ui/button';
+import { LogOut } from 'lucide-react';
 
 const mockConnectedUsers = new Map();
 const sessionKey = 'chatiwy_session_id';
@@ -185,6 +187,12 @@ const ChatPage = () => {
     setSelectedUser(userId);
   };
 
+  const handleLogout = () => {
+    sessionStorage.removeItem('chatiwy_session_id');
+    navigate('/');
+    toast.success('You have been logged out successfully');
+  };
+
   if (!userProfile) {
     return null;
   }
@@ -196,7 +204,17 @@ const ChatPage = () => {
         <meta name="description" content="Chat with people from around the world on Chatiwy" />
       </Helmet>
       
-      <Navbar />
+      <Navbar>
+        <Button 
+          onClick={handleLogout} 
+          variant="ghost" 
+          size="sm"
+          className="mr-2"
+        >
+          <LogOut className="h-4 w-4 mr-1" />
+          Logout
+        </Button>
+      </Navbar>
       
       <main className="flex-1 py-4 pt-20">
         {showGuidance && (

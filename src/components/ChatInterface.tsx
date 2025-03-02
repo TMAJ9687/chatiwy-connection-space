@@ -439,25 +439,24 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
       return;
     }
 
-    const formData = new FormData();
-    formData.append('image', selectedImage);
-
     try {
-      const response = await fetch('https://api.imgbb.com/1/upload?key=YOUR_IMGBB_API_KEY', {
-        method: 'POST',
-        body: formData
-      });
+      const imageUrl = imagePreview;
 
-      if (!response.ok) {
-        throw new Error(`Image upload failed with status: ${response.status}`);
-      }
+      const messageData = {
+        sender: userProfile.username,
+        senderId: userProfile.id,
+        content: '',
+        timestamp: new Date(),
+        isBot: false,
+        image: {
+          url: imageUrl,
+          blurred: true
+        }
+      };
 
-      const result = await response.json();
-
-      if (result.success) {
-        const imageUrl = result.data.url;
-
-        const messageData = {
+      setMessages(prevMessages => {
+        const newMessage = {
+          id: Math.random().toString(36).substring(2, 15),
           sender: userProfile.username,
           senderId: userProfile.id,
           content: '',
@@ -469,51 +468,34 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
           }
         };
 
-        setMessages(prevMessages => {
-          const newMessage = {
-            id: Math.random().toString(36).substring(2, 15),
-            sender: userProfile.username,
-            senderId: userProfile.id,
-            content: '',
-            timestamp: new Date(),
-            isBot: false,
-            image: {
-              url: imageUrl,
-              blurred: true
-            }
-          };
+        userChatHistories[currentChat?.userId || ''] = [...(userChatHistories[currentChat?.userId || ''] || []), newMessage];
+        return [...prevMessages, newMessage];
+      });
 
-          userChatHistories[currentChat?.userId || ''] = [...(userChatHistories[currentChat?.userId || ''] || []), newMessage];
-          return [...prevMessages, newMessage];
+      if (socketConnected) {
+        socketService.sendMessage({ 
+          to: currentChat?.userId, 
+          content: '',
+          image: {
+            url: imageUrl,
+            blurred: true
+          }
         });
-
-        if (socketConnected) {
-          socketService.sendMessage({ 
-            to: currentChat?.userId, 
-            content: '',
-            image: {
-              url: imageUrl,
-              blurred: true
-            }
-          });
-        } else {
-          handleReceiveMessage(messageData);
-        }
-
-        setImageUploads(prevUploads => {
-          const newUploads = prevUploads + 1;
-          localStorage.setItem(IMAGE_UPLOADS_KEY, newUploads.toString());
-          return newUploads;
-        });
-
-        cancelImageUpload();
-        toast.success('Image sent successfully!');
       } else {
-        toast.error('Failed to upload image. Please try again.');
+        handleReceiveMessage(messageData);
       }
+
+      setImageUploads(prevUploads => {
+        const newUploads = prevUploads + 1;
+        localStorage.setItem(IMAGE_UPLOADS_KEY, newUploads.toString());
+        return newUploads;
+      });
+
+      cancelImageUpload();
+      toast.success('Image sent successfully!');
     } catch (error: any) {
-      console.error('Error uploading image:', error);
-      toast.error(error.message || 'Failed to upload image. Please try again.');
+      console.error('Error processing image:', error);
+      toast.error(error.message || 'Failed to process image. Please try again.');
     }
   };
 
