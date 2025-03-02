@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { Navbar } from '@/components/Navbar';
@@ -6,7 +5,7 @@ import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
-import { X, Check, Image, MessageSquare, Clock, Shield, Globe, Smile, Reply, Star, BatteryFull, Ban, Award, Paint } from 'lucide-react';
+import { X, Check, Image, MessageSquare, Clock, Shield, Globe, Smile, Reply, Star, BatteryFull, Ban, Award, Palette } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const VIPRegistrationPage = () => {
@@ -31,7 +30,7 @@ const VIPRegistrationPage = () => {
     { icon: BatteryFull, title: 'Multi-device Login', description: 'Log in on up to 2 devices simultaneously' },
     { icon: Ban, title: 'No Inactivity Disconnect', description: 'Stay connected even during periods of inactivity' },
     { icon: Award, title: 'Special Badges', description: 'Display exclusive VIP badges on your profile' },
-    { icon: Paint, title: 'Exclusive Themes', description: 'Access to special chat themes and customizations' },
+    { icon: Palette, title: 'Exclusive Themes', description: 'Access to special chat themes and customizations' },
     { icon: Shield, title: 'Enhanced Protection', description: 'Get enhanced protection against unwanted users' },
     { icon: Star, title: 'Priority in User Listing', description: 'Appear higher in the user discovery list' }
   ];

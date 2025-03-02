@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { Navbar } from '@/components/Navbar';
@@ -14,7 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import { X, User, Mail, Lock, CreditCard, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { countryData } from '@/utils/countryData';
+import { countries } from '@/utils/countryData';
 
 const VIPSignupPage = () => {
   const navigate = useNavigate();
@@ -122,13 +121,11 @@ const VIPSignupPage = () => {
     }, 1500);
   };
 
-  // Generate age options from 18 to 80
   const ageOptions = [];
   for (let i = 18; i <= 80; i++) {
     ageOptions.push(i);
   }
 
-  // Function to get plan price
   const getPlanPrice = () => {
     switch (formState.planDuration) {
       case 'monthly': return '$5.00';
@@ -138,7 +135,6 @@ const VIPSignupPage = () => {
     }
   };
 
-  // Function to get plan description
   const getPlanDescription = () => {
     switch (formState.planDuration) {
       case 'monthly': return 'Billed monthly';
@@ -264,9 +260,9 @@ const VIPSignupPage = () => {
                           <SelectValue placeholder="Select country" />
                         </SelectTrigger>
                         <SelectContent>
-                          {countryData.map(country => (
+                          {countries.map(country => (
                             <SelectItem key={country.code} value={country.code}>
-                              {country.name}
+                              {country.flag} {country.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
