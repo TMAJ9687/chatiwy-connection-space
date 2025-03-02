@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -664,6 +665,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                               src={message.image.url} 
                               alt="Shared image" 
                               className="max-w-full rounded-md max-h-[300px] object-contain" 
+                              onClick={() => !message.image.blurred && openImageInFullResolution(message.image.url)}
                             />
                           </div>
                           {message.image.blurred && (
@@ -747,7 +749,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                               key={index} 
                               variant="ghost" 
                               size="sm" 
-                              className="h-12 w-12 p-0 text-xl"
+                              className="h-14 w-14 p-0 text-2xl"
                               onClick={() => handleEmojiClick(emoji)}
                             >
                               {emoji}
@@ -881,3 +883,92 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
       
       case 'blocked':
         return (
+          <div className="p-4">
+            <h3 className="text-lg font-semibold mb-4">Blocked Users</h3>
+            {Array.from(blockedUsers).length > 0 ? (
+              <div className="space-y-2">
+                {Array.from(blockedUsers).map(userId => {
+                  const user = mockConnectedUsers.get(userId) || { username: "Unknown User" };
+                  return (
+                    <div key={userId} className="flex justify-between items-center p-2 border rounded-md">
+                      <span>{user.username}</span>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          blockedUsers.delete(userId);
+                          setView('chat');
+                          toast.success(`User has been unblocked.`);
+                        }}
+                      >
+                        Unblock
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-muted-foreground">You haven't blocked any users yet.</p>
+            )}
+            <Button onClick={() => setView('chat')} variant="ghost" className="mt-4">
+              Return to Chat
+            </Button>
+          </div>
+        );
+      
+      case 'inbox':
+        return (
+          <div className="p-4">
+            <h3 className="text-lg font-semibold mb-4">Inbox</h3>
+            <Button onClick={() => setView('chat')} variant="ghost">
+              Return to Chat
+            </Button>
+          </div>
+        );
+      
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <Card className="w-full h-[calc(100vh-9rem)] overflow-hidden flex flex-col">
+      {currentChat ? (
+        renderContent()
+      ) : (
+        <div className="flex-1 flex items-center justify-center p-6 text-center">
+          <div>
+            <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-xl font-medium mb-2">Welcome to Chatiwy</h3>
+            <p className="text-muted-foreground mb-6 max-w-md">
+              Select a user from the list to start chatting. Your conversations are private and secure.
+            </p>
+          </div>
+        </div>
+      )}
+      
+      {showImageModal && fullResImage && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+          <div className="max-w-4xl max-h-[90vh] w-full relative">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="absolute top-2 right-2 text-white bg-black/40 hover:bg-black/60"
+              onClick={() => {
+                setShowImageModal(false);
+                setFullResImage(null);
+              }}
+            >
+              <X size={20} />
+            </Button>
+            <img 
+              src={fullResImage} 
+              alt="Full resolution" 
+              className="max-w-full max-h-[90vh] mx-auto object-contain" 
+            />
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}
