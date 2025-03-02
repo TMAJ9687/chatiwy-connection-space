@@ -233,7 +233,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
     } else {
       const timeoutId = setTimeout(() => {
         if (currentChat && currentChat.isBot) {
-          const botResponse = getRandomBotResponse(currentChat.userId);
+          const botResponse = getRandomBotResponse("generic");
           if (botResponse) {
             handleReceiveMessage({
               sender: currentChat.username,
@@ -325,7 +325,14 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
       });
 
       if (socketConnected) {
-        socketService.sendMessage({ to: currentChat?.userId, content: messageInput });
+        socketService.sendMessage({ 
+          to: currentChat?.userId, 
+          content: '',
+          image: {
+            url: '',
+            blurred: true
+          }
+        });
       } else {
         handleReceiveMessage({
           sender: userProfile.username,
@@ -485,7 +492,14 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
         });
 
         if (socketConnected) {
-          socketService.sendMessage(currentChat?.userId, messageData);
+          socketService.sendMessage({ 
+            to: currentChat?.userId, 
+            content: '',
+            image: {
+              url: imageUrl,
+              blurred: true
+            }
+          });
         } else {
           handleReceiveMessage(messageData);
         }
