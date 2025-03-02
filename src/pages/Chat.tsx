@@ -6,7 +6,7 @@ import { Footer } from '@/components/Footer';
 import { GuidancePopup } from '@/components/GuidancePopup';
 import { ChatInterface } from '@/components/ChatInterface';
 import { ConnectedUsers } from '@/components/ConnectedUsers';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import socketService from '@/services/socketService';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import { LogOut } from 'lucide-react';
 
 const mockConnectedUsers = new Map();
 const sessionKey = 'chatiwy_session_id';
+const guidanceAcceptedKey = 'chatiwy_guidance_accepted';
 const RENDER_URL = 'https://chatiwy-test.onrender.com';
 
 // Initialize global for unread messages
@@ -30,7 +31,7 @@ if (!window.unreadMessagesPerUser) {
 const ChatPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [showGuidance, setShowGuidance] = useState(true);
+  const [showGuidance, setShowGuidance] = useState(!localStorage.getItem(guidanceAcceptedKey));
   const [userProfile, setUserProfile] = useState<any>(null);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [socketConnected, setSocketConnected] = useState(false);
@@ -180,6 +181,7 @@ const ChatPage = () => {
   
   const handleGuidanceAccept = () => {
     setShowGuidance(false);
+    localStorage.setItem(guidanceAcceptedKey, 'true');
     toast.success('Welcome to Chatiwy! You can now start chatting.');
   };
 
@@ -198,6 +200,15 @@ const ChatPage = () => {
     toast.success('You have been logged out successfully');
   };
 
+  // Fix for issue #3: Prevent redirect to landing page when clicking on logo
+  const handleLogoClick = (e: React.MouseEvent) => {
+    if (location.pathname === '/chat') {
+      e.preventDefault();
+      // Refresh the chat interface
+      setSelectedUser(null);
+    }
+  };
+
   if (!userProfile) {
     return null;
   }
@@ -210,6 +221,7 @@ const ChatPage = () => {
       </Helmet>
       
       <Navbar>
+        {/* Add click handler to the Navbar component */}
         <Button 
           onClick={handleLogout} 
           variant="ghost" 

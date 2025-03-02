@@ -309,6 +309,10 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
         image: messageData.image
       };
 
+      if (currentChat?.userId === messageData.senderId) {
+        setUserTyping(false);
+      }
+
       userChatHistories[currentChat?.userId || ''] = [...(userChatHistories[currentChat?.userId || ''] || []), newMessage];
       return [...prevMessages, newMessage];
     });
@@ -683,20 +687,21 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                               src={message.image.url} 
                               alt="Shared image" 
                               className="max-w-full rounded-md max-h-[300px] object-contain" 
+                              onClick={() => message.image?.blurred === false && openImageInFullResolution(message.image.url)}
                             />
-                            {message.image.blurred && (
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                <Button 
-                                  variant="secondary" 
-                                  size="sm" 
-                                  className="opacity-90 z-10"
-                                  onClick={() => toggleImageBlur(message.id, false)}
-                                >
-                                  <Eye size={16} className="mr-1" /> Reveal image
-                                </Button>
-                              </div>
-                            )}
                           </div>
+                          {message.image.blurred && (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <Button 
+                                variant="secondary" 
+                                size="sm" 
+                                className="opacity-90 z-10"
+                                onClick={() => toggleImageBlur(message.id, false)}
+                              >
+                                <Eye size={16} className="mr-1" /> Reveal image
+                              </Button>
+                            </div>
+                          )}
                           {!message.image.blurred && (
                             <Button 
                               variant="ghost" 
@@ -773,7 +778,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                               key={index} 
                               variant="ghost" 
                               size="sm" 
-                              className="h-8 w-8 p-0"
+                              className="h-10 w-10 p-0 text-xl"
                               onClick={() => handleEmojiClick(emoji)}
                             >
                               {emoji}
@@ -856,13 +861,12 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                             size="icon" 
                             onClick={handleVoiceMessage}
                             className="h-10 w-10"
-                            disabled={!isVipUser}
                           >
                             <Mic size={20} className={!isVipUser ? "text-muted-foreground" : ""} />
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>Voice message (VIP only)</p>
+                          <p>{isVipUser ? "Voice message" : "Upgrade to VIP to unlock voice messages"}</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
