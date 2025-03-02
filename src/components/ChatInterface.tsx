@@ -92,9 +92,6 @@ interface ConnectedUser {
 const userChatHistories: Record<string, Message[]> = {};
 const blockedUsers: Set<string> = new Set();
 
-// Mock connected users for non-socket mode
-const mockConnectedUsers = new Map<string, ConnectedUser>();
-
 declare global {
   interface Window {
     unreadMessagesPerUser: Set<string>;
@@ -169,7 +166,6 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
 
   useEffect(() => {
     if (selectedUser) {
-      // Create dummy connected users for testing without socket
       if (!socketConnected && mockConnectedUsers.size === 0) {
         botProfiles.forEach(bot => {
           mockConnectedUsers.set(bot.id, {
@@ -656,7 +652,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                       {message.image ? (
                         <div className="mb-2">
                           <div 
-                            className={`relative cursor-pointer ${message.image.blurred ? 'blur-sm hover:blur-none transition-all' : ''}`}
+                            className={`relative cursor-pointer ${message.image.blurred ? 'blur-xl hover:blur-none transition-all' : ''}`}
                             onClick={() => openImageInFullResolution(message.image!.url)}
                           >
                             <img 

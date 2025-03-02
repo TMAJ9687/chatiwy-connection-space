@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -415,7 +414,7 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
               </div>
               <div className="flex items-center text-sm text-green-500">
                 <span className="h-2 w-2 rounded-full bg-green-500 mr-1"></span>
-                Online
+                <span>Online</span>
               </div>
             </div>
           </div>
@@ -451,14 +450,17 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
                         <Badge className="ml-auto" variant="default">New</Badge>
                       )}
                     </div>
-                    <div className="flex items-center text-sm text-green-500">
-                      {user.isOnline !== false && (
+                    <div className="flex items-center text-sm">
+                      {user.isOnline !== false ? (
                         <>
                           <span className="h-2 w-2 rounded-full bg-green-500 mr-1"></span>
-                          Online
+                          <span className="text-muted-foreground truncate">
+                            {user.interests && user.interests.length > 0 
+                              ? user.interests.slice(0, 2).join(', ')
+                              : 'Chatiwy user'}
+                          </span>
                         </>
-                      )}
-                      {user.isOnline === false && (
+                      ) : (
                         <span className="text-muted-foreground">Offline</span>
                       )}
                     </div>
