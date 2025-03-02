@@ -1,17 +1,17 @@
 
 import React, { useState } from 'react';
 import { Helmet } from 'react-helmet';
-import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
 import { X, Check, Image, MessageSquare, Clock, Shield, Globe, Smile, Reply, Star, BatteryFull, Ban, Award, Palette } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useTheme } from '@/components/ThemeProvider';
 
 const VIPRegistrationPage = () => {
   const navigate = useNavigate();
   const [plan, setPlan] = useState('monthly');
+  const { theme, setTheme } = useTheme();
 
   const handleClose = () => {
     navigate('/');
@@ -29,16 +29,22 @@ const VIPRegistrationPage = () => {
     navigate('/vip/signup');
   };
 
+  const toggleTheme = () => {
+    setTheme(theme === 'light' ? 'dark' : 'light');
+  };
+
   return (
-    <div className="flex flex-col min-h-screen bg-white">
+    <div className="flex flex-col min-h-screen bg-white dark:bg-gray-900">
       <Helmet>
         <title>VIP Registration | Chatiwy</title>
         <meta name="description" content="Register for VIP membership on Chatiwy" />
       </Helmet>
       
-      <header className="border-b border-gray-200 py-3 px-4 flex items-center justify-between bg-white fixed w-full z-10">
+      <header className="border-b border-gray-200 dark:border-gray-800 py-3 px-4 flex items-center justify-between bg-white dark:bg-gray-900 fixed w-full z-10">
         <div className="flex items-center">
-          <div className="text-xl font-bold text-teal-500">Chatiwy</div>
+          <div className="text-xl font-bold">
+            <span className="text-teal-500">chati</span>wy<span className="text-coral-500">.</span>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <Button 
@@ -50,22 +56,25 @@ const VIPRegistrationPage = () => {
             <X className="h-4 w-4 mr-1" />
             Close
           </Button>
-          <div className="h-7 w-7 flex items-center justify-center rounded-full border">
-            <span className="sr-only">Toggle theme</span>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-              <circle cx="12" cy="12" r="4"></circle>
-              <path d="M12 2v2"></path>
-              <path d="M12 20v2"></path>
-              <path d="M5 5l1.5 1.5"></path>
-              <path d="M17.5 17.5L19 19"></path>
-              <path d="M5 19l1.5-1.5"></path>
-              <path d="M17.5 6.5L19 5"></path>
-            </svg>
+          <button 
+            onClick={toggleTheme} 
+            className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            aria-label="Toggle theme"
+          >
+            {theme === 'dark' ? (
+              <Sun className="h-5 w-5" />
+            ) : (
+              <Moon className="h-5 w-5" />
+            )}
+          </button>
+          <div className="flex items-center border border-gray-200 dark:border-gray-800 rounded-full px-2 py-1">
+            <img src="https://flagcdn.com/gb.svg" alt="English" className="w-6 h-6 rounded-full object-cover" />
           </div>
-          <div className="h-8 w-8 overflow-hidden rounded-full">
-            <img src="https://i.pravatar.cc/32" alt="User avatar" className="h-full w-full object-cover" />
-          </div>
-          <Button variant="warning" size="sm" className="flex items-center gap-1">
+          <Button 
+            variant="warning" 
+            size="sm" 
+            className="flex items-center gap-1 bg-teal-600 hover:bg-teal-700 text-white"
+          >
             <span>VIP Membership</span>
           </Button>
         </div>
@@ -77,7 +86,7 @@ const VIPRegistrationPage = () => {
             <Button 
               onClick={handleGetVipAccess} 
               variant="warning"
-              className="text-white px-6"
+              className="bg-amber-500 hover:bg-amber-600 text-white px-6"
             >
               Get VIP Access
             </Button>
@@ -90,130 +99,80 @@ const VIPRegistrationPage = () => {
             </Button>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
             <div className="space-y-6">
-              <div>
+              <div className="bg-amber-50 dark:bg-amber-900/20 p-6 rounded-xl border border-amber-100 dark:border-amber-800">
                 <h1 className="text-2xl font-bold mb-2">VIP Benefits</h1>
-                <p className="text-gray-600 mb-4">Unlock these exclusive features with your VIP membership</p>
+                <p className="text-gray-600 dark:text-gray-300 mb-4">Unlock these exclusive features with your VIP membership</p>
                 
                 <div className="grid grid-cols-1 gap-4">
-                  <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg">
-                    <div className="rounded-full bg-amber-100 p-2 mt-0.5">
-                      <Image className="h-5 w-5 text-amber-600" />
+                  <div className="flex items-start gap-3">
+                    <div className="rounded-full bg-amber-100 dark:bg-amber-800/50 p-2 mt-0.5">
+                      <Image className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                     </div>
                     <div>
                       <h3 className="font-medium">Unlimited Photos</h3>
-                      <p className="text-sm text-gray-600">Share unlimited images without restrictions</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Share unlimited images without restrictions</p>
                     </div>
                   </div>
                   
-                  <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg">
-                    <div className="rounded-full bg-amber-100 p-2 mt-0.5">
-                      <MessageSquare className="h-5 w-5 text-amber-600" />
+                  <div className="flex items-start gap-3">
+                    <div className="rounded-full bg-amber-100 dark:bg-amber-800/50 p-2 mt-0.5">
+                      <MessageSquare className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                     </div>
                     <div>
                       <h3 className="font-medium">Voice Messages</h3>
-                      <p className="text-sm text-gray-600">Send voice messages up to 5 minutes long</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Send voice messages up to 5 minutes long</p>
                     </div>
                   </div>
                   
-                  <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg">
-                    <div className="rounded-full bg-amber-100 p-2 mt-0.5">
-                      <Reply className="h-5 w-5 text-amber-600" />
+                  <div className="flex items-start gap-3">
+                    <div className="rounded-full bg-amber-100 dark:bg-amber-800/50 p-2 mt-0.5">
+                      <Reply className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                     </div>
                     <div>
                       <h3 className="font-medium">Message Replies</h3>
-                      <p className="text-sm text-gray-600">Reply to specific messages in the conversation</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Reply to specific messages in the conversation</p>
                     </div>
                   </div>
                   
-                  <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg">
-                    <div className="rounded-full bg-amber-100 p-2 mt-0.5">
-                      <Smile className="h-5 w-5 text-amber-600" />
+                  <div className="flex items-start gap-3">
+                    <div className="rounded-full bg-amber-100 dark:bg-amber-800/50 p-2 mt-0.5">
+                      <Smile className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                     </div>
                     <div>
                       <h3 className="font-medium">Message Reactions</h3>
-                      <p className="text-sm text-gray-600">React to messages with emojis and reactions</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">React to messages with emojis and reactions</p>
                     </div>
                   </div>
                   
-                  <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg">
-                    <div className="rounded-full bg-amber-100 p-2 mt-0.5">
-                      <Clock className="h-5 w-5 text-amber-600" />
+                  <div className="flex items-start gap-3">
+                    <div className="rounded-full bg-amber-100 dark:bg-amber-800/50 p-2 mt-0.5">
+                      <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                     </div>
                     <div>
                       <h3 className="font-medium">10-Hour History</h3>
-                      <p className="text-sm text-gray-600">Access chat history for up to 10 hours</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Access chat history for up to 10 hours</p>
                     </div>
                   </div>
                   
-                  <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg">
-                    <div className="rounded-full bg-amber-100 p-2 mt-0.5">
-                      <Globe className="h-5 w-5 text-amber-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium">Real-time Translation</h3>
-                      <p className="text-sm text-gray-600">Translate messages in real-time to your language</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg">
-                    <div className="rounded-full bg-amber-100 p-2 mt-0.5">
-                      <BatteryFull className="h-5 w-5 text-amber-600" />
+                  <div className="flex items-start gap-3">
+                    <div className="rounded-full bg-amber-100 dark:bg-amber-800/50 p-2 mt-0.5">
+                      <BatteryFull className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                     </div>
                     <div>
                       <h3 className="font-medium">Multi-device Login</h3>
-                      <p className="text-sm text-gray-600">Log in on up to 2 devices simultaneously</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Log in on up to 2 devices simultaneously</p>
                     </div>
                   </div>
                   
-                  <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg">
-                    <div className="rounded-full bg-amber-100 p-2 mt-0.5">
-                      <Ban className="h-5 w-5 text-amber-600" />
+                  <div className="flex items-start gap-3">
+                    <div className="rounded-full bg-amber-100 dark:bg-amber-800/50 p-2 mt-0.5">
+                      <Ban className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                     </div>
                     <div>
                       <h3 className="font-medium">No Inactivity Disconnect</h3>
-                      <p className="text-sm text-gray-600">Stay connected even during periods of inactivity</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg">
-                    <div className="rounded-full bg-amber-100 p-2 mt-0.5">
-                      <Award className="h-5 w-5 text-amber-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium">Special Badges</h3>
-                      <p className="text-sm text-gray-600">Display exclusive VIP badges on your profile</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg">
-                    <div className="rounded-full bg-amber-100 p-2 mt-0.5">
-                      <Palette className="h-5 w-5 text-amber-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium">Exclusive Themes</h3>
-                      <p className="text-sm text-gray-600">Access to special chat themes and customizations</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg">
-                    <div className="rounded-full bg-amber-100 p-2 mt-0.5">
-                      <Shield className="h-5 w-5 text-amber-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium">Enhanced Protection</h3>
-                      <p className="text-sm text-gray-600">Get enhanced protection against unwanted users</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg">
-                    <div className="rounded-full bg-amber-100 p-2 mt-0.5">
-                      <Star className="h-5 w-5 text-amber-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium">Priority in User Listing</h3>
-                      <p className="text-sm text-gray-600">Appear higher in the user discovery list</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Stay connected even during periods of inactivity</p>
                     </div>
                   </div>
                 </div>
@@ -221,9 +180,9 @@ const VIPRegistrationPage = () => {
             </div>
             
             <div className="space-y-6">
-              <div>
+              <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-100 dark:border-gray-700 shadow-md">
                 <h2 className="text-2xl font-bold mb-2">Select Your Plan</h2>
-                <p className="text-gray-600 mb-4">Choose the plan that works best for you</p>
+                <p className="text-gray-600 dark:text-gray-300 mb-4">Choose the plan that works best for you</p>
                 
                 <Tabs defaultValue="monthly" className="w-full" value={plan} onValueChange={setPlan}>
                   <TabsList className="grid grid-cols-3 w-full mb-6">
@@ -232,11 +191,11 @@ const VIPRegistrationPage = () => {
                     <TabsTrigger value="annual">Yearly</TabsTrigger>
                   </TabsList>
                   
-                  <div className="bg-white border rounded-lg p-8">
+                  <div className="bg-white dark:bg-gray-800 p-6 rounded-lg">
                     {plan === 'monthly' && (
                       <div className="text-center">
                         <div className="text-3xl font-bold">$5.00</div>
-                        <div className="text-sm text-gray-600 mt-1">per month</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">per month</div>
                         
                         <div className="mt-6 space-y-2 text-left">
                           <div className="flex items-center gap-2">
@@ -258,7 +217,7 @@ const VIPRegistrationPage = () => {
                     {plan === 'semiannual' && (
                       <div className="text-center">
                         <div className="text-3xl font-bold">$25.00</div>
-                        <div className="text-sm text-gray-600 mt-1">every 6 months</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">every 6 months</div>
                         <div className="text-amber-500 font-medium mt-1">$4.17/month - Save $5.00</div>
                         
                         <div className="mt-6 space-y-2 text-left">
@@ -281,7 +240,7 @@ const VIPRegistrationPage = () => {
                     {plan === 'annual' && (
                       <div className="text-center">
                         <div className="text-3xl font-bold">$45.00</div>
-                        <div className="text-sm text-gray-600 mt-1">per year</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">per year</div>
                         <div className="text-amber-500 font-medium mt-1">$3.75/month - Save $15.00</div>
                         
                         <div className="mt-6 space-y-2 text-left">
@@ -308,45 +267,97 @@ const VIPRegistrationPage = () => {
                       Get VIP Access Now
                     </Button>
                     
-                    <div className="text-xs text-center mt-3 text-gray-500">
+                    <div className="text-xs text-center mt-3 text-gray-500 dark:text-gray-400">
                       By subscribing you agree to our Terms of Service and Privacy Policy
                     </div>
                   </div>
                 </Tabs>
               </div>
-              
-              <div className="space-y-4 mt-8">
-                <h3 className="text-xl font-bold">Why Choose VIP Membership?</h3>
+            </div>
+            
+            <div className="space-y-6">
+              <div className="bg-amber-50 dark:bg-amber-900/20 p-6 rounded-xl border border-amber-100 dark:border-amber-800">
+                <h1 className="text-2xl font-bold mb-2">More Benefits</h1>
+                <p className="text-gray-600 dark:text-gray-300 mb-4">Enjoy these additional VIP features</p>
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="border rounded-lg p-4">
-                    <div className="rounded-full w-12 h-12 flex items-center justify-center bg-amber-100 mb-3">
-                      <Shield className="h-6 w-6 text-amber-600" />
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className="rounded-full bg-amber-100 dark:bg-amber-800/50 p-2 mt-0.5">
+                      <Globe className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                     </div>
-                    <h4 className="font-medium mb-1">Enhanced Privacy</h4>
-                    <p className="text-sm text-gray-600">
-                      Enjoy additional protection features and priority support from our moderation team.
-                    </p>
+                    <div>
+                      <h3 className="font-medium">Real-time Translation</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Translate messages in real-time to your language</p>
+                    </div>
                   </div>
                   
-                  <div className="border rounded-lg p-4">
-                    <div className="rounded-full w-12 h-12 flex items-center justify-center bg-amber-100 mb-3">
-                      <MessageSquare className="h-6 w-6 text-amber-600" />
+                  <div className="flex items-start gap-3">
+                    <div className="rounded-full bg-amber-100 dark:bg-amber-800/50 p-2 mt-0.5">
+                      <Award className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                     </div>
-                    <h4 className="font-medium mb-1">Premium Communication</h4>
-                    <p className="text-sm text-gray-600">
-                      Express yourself better with voice messages, reactions, and extended text capabilities.
-                    </p>
+                    <div>
+                      <h3 className="font-medium">Special Badges</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Display exclusive VIP badges on your profile</p>
+                    </div>
                   </div>
                   
-                  <div className="border rounded-lg p-4">
-                    <div className="rounded-full w-12 h-12 flex items-center justify-center bg-amber-100 mb-3">
-                      <Star className="h-6 w-6 text-amber-600" />
+                  <div className="flex items-start gap-3">
+                    <div className="rounded-full bg-amber-100 dark:bg-amber-800/50 p-2 mt-0.5">
+                      <Palette className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                     </div>
-                    <h4 className="font-medium mb-1">Stand Out</h4>
-                    <p className="text-sm text-gray-600">
-                      Get noticed with VIP badges, priority listing, and exclusive visual themes.
-                    </p>
+                    <div>
+                      <h3 className="font-medium">Exclusive Themes</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Access to special chat themes and customizations</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3">
+                    <div className="rounded-full bg-amber-100 dark:bg-amber-800/50 p-2 mt-0.5">
+                      <Shield className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium">Enhanced Protection</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Get enhanced protection against unwanted users</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3">
+                    <div className="rounded-full bg-amber-100 dark:bg-amber-800/50 p-2 mt-0.5">
+                      <Star className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium">Priority in User Listing</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Appear higher in the user discovery list</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-100 dark:border-gray-700 shadow-md">
+                <h3 className="text-xl font-bold mb-4">Why Choose VIP?</h3>
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="rounded-full bg-teal-100 dark:bg-teal-800/50 p-2 mt-0.5">
+                      <Shield className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+                    </div>
+                    <div>
+                      <h4 className="font-medium">Enhanced Privacy</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Enjoy additional protection features and priority support from our moderation team.
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3">
+                    <div className="rounded-full bg-teal-100 dark:bg-teal-800/50 p-2 mt-0.5">
+                      <MessageSquare className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+                    </div>
+                    <div>
+                      <h4 className="font-medium">Premium Communication</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Express yourself better with voice messages, reactions, and extended text capabilities.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -356,23 +367,23 @@ const VIPRegistrationPage = () => {
           <div className="max-w-3xl mx-auto mt-16">
             <h2 className="text-2xl font-bold text-center mb-8">Frequently Asked Questions</h2>
             <div className="space-y-4">
-              <div className="border rounded-lg p-4">
+              <div className="border rounded-lg p-4 dark:border-gray-700">
                 <h3 className="font-bold mb-2">How does the billing work?</h3>
-                <p className="text-gray-600">
+                <p className="text-gray-600 dark:text-gray-300">
                   Your subscription will be automatically renewed at the end of your billing cycle. You can cancel anytime from your account settings. We accept credit cards and PayPal payments.
                 </p>
               </div>
               
-              <div className="border rounded-lg p-4">
+              <div className="border rounded-lg p-4 dark:border-gray-700">
                 <h3 className="font-bold mb-2">Can I switch between plans?</h3>
-                <p className="text-gray-600">
+                <p className="text-gray-600 dark:text-gray-300">
                   Yes, you can upgrade or downgrade your plan at any time. If you upgrade, the new rate will be applied immediately. If you downgrade, the new rate will be applied at the next billing cycle.
                 </p>
               </div>
               
-              <div className="border rounded-lg p-4">
+              <div className="border rounded-lg p-4 dark:border-gray-700">
                 <h3 className="font-bold mb-2">How do I cancel my subscription?</h3>
-                <p className="text-gray-600">
+                <p className="text-gray-600 dark:text-gray-300">
                   You can cancel your subscription at any time from your account settings. Your VIP benefits will remain active until the end of the current billing period.
                 </p>
               </div>

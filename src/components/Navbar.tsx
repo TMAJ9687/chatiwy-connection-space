@@ -1,3 +1,4 @@
+
 import { useState, useEffect, ReactNode } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Moon, Sun, LogOut, Inbox } from 'lucide-react';
@@ -6,6 +7,7 @@ import { toast } from 'sonner';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import VIPAuthModal from './VIPAuthModal';
+import { useTheme } from '@/components/ThemeProvider';
 
 interface NavbarProps {
   children?: ReactNode;
@@ -14,7 +16,7 @@ interface NavbarProps {
 export function Navbar({ children }: NavbarProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { theme, setTheme } = useTheme();
   const [isScrolled, setIsScrolled] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showVIPModal, setShowVIPModal] = useState(false);
@@ -25,6 +27,8 @@ export function Navbar({ children }: NavbarProps) {
   const isLandingPage = location.pathname === '/';
   // Check if we're on the chat page
   const isChatPage = location.pathname === '/chat';
+  // Check if we're on a VIP page
+  const isVIPPage = location.pathname.startsWith('/vip');
 
   useEffect(() => {
     const handleScroll = () => {
@@ -55,9 +59,8 @@ export function Navbar({ children }: NavbarProps) {
     return () => clearInterval(intervalId);
   }, []);
 
-  const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
-    document.documentElement.classList.toggle('dark');
+  const toggleTheme = () => {
+    setTheme(theme === 'light' ? 'dark' : 'light');
   };
 
   const handleLogout = () => {
@@ -106,7 +109,7 @@ export function Navbar({ children }: NavbarProps) {
   return (
     <header 
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled ? 'py-2 bg-white/80 dark:bg-black/50 backdrop-blur-md shadow-md' : 'py-4 bg-background/95 backdrop-blur-sm'
+        isScrolled ? 'py-2 bg-white/80 dark:bg-black/50 backdrop-blur-md shadow-md' : 'py-4 bg-background/95 dark:bg-background/95 backdrop-blur-sm'
       }`}
     >
       <div className="container mx-auto px-4 flex items-center justify-between">
@@ -122,8 +125,8 @@ export function Navbar({ children }: NavbarProps) {
           {/* Render children first if provided */}
           {children}
 
-          {/* Only show inbox button if logged in and not on landing page */}
-          {isLoggedIn && !isLandingPage && (
+          {/* Only show inbox button if logged in and not on landing page or VIP page */}
+          {isLoggedIn && !isLandingPage && !isVIPPage && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -156,11 +159,11 @@ export function Navbar({ children }: NavbarProps) {
           )}
         
           <button 
-            onClick={toggleDarkMode} 
+            onClick={toggleTheme} 
             className="p-2 rounded-full bg-secondary hover:bg-secondary/80 transition-colors"
             aria-label="Toggle dark mode"
           >
-            {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </button>
           
           <div className="flex items-center border border-gray-200 dark:border-gray-800 rounded-full px-2 py-1">
@@ -174,8 +177,8 @@ export function Navbar({ children }: NavbarProps) {
             VIP Membership
           </Button>
 
-          {/* Only show logout button if logged in and not on landing page */}
-          {isLoggedIn && !isLandingPage && (
+          {/* Only show logout button if logged in and not on landing page or VIP page */}
+          {isLoggedIn && !isLandingPage && !isVIPPage && (
             <Button 
               variant="ghost"
               size="sm"

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
-import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,13 +10,15 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { useNavigate } from 'react-router-dom';
-import { X, User, Mail, Lock, CreditCard, AlertCircle } from 'lucide-react';
+import { X, User, Mail, Lock, CreditCard, AlertCircle, Moon, Sun } from 'lucide-react';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { countries } from '@/utils/countryData';
+import { useTheme } from '@/components/ThemeProvider';
 
 const VIPSignupPage = () => {
   const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
   const [formState, setFormState] = useState({
     nickname: '',
     age: '',
@@ -27,7 +29,12 @@ const VIPSignupPage = () => {
     password: '',
     confirmPassword: '',
     paymentMethod: 'credit-card',
-    planDuration: 'monthly'
+    planDuration: 'monthly',
+    // Credit card fields
+    cardNumber: '',
+    cardName: '',
+    expiry: '',
+    cvv: '',
   });
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState(1);
@@ -39,6 +46,10 @@ const VIPSignupPage = () => {
 
   const handleClose = () => {
     navigate('/');
+  };
+
+  const toggleTheme = () => {
+    setTheme(theme === 'light' ? 'dark' : 'light');
   };
 
   const updateForm = (field: string, value: string | string[]) => {
@@ -86,6 +97,28 @@ const VIPSignupPage = () => {
     return true;
   };
 
+  const validateStep3 = () => {
+    if (formState.paymentMethod === 'credit-card') {
+      if (!formState.cardNumber || !formState.cardName || !formState.expiry || !formState.cvv) {
+        toast.error('Please fill in all payment details');
+        return false;
+      }
+      
+      // Simple validation for credit card fields
+      if (formState.cardNumber.replace(/\s/g, '').length !== 16) {
+        toast.error('Please enter a valid 16-digit card number');
+        return false;
+      }
+      
+      if (formState.cvv.length < 3) {
+        toast.error('Please enter a valid CVV');
+        return false;
+      }
+    }
+    
+    return true;
+  };
+
   const goToNextStep = () => {
     if (step === 1 && validateStep1()) {
       setStep(2);
@@ -102,6 +135,10 @@ const VIPSignupPage = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateStep3()) {
+      return;
+    }
     
     setIsLoading(true);
     
@@ -145,15 +182,17 @@ const VIPSignupPage = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-white">
+    <div className="flex flex-col min-h-screen bg-white dark:bg-gray-900">
       <Helmet>
         <title>VIP Signup | Chatiwy</title>
         <meta name="description" content="Register for VIP membership on Chatiwy" />
       </Helmet>
       
-      <header className="border-b border-gray-200 py-3 px-4 flex items-center justify-between bg-white fixed w-full z-10">
+      <header className="border-b border-gray-200 dark:border-gray-800 py-3 px-4 flex items-center justify-between bg-white dark:bg-gray-900 fixed w-full z-10">
         <div className="flex items-center">
-          <div className="text-xl font-bold text-teal-500">Chatiwy</div>
+          <div className="text-xl font-bold">
+            <span className="text-teal-500">chati</span>wy<span className="text-coral-500">.</span>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <Button 
@@ -165,22 +204,25 @@ const VIPSignupPage = () => {
             <X className="h-4 w-4 mr-1" />
             Close
           </Button>
-          <div className="h-7 w-7 flex items-center justify-center rounded-full border">
-            <span className="sr-only">Toggle theme</span>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-              <circle cx="12" cy="12" r="4"></circle>
-              <path d="M12 2v2"></path>
-              <path d="M12 20v2"></path>
-              <path d="M5 5l1.5 1.5"></path>
-              <path d="M17.5 17.5L19 19"></path>
-              <path d="M5 19l1.5-1.5"></path>
-              <path d="M17.5 6.5L19 5"></path>
-            </svg>
+          <button 
+            onClick={toggleTheme} 
+            className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            aria-label="Toggle theme"
+          >
+            {theme === 'dark' ? (
+              <Sun className="h-5 w-5" />
+            ) : (
+              <Moon className="h-5 w-5" />
+            )}
+          </button>
+          <div className="flex items-center border border-gray-200 dark:border-gray-800 rounded-full px-2 py-1">
+            <img src="https://flagcdn.com/gb.svg" alt="English" className="w-6 h-6 rounded-full object-cover" />
           </div>
-          <div className="h-8 w-8 overflow-hidden rounded-full">
-            <img src="https://i.pravatar.cc/32" alt="User avatar" className="h-full w-full object-cover" />
-          </div>
-          <Button variant="warning" size="sm" className="flex items-center gap-1">
+          <Button 
+            variant="warning" 
+            size="sm" 
+            className="flex items-center gap-1 bg-teal-600 hover:bg-teal-700 text-white"
+          >
             <span>VIP Membership</span>
           </Button>
         </div>
@@ -198,33 +240,33 @@ const VIPSignupPage = () => {
             <form onSubmit={handleSubmit}>
               <CardContent>
                 <div className="flex justify-between mb-6">
-                  <div className={`flex-1 border-b-2 pb-2 ${step >= 1 ? 'border-amber-500' : 'border-gray-200'}`}>
+                  <div className={`flex-1 border-b-2 pb-2 ${step >= 1 ? 'border-amber-500' : 'border-gray-200 dark:border-gray-700'}`}>
                     <div className="flex items-center">
-                      <div className={`rounded-full h-6 w-6 flex items-center justify-center mr-2 ${step >= 1 ? 'bg-amber-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                      <div className={`rounded-full h-6 w-6 flex items-center justify-center mr-2 ${step >= 1 ? 'bg-amber-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'}`}>
                         1
                       </div>
-                      <span className={step >= 1 ? 'text-amber-500' : 'text-gray-500'}>Profile</span>
+                      <span className={step >= 1 ? 'text-amber-500' : 'text-gray-500 dark:text-gray-400'}>Profile</span>
                     </div>
                   </div>
-                  <div className={`flex-1 border-b-2 pb-2 ${step >= 2 ? 'border-amber-500' : 'border-gray-200'}`}>
+                  <div className={`flex-1 border-b-2 pb-2 ${step >= 2 ? 'border-amber-500' : 'border-gray-200 dark:border-gray-700'}`}>
                     <div className="flex items-center">
-                      <div className={`rounded-full h-6 w-6 flex items-center justify-center mr-2 ${step >= 2 ? 'bg-amber-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                      <div className={`rounded-full h-6 w-6 flex items-center justify-center mr-2 ${step >= 2 ? 'bg-amber-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'}`}>
                         2
                       </div>
-                      <span className={step >= 2 ? 'text-amber-500' : 'text-gray-500'}>Account</span>
+                      <span className={step >= 2 ? 'text-amber-500' : 'text-gray-500 dark:text-gray-400'}>Account</span>
                     </div>
                   </div>
-                  <div className={`flex-1 border-b-2 pb-2 ${step >= 3 ? 'border-amber-500' : 'border-gray-200'}`}>
+                  <div className={`flex-1 border-b-2 pb-2 ${step >= 3 ? 'border-amber-500' : 'border-gray-200 dark:border-gray-700'}`}>
                     <div className="flex items-center">
-                      <div className={`rounded-full h-6 w-6 flex items-center justify-center mr-2 ${step >= 3 ? 'bg-amber-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                      <div className={`rounded-full h-6 w-6 flex items-center justify-center mr-2 ${step >= 3 ? 'bg-amber-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'}`}>
                         3
                       </div>
-                      <span className={step >= 3 ? 'text-amber-500' : 'text-gray-500'}>Payment</span>
+                      <span className={step >= 3 ? 'text-amber-500' : 'text-gray-500 dark:text-gray-400'}>Payment</span>
                     </div>
                   </div>
                 </div>
                 
-                {
+                {step === 1 && (
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="nickname">Nickname</Label>
@@ -310,9 +352,9 @@ const VIPSignupPage = () => {
                       </div>
                     </div>
                   </div>
-                }
+                )}
                 
-                {
+                {step === 2 && (
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="email">Email Address</Label>
@@ -376,9 +418,9 @@ const VIPSignupPage = () => {
                       </div>
                     </div>
                   </div>
-                }
+                )}
                 
-                {
+                {step === 3 && (
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label>Select Plan Duration</Label>
@@ -452,6 +494,52 @@ const VIPSignupPage = () => {
                       </div>
                     </div>
                     
+                    {formState.paymentMethod === 'credit-card' && (
+                      <div className="space-y-4 pt-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="cardNumber">Card Number</Label>
+                          <Input 
+                            id="cardNumber" 
+                            value={formState.cardNumber}
+                            onChange={(e) => updateForm('cardNumber', e.target.value)}
+                            placeholder="1234 5678 9012 3456"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="cardName">Cardholder Name</Label>
+                          <Input 
+                            id="cardName" 
+                            value={formState.cardName}
+                            onChange={(e) => updateForm('cardName', e.target.value)}
+                            placeholder="John Smith"
+                          />
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="expiry">Expiration Date</Label>
+                            <Input 
+                              id="expiry" 
+                              value={formState.expiry}
+                              onChange={(e) => updateForm('expiry', e.target.value)}
+                              placeholder="MM/YY"
+                            />
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="cvv">CVV</Label>
+                            <Input 
+                              id="cvv" 
+                              value={formState.cvv}
+                              onChange={(e) => updateForm('cvv', e.target.value)}
+                              placeholder="123"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
                     <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-md mt-4">
                       <h4 className="font-medium">Order Summary</h4>
                       <div className="mt-2 space-y-2">
@@ -475,7 +563,7 @@ const VIPSignupPage = () => {
                       By completing your purchase, you agree to our <a href="#" className="text-amber-500 hover:underline">Terms of Service</a> and <a href="#" className="text-amber-500 hover:underline">Privacy Policy</a>.
                     </div>
                   </div>
-                }
+                )}
               </CardContent>
               <CardFooter className="flex justify-between border-t p-6">
                 {step > 1 ? (

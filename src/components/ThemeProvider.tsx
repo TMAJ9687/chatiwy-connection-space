@@ -35,6 +35,12 @@ export function ThemeProvider({
 
   useEffect(() => {
     const root = window.document.documentElement
+    
+    // Set the default theme to light if not specified
+    if (!theme) {
+      setTheme("light")
+      return
+    }
 
     root.classList.remove("light", "dark")
 
