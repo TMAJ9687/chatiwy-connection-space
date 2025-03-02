@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,6 +12,7 @@ import VIP from "./pages/VIP";
 import VIPRegistration from "./pages/VIPRegistration";
 import VIPLogin from "./pages/VIPLogin";
 import VIPSignup from "./pages/VIPSignup";
+import VIPResetPasswordPage from "./pages/VIPResetPassword";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +29,7 @@ const App = () => (
             <Route path="/vip/register" element={<VIPRegistration />} />
             <Route path="/vip/login" element={<VIPLogin />} />
             <Route path="/vip/signup" element={<VIPSignup />} />
+            <Route path="/vip/reset-password" element={<VIPResetPasswordPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

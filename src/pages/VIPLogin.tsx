@@ -106,7 +106,16 @@ const VIPLoginPage = () => {
                 </div>
                 
                 <div className="text-sm text-right">
-                  <a href="#" className="text-amber-500 hover:underline">Forgot password?</a>
+                  <Button 
+                    variant="link" 
+                    className="p-0 h-auto text-amber-500 hover:text-amber-600"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      navigate('/vip/reset-password');
+                    }}
+                  >
+                    Forgot password?
+                  </Button>
                 </div>
               </CardContent>
               <CardFooter className="flex justify-between border-t p-6">

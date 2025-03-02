@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { Navbar } from '@/components/Navbar';
@@ -56,11 +57,43 @@ const VIPRegistrationPage = () => {
       
       <main className="flex-1 py-4 pt-20">
         <div className="container mx-auto px-4">
-          <div className="text-center max-w-2xl mx-auto mb-10">
-            <h1 className="text-3xl md:text-4xl font-bold mb-3">VIP Membership</h1>
-            <p className="text-gray-600 dark:text-gray-300">
-              Enhance your chat experience with exclusive premium features designed for our most valued users
+          <div className="text-center max-w-3xl mx-auto mb-10">
+            <div className="inline-block bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 font-medium px-4 py-1 rounded-full text-sm mb-3">
+              Premium Experience
+            </div>
+            <h1 className="text-3xl md:text-5xl font-bold mb-4">Elevate Your Chat Experience</h1>
+            <p className="text-xl text-gray-600 dark:text-gray-300 mb-6">
+              Join our VIP community and unlock exclusive features designed for an enhanced communication experience
             </p>
+            <div className="flex justify-center gap-4 mb-8">
+              <Button 
+                onClick={handleSignup} 
+                size="lg"
+                variant="warning"
+                className="text-base px-6"
+              >
+                Get VIP Access
+              </Button>
+              <Button 
+                onClick={() => navigate('/vip/login')} 
+                size="lg"
+                variant="outline"
+                className="text-base px-6"
+              >
+                Login
+              </Button>
+            </div>
+            
+            <div className="flex justify-center flex-wrap gap-6 mb-10">
+              {benefits.slice(0, 4).map((benefit, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <div className="rounded-full bg-amber-100 dark:bg-amber-900/30 p-1.5">
+                    <benefit.icon className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <span className="font-medium">{benefit.title}</span>
+                </div>
+              ))}
+            </div>
           </div>
           
           <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto mb-16">
@@ -187,6 +220,53 @@ const VIPRegistrationPage = () => {
             </Card>
           </div>
           
+          <div className="max-w-4xl mx-auto mb-16">
+            <h2 className="text-2xl font-bold text-center mb-8">Why Choose VIP Membership?</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card>
+                <CardHeader className="pb-2">
+                  <div className="rounded-full w-12 h-12 flex items-center justify-center bg-amber-100 dark:bg-amber-900/30 mb-2">
+                    <Shield className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <CardTitle className="text-lg">Enhanced Privacy</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">
+                    Enjoy additional protection features and priority support from our moderation team.
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <div className="rounded-full w-12 h-12 flex items-center justify-center bg-amber-100 dark:bg-amber-900/30 mb-2">
+                    <MessageSquare className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <CardTitle className="text-lg">Premium Communication</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">
+                    Express yourself better with voice messages, reactions, and extended text capabilities.
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <div className="rounded-full w-12 h-12 flex items-center justify-center bg-amber-100 dark:bg-amber-900/30 mb-2">
+                    <Star className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <CardTitle className="text-lg">Stand Out</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">
+                    Get noticed with VIP badges, priority listing, and exclusive visual themes.
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+          
           <div className="max-w-3xl mx-auto">
             <h2 className="text-2xl font-bold text-center mb-8">Frequently Asked Questions</h2>
             <div className="space-y-4">
@@ -214,6 +294,15 @@ const VIPRegistrationPage = () => {
                 </CardHeader>
                 <CardContent>
                   <p>You can cancel your subscription at any time from your account settings. Your VIP benefits will remain active until the end of the current billing period.</p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">What happens if I lose my password?</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p>If you forget your password, you can use the "Forgot password" option on the login page to reset it. We'll send a password reset link to your registered email address.</p>
                 </CardContent>
               </Card>
             </div>
