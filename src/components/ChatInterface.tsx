@@ -88,6 +88,10 @@ interface ConnectedUser {
   isBot?: boolean;
   isAdmin?: boolean;
   interests?: string[];
+  gender?: string;
+  country?: string;
+  age?: number;
+  isOnline?: boolean;
 }
 
 const userChatHistories: Record<string, Message[]> = {};
@@ -169,13 +173,18 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
 
   useEffect(() => {
     if (selectedUser) {
+      // Initialize mockConnectedUsers if it's empty
       if (!socketConnected && mockConnectedUsers.size === 0) {
         botProfiles.forEach(bot => {
           mockConnectedUsers.set(bot.id, {
             id: bot.id,
             username: bot.username,
             isBot: true,
-            interests: bot.interests
+            interests: bot.interests,
+            gender: bot.gender,
+            country: bot.country,
+            age: bot.age,
+            isOnline: true
           });
         });
       }
