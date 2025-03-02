@@ -4,7 +4,7 @@ import { Helmet } from 'react-helmet';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { X, Check, Image, MessageSquare, Clock, Shield, Globe, Smile, Reply, Star, BatteryFull, Ban, Award, Palette } from 'lucide-react';
+import { X, Check, Image, MessageSquare, Clock, Shield, Globe, Smile, Reply, Star, BatteryFull, Ban, Award, Palette, Sun, Moon } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTheme } from '@/components/ThemeProvider';
 
