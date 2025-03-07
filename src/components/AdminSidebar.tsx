@@ -12,7 +12,10 @@ import {
   Inbox,
   Bot,
   Upload,
-  Flag
+  Flag,
+  History,
+  Ban,
+  Wifi
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card } from '@/components/ui/card';
@@ -101,6 +104,16 @@ export function AdminSidebar() {
       name: 'User Reports', 
       path: '/admin/reports', 
       icon: <Flag className="h-5 w-5" /> 
+    },
+    { 
+      name: 'Banned IPs', 
+      path: '/admin/banned-ips', 
+      icon: <Wifi className="h-5 w-5" /> 
+    },
+    { 
+      name: 'Chat History', 
+      path: '/admin/chat-history', 
+      icon: <History className="h-5 w-5" /> 
     },
     { 
       name: 'User Support', 

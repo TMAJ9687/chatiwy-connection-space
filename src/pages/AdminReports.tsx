@@ -16,7 +16,8 @@ import {
   Eye,
   User,
   Clock,
-  Calendar
+  Calendar,
+  Wifi
 } from 'lucide-react';
 import {
   Dialog,
@@ -42,6 +43,7 @@ interface UserReport {
   reportedUsername: string;
   reporterUserId: string;
   reporterUsername: string;
+  ipAddress: string;
   reason: string;
   description: string;
   timestamp: Date;
@@ -56,6 +58,7 @@ const MOCK_REPORTS: UserReport[] = [
     reportedUsername: 'Moreor',
     reporterUserId: 'user-1',
     reporterUsername: 'Reincarnated',
+    ipAddress: '192.168.1.101',
     reason: 'Inappropriate content',
     description: 'This user was sharing inappropriate images in the chat',
     timestamp: new Date(Date.now() - 86400000 * 1), // 1 day ago
@@ -68,6 +71,7 @@ const MOCK_REPORTS: UserReport[] = [
     reportedUsername: 'Naisees',
     reporterUserId: 'user-2',
     reporterUsername: 'Shinhoff',
+    ipAddress: '192.168.1.102',
     reason: 'Harassment',
     description: 'This user has been repeatedly sending unwanted messages',
     timestamp: new Date(Date.now() - 86400000 * 0.5), // 12 hours ago
@@ -80,6 +84,7 @@ const MOCK_REPORTS: UserReport[] = [
     reportedUsername: 'Emma',
     reporterUserId: 'user-6',
     reporterUsername: 'Mason',
+    ipAddress: '192.168.1.103',
     reason: 'Spam',
     description: 'This bot keeps sending the same message over and over',
     timestamp: new Date(Date.now() - 86400000 * 0.2), // ~5 hours ago
@@ -281,6 +286,9 @@ const AdminReports = () => {
                             <User className="h-3 w-3 mr-1" />
                             <span>Reported by {report.reporterUsername}</span>
                             <span className="mx-2">•</span>
+                            <Wifi className="h-3 w-3 mr-1" />
+                            <span>IP: {report.ipAddress}</span>
+                            <span className="mx-2">•</span>
                             <Calendar className="h-3 w-3 mr-1" />
                             <span>{format(new Date(report.timestamp), 'MMM d, yyyy')}</span>
                           </div>
@@ -371,6 +379,14 @@ const AdminReports = () => {
                 <div className="flex items-center">
                   <User className="h-4 w-4 mr-2" />
                   <span>{selectedReport.reporterUsername}</span>
+                </div>
+              </div>
+              
+              <div className="space-y-1">
+                <div className="text-sm font-medium">IP Address:</div>
+                <div className="flex items-center">
+                  <Wifi className="h-4 w-4 mr-2" />
+                  <span>{selectedReport.ipAddress}</span>
                 </div>
               </div>
               

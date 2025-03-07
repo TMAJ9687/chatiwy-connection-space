@@ -37,6 +37,10 @@ export const ReportForm = ({ isOpen, onClose, userName }: ReportFormProps) => {
       return;
     }
     
+    // Get IP address (in a real app, this would come from the server)
+    // Here we're just using a placeholder
+    const userIpAddress = '192.168.' + Math.floor(Math.random() * 255) + '.' + Math.floor(Math.random() * 255);
+    
     // Here we would submit the report to the backend
     toast.success(`Report against ${userName} submitted successfully`);
     
