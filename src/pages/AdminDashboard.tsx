@@ -341,7 +341,7 @@ const AdminDashboard = () => {
       id: `bot-${Date.now()}`,
       username: newBot.username,
       age: newBot.age || 25,
-      gender: (newBot.gender as 'Male' | 'Female') || 'Female',
+      gender: newBot.gender as 'Male' | 'Female' || 'Female',
       country: newBot.country || 'United States',
       flag: '🇺🇸',
       interests: newBot.interests || [],
