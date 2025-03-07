@@ -11,7 +11,8 @@ import {
   Settings,
   Inbox,
   Bot,
-  Upload
+  Upload,
+  Flag
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card } from '@/components/ui/card';
@@ -95,6 +96,11 @@ export function AdminSidebar() {
       name: 'User Management', 
       path: '/admin/dashboard', 
       icon: <Users className="h-5 w-5" /> 
+    },
+    { 
+      name: 'User Reports', 
+      path: '/admin/reports', 
+      icon: <Flag className="h-5 w-5" /> 
     },
     { 
       name: 'User Support', 

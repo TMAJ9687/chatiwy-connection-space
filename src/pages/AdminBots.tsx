@@ -1,26 +1,23 @@
+
 import React, { useState, useEffect } from 'react';
-import { AdminSidebar } from '@/components/AdminSidebar';
 import { Helmet } from 'react-helmet';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { AdminSidebar } from '@/components/AdminSidebar';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue
-} from '@/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+  Bot, 
+  Search, 
+  Edit, 
+  Trash, 
+  PlusCircle, 
+  List, 
+  Shield, 
+  Filter
+} from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -29,270 +26,360 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
+import { 
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
-import { 
-  Bot, 
-  PlusCircle, 
-  Edit, 
-  Trash, 
-  MoreVertical, 
-  CheckCircle2, 
-  XCircle,
-  AlertCircle,
-  RefreshCw
-} from 'lucide-react';
 import { botProfiles, BotProfile } from '@/utils/botProfiles';
 
 const AdminBots = () => {
   const [bots, setBots] = useState<BotProfile[]>([]);
-  const [addBotDialogOpen, setAddBotDialogOpen] = useState(false);
-  const [editBotDialogOpen, setEditBotDialogOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedBot, setSelectedBot] = useState<BotProfile | null>(null);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [filters, setFilters] = useState({
+    onlyOnline: false,
+    genders: [] as string[],
+    countries: [] as string[],
+  });
   
   const [newBot, setNewBot] = useState<Partial<BotProfile>>({
     username: '',
     age: 25,
-    gender: 'Female' as 'Male' | 'Female',
+    gender: 'Female',
     country: 'United States',
+    flag: '🇺🇸',
     interests: []
   });
-  
-  const [selectedBot, setSelectedBot] = useState<BotProfile | null>(null);
-  
+
   useEffect(() => {
-    setBots(botProfiles);
+    // Load bots from botProfiles utility
+    setBots(botProfiles.filter(bot => bot.id !== 'admin-1'));
   }, []);
-  
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  };
+
+  const filteredBots = bots.filter(bot => {
+    if (searchQuery && !bot.username.toLowerCase().includes(searchQuery.toLowerCase())) {
+      return false;
+    }
+    
+    if (filters.onlyOnline && !bot.isOnline) {
+      return false;
+    }
+    
+    if (filters.genders.length > 0 && !filters.genders.includes(bot.gender)) {
+      return false;
+    }
+    
+    if (filters.countries.length > 0 && !filters.countries.includes(bot.country)) {
+      return false;
+    }
+    
+    return true;
+  });
+
   const handleAddBot = () => {
     if (!newBot.username) {
       toast.error('Bot name is required');
       return;
     }
-    
+
     const bot: BotProfile = {
       id: `bot-${Date.now()}`,
-      username: newBot.username,
+      username: newBot.username || '',
       age: newBot.age || 25,
-      gender: newBot.gender as 'Male' | 'Female' || 'Female',
+      gender: newBot.gender as 'Male' | 'Female',
       country: newBot.country || 'United States',
-      flag: getCountryFlag(newBot.country || 'United States'),
+      flag: newBot.flag || '🇺🇸',
       interests: newBot.interests || [],
       isOnline: true
     };
-    
+
     setBots(prev => [...prev, bot]);
-    
     setNewBot({
       username: '',
       age: 25,
-      gender: 'Female' as 'Male' | 'Female',
+      gender: 'Female',
       country: 'United States',
+      flag: '🇺🇸',
       interests: []
     });
-    
-    setAddBotDialogOpen(false);
+    setIsAddDialogOpen(false);
     toast.success(`Bot "${bot.username}" added successfully!`);
   };
-  
+
   const handleEditBot = () => {
-    if (!selectedBot || !selectedBot.id) return;
+    if (!selectedBot || !selectedBot.username) {
+      toast.error('Bot name is required');
+      return;
+    }
+
+    setBots(prev => prev.map(bot => 
+      bot.id === selectedBot.id ? selectedBot : bot
+    ));
     
-    setBots(prev => 
-      prev.map(bot => 
-        bot.id === selectedBot.id ? selectedBot : bot
-      )
-    );
-    
-    setEditBotDialogOpen(false);
+    setIsEditDialogOpen(false);
     toast.success(`Bot "${selectedBot.username}" updated successfully!`);
   };
-  
-  const handleDeleteBot = () => {
-    if (!selectedBot) return;
-    
-    setBots(prev => prev.filter(bot => bot.id !== selectedBot.id));
-    setDeleteDialogOpen(false);
-    toast.success(`Bot "${selectedBot.username}" deleted successfully!`);
+
+  const handleDeleteBot = (botId: string) => {
+    const botToDelete = bots.find(bot => bot.id === botId);
+    if (!botToDelete) return;
+
+    setBots(prev => prev.filter(bot => bot.id !== botId));
+    toast.success(`Bot "${botToDelete.username}" deleted successfully!`);
   };
-  
-  const toggleBotStatus = (botId: string) => {
-    setBots(prev => 
-      prev.map(bot => 
-        bot.id === botId ? { ...bot, isOnline: !bot.isOnline } : bot
-      )
-    );
-    
+
+  const handleBotAction = (action: string, botId: string) => {
     const bot = bots.find(b => b.id === botId);
-    if (bot) {
-      toast.success(`Bot "${bot.username}" ${bot.isOnline ? 'deactivated' : 'activated'}`);
+    if (!bot) return;
+
+    switch (action) {
+      case 'edit':
+        setSelectedBot(bot);
+        setIsEditDialogOpen(true);
+        break;
+      case 'delete':
+        handleDeleteBot(botId);
+        break;
+      case 'toggle-status':
+        setBots(prev => prev.map(b => 
+          b.id === botId ? { ...b, isOnline: !b.isOnline } : b
+        ));
+        toast.success(`Bot "${bot.username}" is now ${!bot.isOnline ? 'online' : 'offline'}`);
+        break;
+      default:
+        break;
     }
   };
-  
-  const getCountryFlag = (countryName: string): string => {
-    const countryFlags: Record<string, string> = {
-      'United States': '🇺🇸',
-      'Canada': '🇨🇦',
-      'United Kingdom': '🇬🇧',
-      'Australia': '🇦🇺',
-      'France': '🇫🇷',
-      'Germany': '🇩🇪',
-      'Spain': '🇪🇸',
-      'Italy': '🇮🇹',
-      'Japan': '🇯🇵',
-      'Brazil': '🇧🇷',
-      'Mexico': '🇲🇽',
-      'India': '🇮🇳',
-      'China': '🇨🇳',
-      'Russia': '🇷🇺',
-      'South Korea': '🇰🇷',
-    };
-    
-    return countryFlags[countryName] || '🌍';
+
+  const handleFieldChange = (field: keyof BotProfile, value: string | number | string[]) => {
+    if (selectedBot) {
+      setSelectedBot({
+        ...selectedBot,
+        [field]: value
+      });
+    }
   };
-  
+
   return (
     <div className="flex h-screen bg-background">
       <Helmet>
-        <title>Bot Management | Chatiwy</title>
+        <title>Bot Management | Chatiwy Admin</title>
       </Helmet>
       
       <AdminSidebar />
       
       <div className="flex-1 overflow-auto">
         <div className="p-6">
+          <h1 className="text-2xl font-bold mb-6">Bot Management</h1>
+          
           <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold">Bot Management</h1>
-            <Button onClick={() => setAddBotDialogOpen(true)}>
+            <Button 
+              onClick={() => setIsAddDialogOpen(true)}
+              className="flex items-center"
+            >
               <PlusCircle className="h-4 w-4 mr-2" />
-              Add Bot
+              Add New Bot
             </Button>
+            
+            <div className="flex items-center space-x-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  placeholder="Search bots..."
+                  className="pl-10 w-60"
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                />
+              </div>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon">
+                    <Filter className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>Filter Bots</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => setFilters({ ...filters, onlyOnline: !filters.onlyOnline })}
+                  >
+                    {filters.onlyOnline ? '✓ ' : ''}Only Online Bots
+                  </DropdownMenuItem>
+                  <DropdownMenuLabel>Gender</DropdownMenuLabel>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      const newGenders = filters.genders.includes('Male')
+                        ? filters.genders.filter(g => g !== 'Male')
+                        : [...filters.genders, 'Male'];
+                      setFilters({ ...filters, genders: newGenders });
+                    }}
+                  >
+                    {filters.genders.includes('Male') ? '✓ ' : ''}Male
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      const newGenders = filters.genders.includes('Female')
+                        ? filters.genders.filter(g => g !== 'Female')
+                        : [...filters.genders, 'Female'];
+                      setFilters({ ...filters, genders: newGenders });
+                    }}
+                  >
+                    {filters.genders.includes('Female') ? '✓ ' : ''}Female
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => setFilters({
+                      onlyOnline: false,
+                      genders: [],
+                      countries: []
+                    })}
+                  >
+                    Reset Filters
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
           
           <Card>
             <CardHeader>
-              <CardTitle>Bot List</CardTitle>
+              <CardTitle>Manage Bots</CardTitle>
+              <CardDescription>
+                Create, edit and delete bot profiles that interact with users
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Age</TableHead>
-                    <TableHead>Gender</TableHead>
-                    <TableHead>Country</TableHead>
-                    <TableHead>Interests</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {bots.map((bot) => (
-                    <TableRow key={bot.id}>
-                      <TableCell className="font-medium">{bot.username}</TableCell>
-                      <TableCell>{bot.age}</TableCell>
-                      <TableCell>{bot.gender}</TableCell>
-                      <TableCell>
-                        {bot.country} {getCountryFlag(bot.country)}
-                      </TableCell>
-                      <TableCell>
-                        {bot.interests && bot.interests.length > 0 
-                          ? bot.interests.join(', ') 
-                          : 'No interests'}
-                      </TableCell>
-                      <TableCell className="text-right">
+              {filteredBots.length > 0 ? (
+                <div className="divide-y">
+                  {filteredBots.map((bot) => (
+                    <div key={bot.id} className="py-4 flex justify-between items-center">
+                      <div className="flex items-center space-x-4">
+                        <div className="relative">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center overflow-hidden ${bot.isOnline ? 'bg-green-100' : 'bg-gray-100'}`}>
+                            <img 
+                              src={`https://api.dicebear.com/7.x/personas/svg?seed=${bot.username}`} 
+                              alt={bot.username}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className={`absolute -bottom-1 -right-1 h-3 w-3 rounded-full ${bot.isOnline ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                        </div>
+                        
+                        <div>
+                          <div className="font-medium">
+                            {bot.username}
+                            <span className="ml-2 text-sm text-muted-foreground">
+                              {bot.gender}, {bot.age}
+                            </span>
+                          </div>
+                          
+                          <div className="flex items-center text-sm text-muted-foreground">
+                            <span>{bot.flag} {bot.country}</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center space-x-2">
+                        {bot.interests && bot.interests.map((interest, idx) => (
+                          <Badge key={idx} variant="secondary">
+                            {interest}
+                          </Badge>
+                        ))}
+                        
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <span className="sr-only">Open menu</span>
-                              <MoreVertical className="h-4 w-4" />
+                            <Button variant="ghost" size="icon">
+                              <List className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => {
-                              setSelectedBot(bot);
-                              setEditBotDialogOpen(true);
-                            }}>
-                              <Edit className="h-4 w-4 mr-2" /> Edit
+                            <DropdownMenuItem onClick={() => handleBotAction('edit', bot.id)}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit Bot
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => toggleBotStatus(bot.id)}>
-                              {bot.isOnline ? (
-                                <>
-                                  <XCircle className="h-4 w-4 mr-2 text-destructive" /> 
-                                  Deactivate
-                                </>
-                              ) : (
-                                <>
-                                  <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" /> 
-                                  Activate
-                                </>
-                              )}
+                            <DropdownMenuItem onClick={() => handleBotAction('toggle-status', bot.id)}>
+                              <Shield className="h-4 w-4 mr-2" />
+                              {bot.isOnline ? 'Set Offline' : 'Set Online'}
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => {
-                              setSelectedBot(bot);
-                              setDeleteDialogOpen(true);
-                            }} className="text-destructive focus:text-destructive">
-                              <Trash className="h-4 w-4 mr-2" /> Delete
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              onClick={() => handleBotAction('delete', bot.id)}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash className="h-4 w-4 mr-2" />
+                              Delete Bot
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
+                      </div>
+                    </div>
                   ))}
-                  {bots.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center">
-                        <AlertCircle className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
-                        No bots found.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                </div>
+              ) : (
+                <div className="p-8 text-center">
+                  <Bot className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="font-medium text-lg">No bots found</h3>
+                  <p className="text-muted-foreground">Try changing your search or filters</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
       </div>
       
       {/* Add Bot Dialog */}
-      <Dialog open={addBotDialogOpen} onOpenChange={setAddBotDialogOpen}>
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Add New Bot</DialogTitle>
             <DialogDescription>
-              Create a new bot profile.
+              Create a new bot user with customized attributes
             </DialogDescription>
           </DialogHeader>
           
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">Name</Label>
-              <Input 
-                id="name" 
-                value={newBot.username || ''}
+              <label htmlFor="botname" className="text-right">
+                Name
+              </label>
+              <Input
+                id="botname"
+                value={newBot.username}
                 onChange={(e) => setNewBot({...newBot, username: e.target.value})}
-                className="col-span-3" 
+                className="col-span-3"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="age" className="text-right">Age</Label>
-              <Input 
-                id="age" 
-                type="number" 
-                value={newBot.age || 25}
+              <label htmlFor="botage" className="text-right">
+                Age
+              </label>
+              <Input
+                id="botage"
+                type="number"
+                value={newBot.age}
                 onChange={(e) => setNewBot({...newBot, age: Number(e.target.value)})}
-                className="col-span-3" 
+                className="col-span-3"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="gender" className="text-right">Gender</Label>
-              <Select onValueChange={(value) => setNewBot({...newBot, gender: value as 'Male' | 'Female'})}>
+              <label htmlFor="botgender" className="text-right">
+                Gender
+              </label>
+              <Select 
+                value={newBot.gender as string} 
+                onValueChange={(value) => setNewBot({...newBot, gender: value as 'Male' | 'Female'})}
+              >
                 <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="Select gender" />
                 </SelectTrigger>
@@ -303,20 +390,34 @@ const AdminBots = () => {
               </Select>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="country" className="text-right">Country</Label>
-              <Input 
-                id="country" 
-                value={newBot.country || 'United States'}
+              <label htmlFor="botcountry" className="text-right">
+                Country
+              </label>
+              <Input
+                id="botcountry"
+                value={newBot.country}
                 onChange={(e) => setNewBot({...newBot, country: e.target.value})}
-                className="col-span-3" 
+                className="col-span-3"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="interests" className="text-right">Interests</Label>
-              <Textarea
-                id="interests"
+              <label htmlFor="botflag" className="text-right">
+                Flag
+              </label>
+              <Input
+                id="botflag"
+                value={newBot.flag}
+                onChange={(e) => setNewBot({...newBot, flag: e.target.value})}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <label htmlFor="botinterests" className="text-right">
+                Interests
+              </label>
+              <Input
+                id="botinterests"
                 placeholder="Comma separated interests"
-                value={(newBot.interests || []).join(', ')}
                 onChange={(e) => setNewBot({
                   ...newBot, 
                   interests: e.target.value.split(',').map(i => i.trim()).filter(i => i)
@@ -327,48 +428,54 @@ const AdminBots = () => {
           </div>
           
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setAddBotDialogOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleAddBot}>Add Bot</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
       
       {/* Edit Bot Dialog */}
-      <Dialog open={editBotDialogOpen} onOpenChange={setEditBotDialogOpen}>
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Edit Bot</DialogTitle>
             <DialogDescription>
-              Edit the selected bot profile.
+              Update bot attributes and settings
             </DialogDescription>
           </DialogHeader>
           
           {selectedBot && (
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-name" className="text-right">Name</Label>
-                <Input 
-                  id="edit-name" 
+                <label htmlFor="editbotname" className="text-right">
+                  Name
+                </label>
+                <Input
+                  id="editbotname"
                   value={selectedBot.username}
-                  onChange={(e) => setSelectedBot({...selectedBot, username: e.target.value})}
-                  className="col-span-3" 
+                  onChange={(e) => handleFieldChange('username', e.target.value)}
+                  className="col-span-3"
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-age" className="text-right">Age</Label>
-                <Input 
-                  id="edit-age" 
-                  type="number" 
+                <label htmlFor="editbotage" className="text-right">
+                  Age
+                </label>
+                <Input
+                  id="editbotage"
+                  type="number"
                   value={selectedBot.age}
-                  onChange={(e) => setSelectedBot({...selectedBot, age: Number(e.target.value)})}
-                  className="col-span-3" 
+                  onChange={(e) => handleFieldChange('age', Number(e.target.value))}
+                  className="col-span-3"
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-gender" className="text-right">Gender</Label>
+                <label htmlFor="editbotgender" className="text-right">
+                  Gender
+                </label>
                 <Select 
-                  value={selectedBot.gender}
-                  onValueChange={(value) => setSelectedBot({...selectedBot, gender: value as 'Male' | 'Female'})}
+                  value={selectedBot.gender} 
+                  onValueChange={(value) => handleFieldChange('gender', value as 'Male' | 'Female')}
                 >
                   <SelectTrigger className="col-span-3">
                     <SelectValue placeholder="Select gender" />
@@ -380,24 +487,39 @@ const AdminBots = () => {
                 </Select>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-country" className="text-right">Country</Label>
-                <Input 
-                  id="edit-country" 
+                <label htmlFor="editbotcountry" className="text-right">
+                  Country
+                </label>
+                <Input
+                  id="editbotcountry"
                   value={selectedBot.country}
-                  onChange={(e) => setSelectedBot({...selectedBot, country: e.target.value})}
-                  className="col-span-3" 
+                  onChange={(e) => handleFieldChange('country', e.target.value)}
+                  className="col-span-3"
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-interests" className="text-right">Interests</Label>
-                <Textarea
-                  id="edit-interests"
+                <label htmlFor="editbotflag" className="text-right">
+                  Flag
+                </label>
+                <Input
+                  id="editbotflag"
+                  value={selectedBot.flag}
+                  onChange={(e) => handleFieldChange('flag', e.target.value)}
+                  className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <label htmlFor="editbotinterests" className="text-right">
+                  Interests
+                </label>
+                <Input
+                  id="editbotinterests"
                   placeholder="Comma separated interests"
-                  value={selectedBot.interests ? selectedBot.interests.join(', ') : ''}
-                  onChange={(e) => setSelectedBot({
-                    ...selectedBot, 
-                    interests: e.target.value.split(',').map(i => i.trim()).filter(i => i)
-                  })}
+                  value={selectedBot.interests.join(', ')}
+                  onChange={(e) => handleFieldChange(
+                    'interests', 
+                    e.target.value.split(',').map(i => i.trim()).filter(i => i)
+                  )}
                   className="col-span-3"
                 />
               </div>
@@ -405,24 +527,8 @@ const AdminBots = () => {
           )}
           
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setEditBotDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleEditBot}>Update Bot</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Delete Bot</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this bot? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-            <Button variant="destructive" onClick={handleDeleteBot}>Delete</Button>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleEditBot}>Save Changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
