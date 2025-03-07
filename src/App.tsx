@@ -15,6 +15,13 @@ import VIPLogin from "./pages/VIPLogin";
 import VIPSignup from "./pages/VIPSignup";
 import VIPResetPasswordPage from "./pages/VIPResetPassword";
 
+// Import admin pages
+import AdminLogin from "./pages/AdminLogin";
+import AdminDashboard from "./pages/AdminDashboard";
+import AdminSupport from "./pages/AdminSupport";
+import AdminWebsite from "./pages/AdminWebsite";
+import AdminIssues from "./pages/AdminIssues";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -31,6 +38,14 @@ const App = () => (
             <Route path="/vip/login" element={<VIPLogin />} />
             <Route path="/vip/signup" element={<VIPSignup />} />
             <Route path="/vip/reset-password" element={<VIPResetPasswordPage />} />
+            
+            {/* Admin Routes */}
+            <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/support" element={<AdminSupport />} />
+            <Route path="/admin/website" element={<AdminWebsite />} />
+            <Route path="/admin/issues" element={<AdminIssues />} />
+            
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

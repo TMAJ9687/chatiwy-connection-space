@@ -1,4 +1,3 @@
-
 "use client"
 
 import { createContext, useContext, useEffect, useState } from "react"
@@ -14,6 +13,10 @@ type ThemeProviderProps = {
 type ThemeProviderState = {
   theme: Theme
   setTheme: (theme: Theme) => void
+  isAdminMode?: boolean
+  setAdminMode?: (isAdmin: boolean) => void
+  adminVisibility?: boolean
+  setAdminVisibility?: (isVisible: boolean) => void
 }
 
 const initialState: ThemeProviderState = {
@@ -32,6 +35,46 @@ export function ThemeProvider({
   const [theme, setTheme] = useState<Theme>(
     () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
   )
+  
+  // Admin state
+  const [isAdminMode, setAdminMode] = useState<boolean>(false)
+  const [adminVisibility, setAdminVisibility] = useState<boolean>(true)
+  
+  // Check if user is an admin
+  useEffect(() => {
+    const adminCheck = () => {
+      const isAdminAuthenticated = sessionStorage.getItem('adminAuthenticated') === 'true'
+      setAdminMode(isAdminAuthenticated)
+    }
+    
+    adminCheck()
+    window.addEventListener('storage', adminCheck)
+    
+    return () => {
+      window.removeEventListener('storage', adminCheck)
+    }
+  }, [])
+  
+  // Prevent admin timeout
+  useEffect(() => {
+    let keepAliveInterval: number | undefined
+    
+    if (isAdminMode) {
+      // Refresh admin session every 10 minutes
+      keepAliveInterval = window.setInterval(() => {
+        if (sessionStorage.getItem('adminAuthenticated') === 'true') {
+          // Touch the session to keep it alive
+          sessionStorage.setItem('adminLastActive', new Date().toISOString())
+        }
+      }, 600000) // 10 minutes
+    }
+    
+    return () => {
+      if (keepAliveInterval) {
+        clearInterval(keepAliveInterval)
+      }
+    }
+  }, [isAdminMode])
 
   useEffect(() => {
     const root = window.document.documentElement
@@ -63,6 +106,10 @@ export function ThemeProvider({
       localStorage.setItem(storageKey, theme)
       setTheme(theme)
     },
+    isAdminMode,
+    setAdminMode,
+    adminVisibility,
+    setAdminVisibility
   }
 
   return (
