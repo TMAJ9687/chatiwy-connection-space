@@ -81,7 +81,7 @@ const MOCK_CHAT_SESSIONS: ChatSession[] = [
     user1Name: 'Shinhoff',
     user2Id: 'user-3',
     user2Name: 'Naisees',
-    lastMessagePreview: 'I'll see you tomorrow then.',
+    lastMessagePreview: "I'll see you tomorrow then.",
     lastMessageTime: new Date(Date.now() - 3600000 * 5), // 5 hours ago
     messageCount: 28,
     isAdminInvolved: false
@@ -130,7 +130,7 @@ const MOCK_CHAT_MESSAGES: Record<string, ChatMessage[]> = {
       senderName: 'Reincarnated',
       receiverId: 'admin-1',
       receiverName: 'Admin',
-      message: 'Here's a screenshot of the issue',
+      message: "Here's a screenshot of the issue",
       type: 'image',
       content: 'https://picsum.photos/400/300',
       timestamp: new Date(Date.now() - 3600000 * 2.8), // 2.8 hours ago
@@ -200,7 +200,7 @@ const MOCK_CHAT_MESSAGES: Record<string, ChatMessage[]> = {
       senderName: 'Shinhoff',
       receiverId: 'user-3',
       receiverName: 'Naisees',
-      message: 'I'm good. Want to meet up tomorrow?',
+      message: "I'm good. Want to meet up tomorrow?",
       type: 'text',
       timestamp: new Date(Date.now() - 3600000 * 5.5), // 5.5 hours ago
       isAdminMessage: false
@@ -233,7 +233,7 @@ const MOCK_CHAT_MESSAGES: Record<string, ChatMessage[]> = {
       senderName: 'Naisees',
       receiverId: 'user-2',
       receiverName: 'Shinhoff',
-      message: 'I'll see you tomorrow then.',
+      message: "I'll see you tomorrow then.",
       type: 'text',
       timestamp: new Date(Date.now() - 3600000 * 5), // 5 hours ago
       isAdminMessage: false
@@ -268,7 +268,7 @@ const MOCK_CHAT_MESSAGES: Record<string, ChatMessage[]> = {
       senderName: 'Silky',
       receiverId: 'bot-1',
       receiverName: 'Emma',
-      message: 'I'm bored',
+      message: "I'm bored",
       type: 'text',
       timestamp: new Date(Date.now() - 3600000 * 1.3), // 1.3 hours ago
       isAdminMessage: false
@@ -290,7 +290,7 @@ const MOCK_CHAT_MESSAGES: Record<string, ChatMessage[]> = {
       senderName: 'Silky',
       receiverId: 'bot-1',
       receiverName: 'Emma',
-      message: 'Let's chat',
+      message: "Let's chat",
       type: 'text',
       timestamp: new Date(Date.now() - 3600000 * 1.1), // 1.1 hours ago
       isAdminMessage: false
