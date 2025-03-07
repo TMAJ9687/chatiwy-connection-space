@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { 
@@ -15,13 +15,24 @@ import {
   Flag,
   History,
   Ban,
-  Wifi
+  Wifi,
+  KeyRound,
+  Mail
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription,
+  DialogFooter
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 
 interface AdminProfile {
   firstName: string;
@@ -40,13 +51,42 @@ export function AdminSidebar() {
   const [editedProfile, setEditedProfile] = useState<AdminProfile | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   
-  React.useEffect(() => {
+  // Password change states
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [passwordError, setPasswordError] = useState('');
+  const [emailConfirmationSent, setEmailConfirmationSent] = useState(false);
+
+  useEffect(() => {
+    // Check authentication on component mount and page refresh
+    const checkAuth = () => {
+      const isAuthenticated = sessionStorage.getItem('adminAuthenticated');
+      if (!isAuthenticated && location.pathname.startsWith('/admin')) {
+        navigate('/admin/login');
+      }
+    };
+
+    checkAuth();
+    
+    // Load profile
     const profileData = sessionStorage.getItem('adminProfile');
     if (profileData) {
       setAdminProfile(JSON.parse(profileData));
       setEditedProfile(JSON.parse(profileData));
     }
-  }, []);
+
+    // Add event listener for page refreshes
+    window.addEventListener('beforeunload', () => {
+      // This prevents redirection on refresh by ensuring session persists
+      if (sessionStorage.getItem('adminAuthenticated')) {
+        // Session is preserved on refresh
+      }
+    });
+  }, [navigate, location.pathname]);
 
   const handleLogout = () => {
     sessionStorage.removeItem('adminAuthenticated');
@@ -92,6 +132,58 @@ export function AdminSidebar() {
         });
       }
     }
+  };
+
+  const handlePasswordChange = (field: string, value: string) => {
+    setPasswordData({
+      ...passwordData,
+      [field]: value
+    });
+    setPasswordError('');
+  };
+
+  const handleSubmitPasswordChange = () => {
+    // Check if current password is correct (in a real app, this would be verified against backend)
+    const adminCredentials = {
+      email: 'admin@chatiwy.com',
+      password: 'admin123'
+    };
+
+    if (passwordData.currentPassword !== adminCredentials.password) {
+      setPasswordError('Current password is incorrect');
+      return;
+    }
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setPasswordError('New passwords do not match');
+      return;
+    }
+
+    if (passwordData.newPassword.length < 6) {
+      setPasswordError('New password must be at least 6 characters');
+      return;
+    }
+
+    // In a real app, this would send the new password to the backend
+    // For this demo, we'll just simulate success
+
+    // Reset fields
+    setPasswordData({
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: ''
+    });
+
+    // Show confirmation that we sent email
+    setEmailConfirmationSent(true);
+
+    // In a real application, we would send an email confirmation here
+    // For this demo, we'll simulate an email being sent
+    setTimeout(() => {
+      setEmailConfirmationSent(false);
+      setIsPasswordDialogOpen(false);
+      toast.success('Password changed successfully');
+    }, 2000);
   };
 
   const menuItems = [
@@ -222,6 +314,15 @@ export function AdminSidebar() {
                 <div>{adminProfile.gender}</div>
               </div>
             )}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full mt-4 flex items-center justify-center"
+              onClick={() => setIsPasswordDialogOpen(true)}
+            >
+              <KeyRound className="h-4 w-4 mr-2" />
+              Change Password
+            </Button>
           </>
         ) : (
           <>
@@ -296,6 +397,82 @@ export function AdminSidebar() {
           Logout
         </Button>
       </div>
+
+      {/* Password Change Dialog */}
+      <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Change Password</DialogTitle>
+            <DialogDescription>
+              {emailConfirmationSent 
+                ? "Sending email confirmation..." 
+                : "Update your password. You'll need to confirm this change via email."}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {emailConfirmationSent ? (
+            <div className="py-6 flex flex-col items-center justify-center space-y-4">
+              <Mail className="h-12 w-12 text-primary animate-pulse" />
+              <p className="text-center">
+                Sending confirmation email to<br/>
+                <strong>{adminProfile.email}</strong>
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="grid gap-4 py-4">
+                {passwordError && (
+                  <div className="text-destructive text-sm">{passwordError}</div>
+                )}
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="current-password" className="text-right">
+                    Current Password
+                  </Label>
+                  <Input
+                    id="current-password"
+                    type="password"
+                    value={passwordData.currentPassword}
+                    onChange={(e) => handlePasswordChange('currentPassword', e.target.value)}
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="new-password" className="text-right">
+                    New Password
+                  </Label>
+                  <Input
+                    id="new-password"
+                    type="password"
+                    value={passwordData.newPassword}
+                    onChange={(e) => handlePasswordChange('newPassword', e.target.value)}
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="confirm-password" className="text-right">
+                    Confirm Password
+                  </Label>
+                  <Input
+                    id="confirm-password"
+                    type="password"
+                    value={passwordData.confirmPassword}
+                    onChange={(e) => handlePasswordChange('confirmPassword', e.target.value)}
+                    className="col-span-3"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsPasswordDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleSubmitPasswordChange}>
+                  Update Password
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

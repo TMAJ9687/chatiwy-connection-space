@@ -1,36 +1,50 @@
-
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 
 interface AdminGuardProps {
   children: React.ReactNode;
 }
 
-export const AdminGuard: React.FC<AdminGuardProps> = ({ children }) => {
+const AdminGuard: React.FC<AdminGuardProps> = ({ children }) => {
   const navigate = useNavigate();
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const location = useLocation();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const checkAdminAuth = () => {
-      const adminAuth = sessionStorage.getItem('adminAuthenticated');
+    const checkAuth = () => {
+      const adminAuthenticated = sessionStorage.getItem('adminAuthenticated') === 'true';
+      setIsAuthenticated(adminAuthenticated);
       
-      if (adminAuth === 'true') {
-        setIsAdmin(true);
-      } else {
-        setIsAdmin(false);
-        toast.error('Admin access required');
+      if (!adminAuthenticated && location.pathname.startsWith('/admin') && location.pathname !== '/admin/login') {
+        toast.error('Admin authentication required');
         navigate('/admin/login');
       }
     };
-    
-    checkAdminAuth();
-  }, [navigate]);
 
-  if (isAdmin === null) {
-    // Loading state
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    checkAuth();
+
+    const handleStorageChange = () => {
+      checkAuth();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [navigate, location.pathname]);
+
+  if (isAuthenticated === null) {
+    return null;
   }
 
-  return isAdmin ? <>{children}</> : null;
+  if (location.pathname === '/admin/login' && isAuthenticated) {
+    navigate('/admin/dashboard');
+    return null;
+  }
+
+  return <>{children}</>;
 };
+
+export default AdminGuard;

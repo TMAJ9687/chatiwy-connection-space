@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,6 +11,7 @@ import { Eye, EyeOff, Lock, Mail, Phone } from 'lucide-react';
 
 const AdminLogin: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isResetMode, setIsResetMode] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -18,6 +19,16 @@ const AdminLogin: React.FC = () => {
     password: '',
     phone: ''
   });
+
+  useEffect(() => {
+    // Check if already authenticated
+    const isAuthenticated = sessionStorage.getItem('adminAuthenticated');
+    
+    // If authenticated and on login page, redirect to dashboard
+    if (isAuthenticated && location.pathname === '/admin/login') {
+      navigate('/admin/dashboard');
+    }
+  }, [navigate, location]);
 
   // Mock admin credentials - in a real app, this would be verified against a secure backend
   const ADMIN_CREDENTIALS = {

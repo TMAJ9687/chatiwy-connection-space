@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -29,41 +28,46 @@ import AdminChatHistory from "./pages/AdminChatHistory";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
-      <TooltipProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/chat" element={<ChatPage />} />
-            <Route path="/vip" element={<VIP />} />
-            <Route path="/vip/register" element={<VIPRegistration />} />
-            <Route path="/vip/login" element={<VIPLogin />} />
-            <Route path="/vip/signup" element={<VIPSignup />} />
-            <Route path="/vip/reset-password" element={<VIPResetPasswordPage />} />
-            
-            {/* Admin Routes */}
-            <Route path="/admin/login" element={<AdminLogin />} />
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
-            <Route path="/admin/support" element={<AdminSupport />} />
-            <Route path="/admin/website" element={<AdminWebsite />} />
-            <Route path="/admin/issues" element={<AdminIssues />} />
-            <Route path="/admin/inbox" element={<AdminInbox />} />
-            <Route path="/admin/bots" element={<AdminBots />} />
-            <Route path="/admin/reports" element={<AdminReports />} />
-            <Route path="/admin/banned-ips" element={<AdminBannedIPs />} />
-            <Route path="/admin/chat-history" element={<AdminChatHistory />} />
-            
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          <Sonner />
-        </BrowserRouter>
-      </TooltipProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
-);
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
+        <TooltipProvider>
+          <BrowserRouter>
+            <Routes>
+              {/* Public routes */}
+              <Route path="/" element={<Index />} />
+              <Route path="/chat" element={<ChatPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              
+              {/* VIP routes */}
+              <Route path="/vip" element={<VIP />} />
+              <Route path="/vip/login" element={<VIPLogin />} />
+              <Route path="/vip/signup" element={<VIPSignup />} />
+              <Route path="/vip/reset-password" element={<VIPResetPasswordPage />} />
+              <Route path="/vip/registration" element={<VIPRegistration />} />
+              
+              {/* Admin routes - all protected with AdminGuard */}
+              <Route path="/admin/login" element={<AdminLogin />} />
+              <Route path="/admin/dashboard" element={<AdminGuard><AdminDashboard /></AdminGuard>} />
+              <Route path="/admin/reports" element={<AdminGuard><AdminReports /></AdminGuard>} />
+              <Route path="/admin/banned-ips" element={<AdminGuard><AdminBannedIPs /></AdminGuard>} />
+              <Route path="/admin/chat-history" element={<AdminGuard><AdminChatHistory /></AdminGuard>} />
+              <Route path="/admin/support" element={<AdminGuard><AdminSupport /></AdminGuard>} />
+              <Route path="/admin/website" element={<AdminGuard><AdminWebsite /></AdminGuard>} />
+              <Route path="/admin/issues" element={<AdminGuard><AdminIssues /></AdminGuard>} />
+              <Route path="/admin/inbox" element={<AdminGuard><AdminInbox /></AdminGuard>} />
+              <Route path="/admin/bots" element={<AdminGuard><AdminBots /></AdminGuard>} />
+              
+              {/* 404 route */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+            <Sonner />
+          </BrowserRouter>
+        </TooltipProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;
