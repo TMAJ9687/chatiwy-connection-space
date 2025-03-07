@@ -9,7 +9,7 @@ const AdminInbox = () => {
   return (
     <div className="flex h-screen bg-background">
       <Helmet>
-        <title>Admin Inbox | Admin Dashboard</title>
+        <title>Admin Inbox | Chatiwy</title>
       </Helmet>
       
       <AdminSidebar />
@@ -22,13 +22,13 @@ const AdminInbox = () => {
             <CardHeader>
               <CardTitle>Message Center</CardTitle>
               <CardDescription>
-                View and respond to user messages and notifications
+                View and respond to messages from users
               </CardDescription>
             </CardHeader>
             <CardContent className="flex items-center justify-center p-12">
               <div className="text-center">
                 <Inbox className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium">Inbox Module</h3>
+                <h3 className="text-lg font-medium">Admin Inbox</h3>
                 <p className="text-muted-foreground mt-2">
                   This module is under development. Check back soon.
                 </p>
