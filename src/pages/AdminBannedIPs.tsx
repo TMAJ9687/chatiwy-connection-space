@@ -17,7 +17,8 @@ import {
   Plus,
   User,
   AlertCircle,
-  Shield
+  Shield,
+  Clock
 } from 'lucide-react';
 import {
   Dialog,
@@ -36,6 +37,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { format } from 'date-fns';
+import { Label } from '@/components/ui/label';
 
 interface BannedIP {
   id: string;
@@ -90,7 +92,8 @@ const AdminBannedIPs = () => {
     userId: '',
     username: '',
     reason: '',
-    permanent: false
+    permanent: false,
+    durationHours: 24 // Default to 24 hours
   });
 
   useEffect(() => {
@@ -131,7 +134,7 @@ const AdminBannedIPs = () => {
       reason: newBan.reason,
       timestamp: new Date(),
       bannedBy: 'Admin',
-      expiresAt: newBan.permanent ? null : new Date(Date.now() + 86400000 * 30)
+      expiresAt: newBan.permanent ? null : new Date(Date.now() + (newBan.durationHours * 60 * 60 * 1000))
     };
     
     setBannedIPs(prev => [...prev, newBanEntry]);
@@ -141,7 +144,8 @@ const AdminBannedIPs = () => {
       userId: '',
       username: '',
       reason: '',
-      permanent: false
+      permanent: false,
+      durationHours: 24
     });
     
     toast.success(`IP ${newBan.ipAddress} banned successfully`);
@@ -317,15 +321,37 @@ const AdminBannedIPs = () => {
               <label className="text-right">
                 Duration
               </label>
-              <div className="col-span-3 flex items-center space-x-2">
-                <input 
-                  type="checkbox" 
-                  id="permanent"
-                  checked={newBan.permanent}
-                  onChange={(e) => setNewBan({...newBan, permanent: e.target.checked})}
-                  className="mr-2"
-                />
-                <label htmlFor="permanent">Permanent ban</label>
+              <div className="col-span-3">
+                <div className="flex items-center space-x-2 mb-2">
+                  <input 
+                    type="checkbox" 
+                    id="permanent"
+                    checked={newBan.permanent}
+                    onChange={(e) => setNewBan({...newBan, permanent: e.target.checked})}
+                    className="mr-2"
+                  />
+                  <label htmlFor="permanent">Permanent ban</label>
+                </div>
+                
+                {!newBan.permanent && (
+                  <div className="flex items-center space-x-2">
+                    <Label htmlFor="durationHours" className="whitespace-nowrap">Duration (hours):</Label>
+                    <div className="flex items-center border rounded-md overflow-hidden">
+                      <Input
+                        id="durationHours"
+                        type="number"
+                        min="1"
+                        value={newBan.durationHours}
+                        onChange={(e) => setNewBan({...newBan, durationHours: parseInt(e.target.value) || 24})}
+                        className="border-0"
+                      />
+                      <div className="px-3 py-2 bg-muted flex items-center">
+                        <Clock className="h-4 w-4 mr-1" />
+                        <span>Hours</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
