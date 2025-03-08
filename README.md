@@ -5,9 +5,11 @@
 
 **URL**: https://lovable.dev/projects/b90804d5-3ea3-4a3c-99e8-2272dd0dc1d8
 
-## Deploying the WebSocket Server to Render.com
+## Deploying the WebSocket Server
 
-To get the real-time chat functionality working, you need to deploy the WebSocket server to Render.com:
+### Option 1: Deploy to Render.com
+
+To get the real-time chat functionality working, you can deploy the WebSocket server to Render.com:
 
 1. Create a new Web Service on Render.com
 2. Connect your GitHub repository or use the Render Git integration
@@ -22,10 +24,38 @@ To get the real-time chat functionality working, you need to deploy the WebSocke
 4. After deployment, your server will be running at a URL like `https://your-service-name.onrender.com`
 5. Update the `RENDER_URL` constant in `src/pages/Chat.tsx` with your Render URL
 
+### Option 2: Deploy to DigitalOcean
+
+You can also deploy the WebSocket server to DigitalOcean:
+
+1. Create a new Droplet on DigitalOcean (Node.js App platform or a basic Droplet)
+2. SSH into your Droplet and set up Node.js if not already installed:
+   ```bash
+   curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+   sudo apt-get install -y nodejs
+   ```
+3. Clone your repository and navigate to the server directory:
+   ```bash
+   git clone <your-repo-url>
+   cd <your-repo-directory>/server
+   ```
+4. Install dependencies and start the server:
+   ```bash
+   npm install
+   # Use pm2 for production (install with: npm install -g pm2)
+   pm2 start server.js
+   ```
+5. Set up a firewall to allow traffic on the WebSocket port (default 5000):
+   ```bash
+   sudo ufw allow 5000
+   ```
+6. Update the `DIGITAL_OCEAN_URL` constant in `src/pages/Chat.tsx` with your Droplet's IP or domain.
+   For example: `const DIGITAL_OCEAN_URL = 'http://your-droplet-ip:5000';`
+
 **Important Notes**:
 - The WebSocket server is meant to handle socket connections, not serve HTML pages. If you visit the URL directly in a browser, you'll see a "Cannot GET /" message, which is normal.
-- The free tier of Render.com will spin down after periods of inactivity, which may cause some delay when connecting to the WebSocket server after it's been inactive.
-- You can verify your server is running properly by checking the logs in the Render dashboard.
+- For production use, consider setting up HTTPS for secure WebSocket connections (WSS).
+- You can verify your server is running properly by checking the logs.
 
 ## How can I edit this code?
 
