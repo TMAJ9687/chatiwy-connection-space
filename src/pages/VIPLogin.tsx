@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { useNavigate } from 'react-router-dom';
 import { X, Mail, Lock, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
+import { isValidVipCode, getVipSettings } from '@/utils/siteSettings';
 
 const VIPLoginPage = () => {
   const navigate = useNavigate();
@@ -31,18 +32,31 @@ const VIPLoginPage = () => {
     
     setIsLoading(true);
     
-    // Mock login - in a real app, this would be an API call
-    setTimeout(() => {
-      setIsLoading(false);
-      toast.success('Login successful! Welcome back to VIP.');
-      // Store a mock user profile in localStorage
+    // Check if the user is the VIP tester or has a valid VIP code
+    const vipSettings = getVipSettings();
+    const isVipTester = identifier.toLowerCase() === 'vip_tester' && 
+                         password === vipSettings.accessCode;
+    
+    // In a real app, this would validate against a database
+    if (isVipTester || isValidVipCode(password)) {
+      // Store VIP user profile in localStorage
       localStorage.setItem('userProfile', JSON.stringify({
-        username: identifier.includes('@') ? identifier.split('@')[0] : identifier,
+        username: identifier,
         isVIP: true,
         joinDate: new Date().toISOString()
       }));
-      navigate('/chat');
-    }, 1500);
+      
+      toast.success('Login successful! Welcome to VIP.');
+      
+      // Redirect to VIP profile setup page
+      setTimeout(() => {
+        setIsLoading(false);
+        navigate('/vip/profile');
+      }, 800);
+    } else {
+      setIsLoading(false);
+      toast.error('Invalid credentials. Please try again.');
+    }
   };
 
   return (

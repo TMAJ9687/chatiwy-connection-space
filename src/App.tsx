@@ -15,6 +15,7 @@ import VIPRegistration from "./pages/VIPRegistration";
 import VIPLogin from "./pages/VIPLogin";
 import VIPSignup from "./pages/VIPSignup";
 import VIPResetPasswordPage from "./pages/VIPResetPassword";
+import VIPProfile from "./pages/VIPProfile";
 
 // Import admin pages
 import AdminLogin from "./pages/AdminLogin";
@@ -48,6 +49,7 @@ function App() {
               <Route path="/vip/signup" element={<VIPSignup />} />
               <Route path="/vip/reset-password" element={<VIPResetPasswordPage />} />
               <Route path="/vip/registration" element={<VIPRegistration />} />
+              <Route path="/vip/profile" element={<VIPProfile />} />
               
               {/* Admin routes - all protected with AdminGuard */}
               <Route path="/admin/login" element={<AdminLogin />} />

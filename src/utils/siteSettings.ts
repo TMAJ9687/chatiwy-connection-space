@@ -119,13 +119,37 @@ export function updateVipSettings(photoLimit: number, accessCode: string, pricin
 // Get VIP test profile
 export function getVipTestProfile(): any {
   try {
+    // Create default VIP test profile if it doesn't exist
+    const defaultVipProfile = {
+      username: "VIP_tester",
+      isVIP: true,
+      joinDate: new Date().toISOString(),
+      accessCode: defaultSettings.vipAccessCode
+    };
+    
     const profile = localStorage.getItem('vip_test_profile');
     if (profile) {
       return JSON.parse(profile);
+    } else {
+      // Save default profile if none exists
+      localStorage.setItem('vip_test_profile', JSON.stringify(defaultVipProfile));
+      return defaultVipProfile;
     }
   } catch (error) {
     console.error('Error loading VIP test profile:', error);
   }
   
   return null;
+}
+
+// Create or update VIP test profile
+export function saveVipTestProfile(profile: any): void {
+  try {
+    localStorage.setItem('vip_test_profile', JSON.stringify({
+      ...profile,
+      isVIP: true, // Always ensure VIP status
+    }));
+  } catch (error) {
+    console.error('Error saving VIP test profile:', error);
+  }
 }
