@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { AdminSidebar } from '@/components/AdminSidebar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -9,18 +9,30 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Globe, Settings, Layout, Image, AlertCircle, CheckCircle, RefreshCw } from 'lucide-react';
+import { Globe, Settings, Layout, Image, AlertCircle, CheckCircle, RefreshCw, Save } from 'lucide-react';
 import { toast } from 'sonner';
+import { Slider } from '@/components/ui/slider';
+import { getSiteSettings, saveSiteSettings, SiteSettings } from '@/utils/siteSettings';
 
 const AdminWebsite = () => {
   const [saving, setSaving] = useState(false);
-
+  const [settings, setSettings] = useState<SiteSettings>(getSiteSettings());
+  
   const handleSave = () => {
     setSaving(true);
+    
+    // Save settings using the utility function
+    saveSiteSettings(settings);
+    
+    // Simulate API call with timeout
     setTimeout(() => {
       setSaving(false);
       toast.success('Website settings saved successfully');
     }, 1000);
+  };
+  
+  const handlePhotoLimitChange = (value: number[]) => {
+    setSettings(prev => ({ ...prev, photoLimit: value[0] }));
   };
 
   return (
@@ -137,20 +149,80 @@ const AdminWebsite = () => {
                 <CardHeader>
                   <CardTitle>Media Settings</CardTitle>
                   <CardDescription>
-                    Manage images, videos, and other media files
+                    Manage image uploads and media limitations
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-center p-12">
-                    <div className="text-center">
-                      <Image className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-medium">Media Management</h3>
-                      <p className="text-muted-foreground mt-2">
-                        Media management features coming soon.
+                <CardContent className="space-y-6">
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">Daily Photo Limits</h3>
+                      <p className="text-muted-foreground mb-4">
+                        Set the maximum number of photos standard users can send per day
+                      </p>
+                      
+                      <div className="space-y-6">
+                        <div className="space-y-2">
+                          <div className="flex justify-between">
+                            <Label htmlFor="photo-limit">Daily Photo Limit</Label>
+                            <span className="font-medium">{settings.photoLimit} photos</span>
+                          </div>
+                          
+                          <Slider
+                            id="photo-limit"
+                            max={50}
+                            min={1}
+                            step={1}
+                            value={[settings.photoLimit]}
+                            onValueChange={handlePhotoLimitChange}
+                            className="py-4"
+                          />
+                          
+                          <div className="flex justify-between text-xs text-muted-foreground">
+                            <span>1</span>
+                            <span>25</span>
+                            <span>50</span>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          <Input 
+                            type="number" 
+                            id="photo-limit-input"
+                            value={settings.photoLimit}
+                            onChange={(e) => handlePhotoLimitChange([parseInt(e.target.value) || 1])}
+                            min={1}
+                            max={50}
+                            className="w-20"
+                          />
+                          <span>photos per day</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="rounded-lg bg-muted p-4 mt-6">
+                      <h4 className="font-medium mb-2">Note:</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Changes to photo limits will take effect immediately for all standard users. 
+                        VIP users are not affected by these limitations.
                       </p>
                     </div>
                   </div>
                 </CardContent>
+                <CardFooter>
+                  <Button onClick={handleSave} disabled={saving}>
+                    {saving ? (
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                        Saving
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Save Media Settings
+                      </>
+                    )}
+                  </Button>
+                </CardFooter>
               </Card>
             </TabsContent>
             
