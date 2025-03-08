@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -290,6 +289,16 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
     }
   }, []);
 
+  useEffect(() => {
+    setIsVipUser(!!userProfile?.isVIP);
+    
+    if (userProfile?.isVIP) {
+      const today = new Date().toLocaleDateString();
+      localStorage.setItem(IMAGE_UPLOADS_DATE_KEY, today);
+      localStorage.setItem(IMAGE_UPLOADS_KEY, '0');
+    }
+  }, [userProfile]);
+
   const scrollToBottom = () => {
     messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -449,6 +458,17 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
     }
 
     try {
+      const photoLimit = isVipUser ? 50 : 10;
+      
+      if (imageUploads >= photoLimit) {
+        if (isVipUser) {
+          toast.error(`You've reached your VIP daily limit of ${photoLimit} images.`);
+        } else {
+          toast.error(`You've reached your daily limit of ${photoLimit} images. Upgrade to VIP for increased limits.`);
+        }
+        return;
+      }
+
       const imageUrl = imagePreview;
 
       const messageData = {
@@ -499,6 +519,14 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
       setImageUploads(prevUploads => {
         const newUploads = prevUploads + 1;
         localStorage.setItem(IMAGE_UPLOADS_KEY, newUploads.toString());
+        
+        if (!isVipUser && newUploads >= 7) {
+          toast.info(
+            'You\'re approaching your daily image limit. Upgrade to VIP for increased limits!',
+            { duration: 5000 }
+          );
+        }
+        
         return newUploads;
       });
 
@@ -529,7 +557,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
 
   const handleVoiceMessage = () => {
     if (!isVipUser) {
-      toast.info('Voice messages are available for VIP users only.');
+      toast.info('Voice messages are available for VIP users only. Upgrade to VIP for full access!');
     } else {
       toast.info('Voice recording started...');
     }

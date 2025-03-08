@@ -8,6 +8,7 @@ export interface SiteSettings {
   maintenanceMode: boolean;
   siteName: string;
   siteUrl: string;
+  vipPhotoLimit: number; // Adding VIP photo limit
 }
 
 // Default settings
@@ -18,7 +19,8 @@ export const defaultSettings: SiteSettings = {
   seoKeywords: "anonymous chat, private messaging, secure chat, instant messaging, online chat, text chat, image sharing",
   maintenanceMode: false,
   siteName: "Chatiwy",
-  siteUrl: "https://chatiwy.app"
+  siteUrl: "https://chatiwy.app",
+  vipPhotoLimit: 50 // VIP users get higher limits
 };
 
 // Get all site settings
@@ -35,9 +37,10 @@ export function getSiteSettings(): SiteSettings {
   return defaultSettings;
 }
 
-// Get specific photo limit setting
-export function getPhotoLimit(): number {
-  return getSiteSettings().photoLimit;
+// Get specific photo limit setting based on user type
+export function getPhotoLimit(isVip: boolean = false): number {
+  const settings = getSiteSettings();
+  return isVip ? settings.vipPhotoLimit : settings.photoLimit;
 }
 
 // Get SEO settings
@@ -59,8 +62,12 @@ export function saveSiteSettings(settings: Partial<SiteSettings>): void {
 }
 
 // Update just the photo limit
-export function updatePhotoLimit(limit: number): void {
-  saveSiteSettings({ photoLimit: limit });
+export function updatePhotoLimit(limit: number, isVip: boolean = false): void {
+  if (isVip) {
+    saveSiteSettings({ vipPhotoLimit: limit });
+  } else {
+    saveSiteSettings({ photoLimit: limit });
+  }
 }
 
 // Update SEO settings

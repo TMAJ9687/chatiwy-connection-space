@@ -1,11 +1,9 @@
-
 import { useState, useEffect, ReactNode } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Moon, Sun, LogOut, Inbox } from 'lucide-react';
+import { Moon, Sun, LogOut } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { toast } from 'sonner';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Badge } from '@/components/ui/badge';
 import VIPAuthModal from './VIPAuthModal';
 import { useTheme } from '@/components/ThemeProvider';
 
@@ -18,7 +16,6 @@ export function Navbar({ children }: NavbarProps) {
   const location = useLocation();
   const { theme, setTheme } = useTheme();
   const [isScrolled, setIsScrolled] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [showVIPModal, setShowVIPModal] = useState(false);
   
   // Check if user is logged in by looking for userProfile in localStorage
@@ -39,26 +36,6 @@ export function Navbar({ children }: NavbarProps) {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Check for unread messages
-  useEffect(() => {
-    // This will listen to changes in the unreadMessagesPerUser Set
-    const checkUnreadMessages = () => {
-      const unreadMessagesPerUser = window.unreadMessagesPerUser;
-      if (unreadMessagesPerUser) {
-        setUnreadCount(unreadMessagesPerUser.size);
-      }
-    };
-
-    // Set initial value
-    checkUnreadMessages();
-
-    // Set up an interval to check periodically
-    const intervalId = setInterval(checkUnreadMessages, 3000);
-    
-    // Clean up
-    return () => clearInterval(intervalId);
-  }, []);
-
   const toggleTheme = () => {
     setTheme(theme === 'light' ? 'dark' : 'light');
   };
@@ -72,19 +49,6 @@ export function Navbar({ children }: NavbarProps) {
     
     // Navigate to home page
     navigate('/');
-  };
-
-  const handleInboxClick = () => {
-    // Get current chat view
-    const currentView = document.querySelector('[data-chat-view]');
-    if (currentView) {
-      currentView.setAttribute('data-chat-view', 'inbox');
-    }
-    
-    // Navigate to chat page if not already there
-    if (window.location.pathname !== '/chat') {
-      navigate('/chat');
-    }
   };
 
   const handleVIPClick = () => {
@@ -124,39 +88,6 @@ export function Navbar({ children }: NavbarProps) {
         <div className="flex items-center space-x-3">
           {/* Render children first if provided */}
           {children}
-
-          {/* Only show inbox button if logged in and not on landing page or VIP page */}
-          {isLoggedIn && !isLandingPage && !isVIPPage && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    variant={unreadCount > 0 ? "success" : "outline"} 
-                    size="icon" 
-                    className="rounded-full"
-                    onClick={handleInboxClick}
-                  >
-                    {unreadCount > 0 ? (
-                      <div className="relative">
-                        <Inbox className="h-5 w-5" />
-                        <Badge 
-                          variant="destructive" 
-                          className="absolute -top-2 -right-2 w-5 h-5 p-0 flex items-center justify-center"
-                        >
-                          {unreadCount}
-                        </Badge>
-                      </div>
-                    ) : (
-                      <Inbox className="h-5 w-5" />
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{unreadCount > 0 ? `${unreadCount} unread messages` : 'Inbox'}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
         
           <button 
             onClick={toggleTheme} 
