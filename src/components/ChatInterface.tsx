@@ -126,6 +126,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
   const [fullResImage, setFullResImage] = useState<string | null>(null);
   const [isVipUser, setIsVipUser] = useState(false);
   const [showHistorySidebar, setShowHistorySidebar] = useState(false);
+  const [showBlockedSidebar, setShowBlockedSidebar] = useState(false);
   const [showReportForm, setShowReportForm] = useState(false);
   const [reportedUser, setReportedUser] = useState('');
   const [blockedUsersList, setBlockedUsersList] = useState<string[]>([]);
@@ -370,7 +371,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
   const handleUnblockUser = (userId: string) => {
     blockedUsers.delete(userId);
     updateBlockedUsersStorage();
-    setView('chat');
+    setShowBlockedSidebar(false);
     toast.success('User has been unblocked.');
   };
 
@@ -581,7 +582,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                 onBlock={handleBlockUser}
                 onReport={handleReport}
                 onViewHistory={() => setView('history')}
-                onViewBlocked={() => setView('blocked')}
+                onViewBlocked={() => setShowBlockedSidebar(true)}
               />
             )}
             
@@ -741,8 +742,8 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                   ))
                 ) : (
                   <div className="text-center text-muted-foreground py-8">
-                    <History className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p className="text-lg">No messages yet</p>
+                    <History className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                    <p className="text-lg font-medium">No messages yet</p>
                     <p className="text-sm">Start a conversation to see your message history</p>
                   </div>
                 )}
@@ -880,6 +881,63 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
         </SheetContent>
       </Sheet>
 
+      <Sheet open={showBlockedSidebar} onOpenChange={setShowBlockedSidebar}>
+        <SheetContent side="right" className="sm:max-w-md w-[90vw] p-0">
+          <div className="h-full flex flex-col">
+            <div className="p-4 border-b flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Ban className="h-5 w-5" />
+                <h2 className="text-lg font-semibold">Blocked Users</h2>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setShowBlockedSidebar(false)}>
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            
+            <ScrollArea className="flex-1">
+              {blockedUsersList.length > 0 ? (
+                <div className="px-1">
+                  {blockedUsersList.map(userId => {
+                    const username = mockConnectedUsers.get(userId)?.username || 
+                                    botProfiles.find(b => b.id === userId)?.username || 
+                                    'Unknown User';
+                    return (
+                      <div 
+                        key={userId}
+                        className="p-3 hover:bg-secondary/50 rounded-md cursor-pointer flex items-start justify-between"
+                      >
+                        <div className="flex gap-3">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <UserX className="h-5 w-5 text-muted-foreground" />
+                              <span className="font-medium">{username}</span>
+                            </div>
+                            <p className="text-sm text-muted-foreground">Blocked user</p>
+                          </div>
+                        </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => handleUnblockUser(userId)}
+                        >
+                          Unblock
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full p-8 text-center text-muted-foreground">
+                  <Ban className="h-10 w-10 mb-4 opacity-50" />
+                  <p className="text-lg font-medium">No blocked users</p>
+                  <p className="text-sm max-w-xs">When you block someone, they'll appear here.</p>
+                </div>
+              )}
+            </ScrollArea>
+          </div>
+        </SheetContent>
+      </Sheet>
+
       {showReportForm && (
         <ReportForm 
           isOpen={showReportForm}
@@ -909,7 +967,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                 className="rounded-full"
                 size="icon"
                 variant="secondary"
-                onClick={() => setView('blocked')}
+                onClick={() => setShowBlockedSidebar(true)}
               >
                 <Ban className="h-5 w-5" />
               </Button>
