@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -18,7 +19,8 @@ const vipFeatures = [
   "Free location selection",
   "Can't be disconnected due to inactivity",
   "Real-time translation",
-  "Password reset via email"
+  "Password reset via email",
+  "Extended message length (200 characters)"
 ];
 
 export function VIPSection() {

@@ -139,6 +139,13 @@ const ChatPage = () => {
             id: registeredUser.id,
             sessionId
           });
+          
+          // Save updated profile to localStorage for persistence
+          localStorage.setItem('userProfile', JSON.stringify({
+            ...profile,
+            id: registeredUser.id,
+            sessionId
+          }));
         }).catch(error => {
           console.error('Registration error:', error);
           navigate('/');
@@ -164,6 +171,9 @@ const ChatPage = () => {
         profile.sessionId = sessionId;
         
         setUserProfile(profile);
+        
+        // Save updated profile to localStorage for persistence
+        localStorage.setItem('userProfile', JSON.stringify(profile));
         
         // Clean up existing user with the same session ID
         mockConnectedUsers.forEach((user, key) => {
@@ -193,7 +203,7 @@ const ChatPage = () => {
       try {
         const profile = JSON.parse(storedUserProfile);
         
-        // Only proceed if the profile is valid and is a VIP user
+        // Only proceed if the profile is valid
         if (profile && profile.username) {
           setIsVipUser(!!profile.isVIP);
           
@@ -209,11 +219,16 @@ const ChatPage = () => {
               ...profile,
               sessionId
             }).then(registeredUser => {
-              setUserProfile({
+              const updatedProfile = {
                 ...profile,
                 id: registeredUser.id,
                 sessionId
-              });
+              };
+              
+              setUserProfile(updatedProfile);
+              
+              // Save updated profile to localStorage
+              localStorage.setItem('userProfile', JSON.stringify(updatedProfile));
             }).catch(error => {
               console.error('Registration error:', error);
               // Don't navigate away on refresh errors - just show a toast
@@ -351,7 +366,7 @@ const ChatPage = () => {
       <Navbar>
         <Button 
           onClick={handleLogout} 
-          variant="ghost" 
+          variant="destructive" 
           size="sm"
           className="mr-2"
         >
@@ -391,7 +406,7 @@ const ChatPage = () => {
                 <Sheet>
                   <SheetTrigger asChild>
                     <Button
-                      className="absolute top-4 right-4 rounded-full"
+                      className="absolute top-4 right-16 rounded-full"
                       size="icon"
                       variant={unreadCount > 0 ? "destructive" : "secondary"}
                       onClick={() => setShowInbox(true)}

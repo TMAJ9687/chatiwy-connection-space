@@ -25,8 +25,12 @@ const VIPLoginPage = () => {
       try {
         const profile = JSON.parse(userProfile);
         if (profile.isVIP) {
-          // Already logged in as VIP, redirect to profile page
-          navigate('/vip/profile');
+          // Already logged in as VIP, redirect to profile page or chat
+          if (profile.country && profile.interests && profile.interests.length > 0) {
+            navigate('/chat', { state: { userProfile: profile }, replace: true });
+          } else {
+            navigate('/vip/profile', { replace: true });
+          }
         }
       } catch (error) {
         console.error('Error parsing user profile:', error);

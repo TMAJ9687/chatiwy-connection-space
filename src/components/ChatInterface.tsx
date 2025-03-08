@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -61,6 +62,11 @@ import socketService from '@/services/socketService';
 import { countries } from '@/utils/countryData';
 import { useNavigate } from 'react-router-dom';
 import { getPhotoLimit } from '@/utils/siteSettings';
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 interface Message {
   id: string;
@@ -160,7 +166,8 @@ const getCountryFlag = (countryCode: string | undefined) => {
   return country.flag || country.code;
 };
 
-const MAX_MESSAGE_LENGTH = 140;
+const MAX_MESSAGE_LENGTH_REGULAR = 140;
+const MAX_MESSAGE_LENGTH_VIP = 200;
 
 export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketConnected = false }: ChatInterfaceProps) {
   const [currentChat, setCurrentChat] = useState<{
@@ -189,6 +196,12 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
   const [showImageModal, setShowImageModal] = useState(false);
   const [fullResImage, setFullResImage] = useState<string | null>(null);
   const [isVipUser, setIsVipUser] = useState(false);
+  const [showHistorySidebar, setShowHistorySidebar] = useState(false);
+  const [showReportForm, setShowReportForm] = useState(false);
+  const [reportedUser, setReportedUser] = useState('');
+  
+  // Get the maximum message length based on user VIP status
+  const getMaxMessageLength = () => isVipUser ? MAX_MESSAGE_LENGTH_VIP : MAX_MESSAGE_LENGTH_REGULAR;
 
   useEffect(() => {
     if (selectedUser) {
@@ -389,7 +402,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    if (value.length <= MAX_MESSAGE_LENGTH) {
+    if (value.length <= getMaxMessageLength()) {
       setMessageInput(value);
     }
   };
@@ -409,6 +422,22 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
       setCurrentChat(null);
       onUserSelect(null);
     }
+  };
+
+  const handleUnblockUser = (userId: string) => {
+    blockedUsers.delete(userId);
+    setView('chat');
+    toast.success('User has been unblocked.');
+  };
+
+  const handleReport = (userName: string) => {
+    setReportedUser(userName);
+    setShowReportForm(true);
+  };
+
+  const handleReportClose = () => {
+    setShowReportForm(false);
+    setReportedUser('');
   };
 
   const handleEmojiClick = (emoji: string) => {
@@ -565,15 +594,38 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
     }
   };
 
-  const handleLogout = () => {
-    sessionStorage.removeItem('chatiwy_session_id');
-    navigate('/');
-    toast.success('You have been logged out successfully');
-  };
-
   const openImageInFullResolution = (imageUrl: string) => {
     setFullResImage(imageUrl);
     setShowImageModal(true);
+  };
+
+  // Get chat history for all users
+  const getAllChatHistories = () => {
+    const histories: { 
+      userId: string; 
+      username: string;
+      lastMessage?: Message;
+      messageCount: number;
+    }[] = [];
+    
+    Object.entries(userChatHistories).forEach(([userId, messages]) => {
+      const user = mockConnectedUsers.get(userId) || botProfiles.find(b => b.id === userId);
+      if (user) {
+        histories.push({
+          userId,
+          username: user.username,
+          lastMessage: messages[messages.length - 1],
+          messageCount: messages.length
+        });
+      }
+    });
+    
+    return histories.sort((a, b) => {
+      // Sort by most recent message
+      const aTime = a.lastMessage?.timestamp?.getTime() || 0;
+      const bTime = b.lastMessage?.timestamp?.getTime() || 0;
+      return bTime - aTime;
+    });
   };
 
   const renderContent = () => {
@@ -618,33 +670,14 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                 </div>
               </div>
               <div className="flex gap-1">
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="icon" className="text-white hover:bg-primary-foreground/20">
-                      <Flag size={18} />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Report User</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Please provide details about why you're reporting this user.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    
-                    {currentChat && (
-                      <ReportForm 
-                        userName={currentChat.username} 
-                        onClose={() => {}} 
-                        isOpen={true}
-                      />
-                    )}
-                    
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="text-white hover:bg-primary-foreground/20"
+                  onClick={() => handleReport(currentChat?.username || 'User')}
+                >
+                  <Flag size={18} />
+                </Button>
                 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -796,10 +829,10 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                         onKeyDown={handleKeyDown}
                         placeholder="Type a message..."
                         className="pr-16 h-10"
-                        maxLength={MAX_MESSAGE_LENGTH}
+                        maxLength={getMaxMessageLength()}
                       />
                       <div className="absolute right-2 text-xs text-muted-foreground pointer-events-none">
-                        {messageInput.length}/{MAX_MESSAGE_LENGTH}
+                        {messageInput.length}/{getMaxMessageLength()}
                       </div>
                     </div>
                   </div>
@@ -976,7 +1009,9 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
               {Array.from(blockedUsers).length > 0 ? (
                 <div className="space-y-2">
                   {Array.from(blockedUsers).map(userId => {
-                    const username = mockConnectedUsers.get(userId)?.username || 'Unknown User';
+                    const username = mockConnectedUsers.get(userId)?.username || 
+                                    botProfiles.find(b => b.id === userId)?.username || 
+                                    'Unknown User';
                     return (
                       <Card key={userId} className="p-3 flex justify-between items-center">
                         <div className="flex items-center gap-2">
@@ -986,10 +1021,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          onClick={() => {
-                            blockedUsers.delete(userId);
-                            setView('chat');
-                          }}
+                          onClick={() => handleUnblockUser(userId)}
                         >
                           Unblock
                         </Button>
@@ -1025,6 +1057,75 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
 
   return (
     <div className="rounded-md overflow-hidden border border-border h-full">
+      {/* Chat history sidebar */}
+      <Sheet open={showHistorySidebar} onOpenChange={setShowHistorySidebar}>
+        <SheetContent side="right" className="sm:max-w-md w-[90vw] p-0">
+          <div className="h-full flex flex-col">
+            <div className="p-4 border-b flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <History className="h-5 w-5" />
+                <h2 className="text-lg font-semibold">Chat History</h2>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setShowHistorySidebar(false)}>
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            
+            <ScrollArea className="flex-1">
+              {getAllChatHistories().length > 0 ? (
+                <div className="px-1">
+                  {getAllChatHistories().map((history) => (
+                    <div 
+                      key={history.userId}
+                      className="p-3 hover:bg-secondary/50 rounded-md cursor-pointer flex items-start justify-between"
+                      onClick={() => {
+                        onUserSelect(history.userId);
+                        setShowHistorySidebar(false);
+                      }}
+                    >
+                      <div className="flex gap-3">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{history.username}</span>
+                          </div>
+                          <p className="text-sm text-muted-foreground line-clamp-1">
+                            {history.lastMessage?.content || '(Image)'}
+                          </p>
+                          <span className="text-xs text-muted-foreground">
+                            {history.lastMessage ? new Date(history.lastMessage.timestamp).toLocaleString([], {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            }) : ''}
+                          </span>
+                        </div>
+                      </div>
+                      <Badge variant="secondary">{history.messageCount}</Badge>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full p-8 text-center text-muted-foreground">
+                  <History className="h-10 w-10 mb-4 opacity-50" />
+                  <p className="text-lg font-medium">No chat history</p>
+                  <p className="text-sm max-w-xs">Start conversations with users to see your chat history here.</p>
+                </div>
+              )}
+            </ScrollArea>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Report Form Dialog */}
+      {showReportForm && (
+        <ReportForm 
+          isOpen={showReportForm}
+          onClose={handleReportClose}
+          userName={reportedUser}
+        />
+      )}
+      
       {currentChat && renderContent()}
       {!currentChat && (
         <div className="flex items-center justify-center h-full">
@@ -1037,6 +1138,27 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
           </Card>
         </div>
       )}
+
+      {/* Floating buttons */}
+      <div className="absolute top-4 right-4 flex gap-2">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                className="rounded-full"
+                size="icon"
+                variant="secondary"
+                onClick={() => setShowHistorySidebar(true)}
+              >
+                <History className="h-5 w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Chat History</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
     </div>
   );
 }
