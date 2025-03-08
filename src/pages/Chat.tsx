@@ -26,7 +26,7 @@ import {
 const mockConnectedUsers = new Map();
 const sessionKey = 'chatiwy_session_id';
 
-const RENDER_URL = 'https://chatiwy-test.onrender.com';
+const RENDER_URL = 'https://chatiwy-server.onrender.com';
 const DIGITAL_OCEAN_URL = '';
 const GUIDANCE_ACCEPTED_KEY = 'chatiwy_guidance_accepted';
 

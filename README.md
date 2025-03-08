@@ -1,4 +1,3 @@
-
 # Welcome to your Lovable project
 
 ## Project info
@@ -7,22 +6,23 @@
 
 ## Deploying the WebSocket Server
 
-### Option 1: Deploy to Render.com
+### Option 1: Deploy to Render.com (Recommended)
 
-To get the real-time chat functionality working, you can deploy the WebSocket server to Render.com:
+To get the real-time chat functionality working, deploy the WebSocket server to Render.com:
 
-1. Create a new Web Service on Render.com
-2. Connect your GitHub repository or use the Render Git integration
-3. Configure your service as follows:
+1. Create an account at [Render.com](https://render.com) if you don't have one
+2. Create a new Web Service
+3. Connect your GitHub repository or use the Render Git integration
+4. Configure your service as follows:
    - **Name**: chatiwy-server (or any name you prefer)
    - **Environment**: Node
    - **Root Directory**: server
    - **Build Command**: `npm install`
    - **Start Command**: `node server.js`
-   - **Instance Type**: Free
+   - **Instance Type**: Free (or paid for better performance)
 
-4. After deployment, your server will be running at a URL like `https://your-service-name.onrender.com`
-5. Update the `RENDER_URL` constant in `src/pages/Chat.tsx` with your Render URL
+5. After deployment, your server will be running at a URL like `https://your-service-name.onrender.com`
+6. Update the `RENDER_URL` constant in `src/pages/Chat.tsx` with your Render URL
 
 ### Option 2: Deploy to DigitalOcean
 
@@ -52,10 +52,26 @@ You can also deploy the WebSocket server to DigitalOcean:
 6. Update the `DIGITAL_OCEAN_URL` constant in `src/pages/Chat.tsx` with your Droplet's IP or domain.
    For example: `const DIGITAL_OCEAN_URL = 'http://your-droplet-ip:5000';`
 
+## Testing Your Deployment
+
+### Step 1: Deploy the WebSocket Server
+Follow the instructions above to deploy your WebSocket server to either Render.com or DigitalOcean.
+
+### Step 2: Deploy the Frontend App
+1. In Lovable, click the "Share" button in the top-right corner
+2. Click "Publish" to deploy your application
+3. Use the provided URL to access your deployed app
+
+### Step 3: Verify the Connection
+1. Open your deployed app
+2. Complete the profile setup
+3. Check the browser console for connection messages
+4. Try chatting to verify that real-time functionality is working
+
 **Important Notes**:
 - The WebSocket server is meant to handle socket connections, not serve HTML pages. If you visit the URL directly in a browser, you'll see a "Cannot GET /" message, which is normal.
 - For production use, consider setting up HTTPS for secure WebSocket connections (WSS).
-- You can verify your server is running properly by checking the logs.
+- You can verify your server is running properly by checking the logs in your Render dashboard or using `pm2 logs` on DigitalOcean.
 
 ## How can I edit this code?
 
