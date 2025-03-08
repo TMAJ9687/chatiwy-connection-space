@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,6 +10,16 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { History, MoreVertical, Flag, Ban, UserX } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface ChatActionsProps {
   username: string;
@@ -28,12 +38,19 @@ export function ChatActions({
   onViewHistory,
   onViewBlocked
 }: ChatActionsProps) {
+  const [showBlockConfirm, setShowBlockConfirm] = useState(false);
+
+  const handleBlockConfirm = () => {
+    setShowBlockConfirm(false);
+    onBlock();
+  };
+
   return (
     <div className="flex items-center gap-2">
       <Button 
         variant="ghost" 
         size="icon" 
-        onClick={onBlock}
+        onClick={() => setShowBlockConfirm(true)}
         className="text-white hover:bg-primary-foreground/20"
         title="Block User"
       >
@@ -74,7 +91,7 @@ export function ChatActions({
           {!isAdmin && (
             <>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={onBlock} className="text-destructive">
+              <DropdownMenuItem onClick={() => setShowBlockConfirm(true)} className="text-destructive">
                 <Ban className="mr-2 h-4 w-4" />
                 <span>Block User</span>
               </DropdownMenuItem>
@@ -82,6 +99,23 @@ export function ChatActions({
           )}
         </DropdownMenuContent>
       </DropdownMenu>
+
+      <AlertDialog open={showBlockConfirm} onOpenChange={setShowBlockConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Block User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to block "{username}"? You won't receive messages from them anymore.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBlockConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Block User
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
