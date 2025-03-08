@@ -3,6 +3,7 @@ import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User, ShieldCheck } from 'lucide-react';
+import { STANDARD_AVATARS } from './types';
 
 interface UsersListProps {
   usersList: any[];
@@ -32,6 +33,9 @@ export function UsersList({
     <div className="space-y-4">
       {usersList.map((user) => {
         const hasUnread = window.unreadMessagesPerUser?.has(user.id);
+        const defaultAvatar = user.gender?.toLowerCase() === 'male' 
+          ? STANDARD_AVATARS.male 
+          : STANDARD_AVATARS.female;
         
         return (
           <div 
@@ -44,7 +48,7 @@ export function UsersList({
             <div className={`w-10 h-10 rounded-full overflow-hidden ${hasUnread ? 'ring-2 ring-teal-400' : ''}`}>
               <Avatar>
                 <AvatarImage 
-                  src={user.avatar || getAvatarUrl(user.username, user.gender)} 
+                  src={user.avatar || defaultAvatar} 
                   alt={user.username}
                 />
                 <AvatarFallback>{user.username.substring(0, 2).toUpperCase()}</AvatarFallback>

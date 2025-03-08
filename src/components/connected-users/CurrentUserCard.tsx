@@ -2,6 +2,7 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { STANDARD_AVATARS } from './types';
 
 interface CurrentUserCardProps {
   userProfile: any;
@@ -14,12 +15,16 @@ export function CurrentUserCard({
   getCountryFlag, 
   getAvatarUrl 
 }: CurrentUserCardProps) {
+  const defaultAvatar = userProfile.gender?.toLowerCase() === 'male' 
+    ? STANDARD_AVATARS.male 
+    : STANDARD_AVATARS.female;
+
   return (
     <div className="flex items-center gap-3 p-2 rounded-lg border bg-muted/50">
       <div className="w-10 h-10 rounded-full overflow-hidden">
         <Avatar>
           <AvatarImage 
-            src={userProfile.avatar || getAvatarUrl(userProfile.username, userProfile.gender)} 
+            src={userProfile.avatar || defaultAvatar} 
             alt={userProfile.username}
           />
           <AvatarFallback>{userProfile.username.substring(0, 2).toUpperCase()}</AvatarFallback>

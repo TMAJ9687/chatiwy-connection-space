@@ -1,6 +1,7 @@
 
 import { countries } from '@/utils/countryData';
 import { botProfiles } from '@/utils/botProfiles';
+import { STANDARD_AVATARS } from './types';
 
 // Utility function to get country flag
 export const getCountryFlag = (countryName?: string): string => {
@@ -13,17 +14,10 @@ export const getCountryFlag = (countryName?: string): string => {
 
 // Utility function to get avatar URL
 export const getAvatarUrl = (name: string, gender: string): string => {
-  // Generate a consistent hash for the name to get the same avatar each time
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  
-  // Select avatar style based on gender and hash
-  const style = gender === 'Male' ? 'male' : 'female';
-  const number = Math.abs(hash % 10) + 1; // Numbers 1-10
-  
-  return `https://api.dicebear.com/7.x/personas/svg?seed=${style}${number}`;
+  // For non-VIP users, return the standard avatar based on gender
+  return gender.toLowerCase() === 'male' 
+    ? STANDARD_AVATARS.male 
+    : STANDARD_AVATARS.female;
 };
 
 // Function to get connected users
