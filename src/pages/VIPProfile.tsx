@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { Navbar } from '@/components/Navbar';
@@ -10,6 +11,8 @@ import { toast } from 'sonner';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { VIPAvatarSelector } from '@/components/VIPAvatarSelector';
 
 // Import country data
 import { countries } from '@/utils/countryData';
@@ -24,6 +27,7 @@ const VIPProfilePage = () => {
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [profileLoaded, setProfileLoaded] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState('');
 
   // Check if user is logged in as VIP
   useEffect(() => {
@@ -52,6 +56,7 @@ const VIPProfilePage = () => {
         setGender(userProfile.gender || '');
         setCountry(userProfile.country || '');
         setSelectedInterests(userProfile.interests || []);
+        setAvatarUrl(userProfile.avatar || '');
         setProfileLoaded(true);
         
         // If not explicitly editing, start in view mode
@@ -94,6 +99,10 @@ const VIPProfilePage = () => {
     }
   };
 
+  const handleAvatarChange = (newAvatarUrl: string) => {
+    setAvatarUrl(newAvatarUrl);
+  };
+
   const handleSaveProfile = () => {
     if (!age) {
       toast.error('Please select your age');
@@ -128,7 +137,8 @@ const VIPProfilePage = () => {
           interests: selectedInterests,
           country,
           flag,
-          isOnline: true
+          isOnline: true,
+          avatar: avatarUrl
         };
         
         localStorage.setItem('userProfile', JSON.stringify(updatedProfile));
@@ -168,6 +178,14 @@ const VIPProfilePage = () => {
   // Generate age options from 18 to 80
   const ageOptions = Array.from({ length: 63 }, (_, i) => i + 18);
 
+  // Get default avatar if none is selected
+  const getDefaultAvatar = () => {
+    if (avatarUrl) return avatarUrl;
+    
+    const style = gender === 'Male' ? 'male' : 'female';
+    return `https://api.dicebear.com/7.x/personas/svg?seed=${style}1`;
+  };
+
   return (
     <>
       <Helmet>
@@ -193,9 +211,28 @@ const VIPProfilePage = () => {
             <CardContent>
               {username && (
                 <div className="mb-8 text-center">
+                  <div className="flex justify-center mb-4">
+                    <Avatar className="w-24 h-24 border-4 border-amber-500">
+                      <AvatarImage src={getDefaultAvatar()} />
+                      <AvatarFallback className="text-xl">{username.substring(0, 2).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                  </div>
+                  {isEditing && gender && (
+                    <div className="mb-4">
+                      <VIPAvatarSelector 
+                        gender={gender} 
+                        currentAvatar={avatarUrl}
+                        onAvatarChange={handleAvatarChange} 
+                      />
+                    </div>
+                  )}
                   <span className="text-lg">Welcome, </span>
                   <span className="text-2xl font-semibold text-amber-500">{username}</span>
-                  <div className="text-sm text-muted-foreground mt-1">VIP Member</div>
+                  <div className="flex items-center justify-center text-sm text-muted-foreground mt-1">
+                    <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+                      <Shield className="h-3 w-3 mr-1" /> VIP Member
+                    </Badge>
+                  </div>
                 </div>
               )}
               

@@ -20,11 +20,13 @@ import {
   Filter, 
   SlidersHorizontal, 
   ChevronDown, 
-  X
+  X,
+  ShieldCheck
 } from 'lucide-react';
 import { botProfiles } from '@/utils/botProfiles';
 import socketService from '@/services/socketService';
 import { countries } from '@/utils/countryData';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface ConnectedUsersProps {
   userProfile: any;
@@ -79,12 +81,15 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
             country: user.country || 'Unknown',
             flag: user.flag || getCountryFlag(user.country),
             isOnline: true,
-            isBot: false
+            isBot: false,
+            isVIP: !!user.isVIP,
+            avatar: user.avatar || getAvatarUrl(user.username, user.gender)
           }));
         
         const bots = botProfiles.map(bot => ({
           ...bot,
-          isBot: false
+          isBot: false,
+          isVIP: false
         }));
         
         return [...socketUsers, ...bots];
@@ -98,7 +103,9 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
             country: "Canada",
             flag: "🇨🇦",
             isOnline: true,
-            isBot: false
+            isBot: false,
+            isVIP: true,
+            avatar: getAvatarUrl("TravelBug", "Female")
           },
           {
             id: "mock-user-2",
@@ -108,14 +115,18 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
             country: "Italy",
             flag: "🇮🇹",
             isOnline: true,
-            isBot: false
+            isBot: false,
+            isVIP: false,
+            avatar: getAvatarUrl("CoffeeGuy", "Male")
           }
         ];
         
         const bots = botProfiles.map(bot => ({
           ...bot,
           flag: getCountryFlag(bot.country),
-          isBot: false
+          isBot: false,
+          isVIP: false,
+          avatar: getAvatarUrl(bot.username, bot.gender)
         }));
         
         return [...mockUsers, ...bots];
@@ -125,7 +136,9 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
       return botProfiles.map(bot => ({
         ...bot,
         flag: getCountryFlag(bot.country),
-        isBot: false
+        isBot: false,
+        isVIP: false,
+        avatar: getAvatarUrl(bot.username, bot.gender)
       }));
     }
   };
@@ -168,6 +181,16 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
         );
       }
       
+      // Sort users by VIP status first, then alphabetically by country
+      filteredUsers.sort((a, b) => {
+        // VIP users first
+        if (a.isVIP && !b.isVIP) return -1;
+        if (!a.isVIP && b.isVIP) return 1;
+        
+        // Then sort by country name alphabetically
+        return a.country.localeCompare(b.country);
+      });
+      
       let realConnectedCount = 0;
       if (socketConnected) {
         realConnectedCount = realTimeUsers.filter(user => 
@@ -185,7 +208,9 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
       setUsersList(botProfiles.map(bot => ({
         ...bot,
         flag: getCountryFlag(bot.country),
-        isBot: false
+        isBot: false,
+        isVIP: false,
+        avatar: getAvatarUrl(bot.username, bot.gender)
       })));
     }
   }, [filter, searchQuery, userProfile, countryFilter, ageRange, socketConnected, realTimeUsers]);
@@ -400,17 +425,22 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
         <div className="space-y-4">
           <div className="flex items-center gap-3 p-2 rounded-lg border bg-muted/50">
             <div className="w-10 h-10 rounded-full overflow-hidden">
-              <img 
-                src={getAvatarUrl(userProfile.username, userProfile.gender)} 
-                alt={userProfile.username}
-                className="w-full h-full object-cover"
-              />
+              <Avatar>
+                <AvatarImage 
+                  src={userProfile.avatar || getAvatarUrl(userProfile.username, userProfile.gender)} 
+                  alt={userProfile.username}
+                />
+                <AvatarFallback>{userProfile.username.substring(0, 2).toUpperCase()}</AvatarFallback>
+              </Avatar>
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1">
                 <span className="font-medium truncate">{userProfile.username}</span>
                 <span className="text-xs opacity-70">{userProfile.age}</span>
                 <span className="ml-1 text-lg">{userProfile.flag || getCountryFlag(userProfile.country)}</span>
+                {userProfile.isVIP && (
+                  <Badge variant="default" className="ml-1 bg-amber-500 text-white">VIP</Badge>
+                )}
                 <Badge className="ml-auto" variant="outline">You</Badge>
               </div>
               <div className="flex items-center text-sm text-green-500">
@@ -433,17 +463,25 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
                   onClick={() => onUserSelect(user.id)}
                 >
                   <div className={`w-10 h-10 rounded-full overflow-hidden ${hasUnread ? 'ring-2 ring-teal-400' : ''}`}>
-                    <img 
-                      src={getAvatarUrl(user.username, user.gender)} 
-                      alt={user.username}
-                      className="w-full h-full object-cover"
-                    />
+                    <Avatar>
+                      <AvatarImage 
+                        src={user.avatar || getAvatarUrl(user.username, user.gender)} 
+                        alt={user.username}
+                      />
+                      <AvatarFallback>{user.username.substring(0, 2).toUpperCase()}</AvatarFallback>
+                    </Avatar>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1">
                       <span className={`font-medium truncate ${hasUnread ? 'font-bold' : ''}`}>{user.username}</span>
                       <span className="text-xs opacity-70">{user.age}</span>
                       <span className="ml-1 text-lg">{user.flag || getCountryFlag(user.country)}</span>
+                      
+                      {user.isVIP && (
+                        <Badge variant="default" className="ml-1 bg-amber-500 text-white">
+                          <ShieldCheck className="h-3 w-3 mr-1" />VIP
+                        </Badge>
+                      )}
                       
                       {hasUnread && (
                         <Badge className="ml-auto" variant="default">New</Badge>
