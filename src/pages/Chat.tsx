@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Helmet } from 'react-helmet';
 import { Navbar } from '@/components/Navbar';
@@ -10,12 +9,19 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import socketService from '@/services/socketService';
 import { Button } from '@/components/ui/button';
-import { LogOut, MessageSquare, X, Bell, User, ArrowLeft } from 'lucide-react';
-import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
+import { LogOut, MessageSquare, X, Inbox, User, ArrowLeft } from 'lucide-react';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const mockConnectedUsers = new Map();
 const sessionKey = 'chatiwy_session_id';
@@ -43,98 +49,8 @@ interface InboxMessage {
   isRead: boolean;
 }
 
-const mockInboxMessages: InboxMessage[] = [
-  {
-    id: '1',
-    sender: 'User',
-    senderId: 'user1',
-    avatar: 'https://uifaces.co/api/portraits/men/1',
-    content: 'The weather will be perfect for the stroll',
-    timestamp: new Date(),
-    isRead: false
-  },
-  {
-    id: '2',
-    sender: 'User',
-    senderId: 'user2',
-    avatar: 'https://uifaces.co/api/portraits/men/2',
-    content: 'The weather will be perfect for the stroll',
-    timestamp: new Date(),
-    isRead: true
-  },
-  {
-    id: '3',
-    sender: 'User',
-    senderId: 'user3',
-    avatar: 'https://uifaces.co/api/portraits/women/3',
-    content: 'The weather will be perfect for the stroll',
-    timestamp: new Date(),
-    isRead: false
-  },
-  {
-    id: '4',
-    sender: 'User',
-    senderId: 'user4',
-    avatar: 'https://uifaces.co/api/portraits/women/4',
-    content: 'The weather will be perfect for the stroll',
-    timestamp: new Date(),
-    isRead: false
-  },
-  {
-    id: '5',
-    sender: 'User',
-    senderId: 'user5',
-    avatar: 'https://uifaces.co/api/portraits/men/5',
-    content: 'The weather will be perfect for the stroll',
-    timestamp: new Date(),
-    isRead: true
-  },
-  {
-    id: '6',
-    sender: 'User',
-    senderId: 'user6',
-    avatar: 'https://uifaces.co/api/portraits/women/6',
-    content: 'The weather will be perfect for the stroll',
-    timestamp: new Date(),
-    isRead: false
-  },
-  {
-    id: '7',
-    sender: 'User',
-    senderId: 'user7',
-    avatar: 'https://uifaces.co/api/portraits/men/7',
-    content: 'The weather will be perfect for the stroll',
-    timestamp: new Date(),
-    isRead: true
-  },
-  {
-    id: '8',
-    sender: 'User',
-    senderId: 'user8',
-    avatar: 'https://uifaces.co/api/portraits/women/8',
-    content: 'The weather will be perfect for the stroll',
-    timestamp: new Date(),
-    isRead: false
-  },
-  {
-    id: '9',
-    sender: 'User',
-    senderId: 'user9',
-    avatar: 'https://uifaces.co/api/portraits/men/9',
-    content: 'The weather will be perfect for the stroll',
-    timestamp: new Date(),
-    isRead: true
-  },
-  {
-    id: '10',
-    sender: 'User',
-    senderId: 'user10',
-    avatar: 'https://uifaces.co/api/portraits/women/10',
-    content: 'The weather will be perfect for the stroll',
-    timestamp: new Date(),
-    isRead: false
-  }
-];
+// Empty mock inbox for demonstration
+const mockInboxMessages: InboxMessage[] = [];
 
 const ChatPage = () => {
   const navigate = useNavigate();
@@ -346,13 +262,18 @@ const ChatPage = () => {
       joinDate: new Date().toISOString()
     };
     
-    // Store in localStorage
+    // Store in localStorage for persistence
     localStorage.setItem('vip_test_profile', JSON.stringify(vipProfile));
     
     // Navigate to chat with this profile
     navigate('/chat', { state: { userProfile: vipProfile } });
     
     toast.success('Test VIP account created! You are now logged in as a VIP user.');
+    
+    // Display credentials
+    toast.info('VIP Credentials - Username: VIP_Tester | Gender: male | Country: US', {
+      duration: 10000
+    });
   };
 
   if (!userProfile) {
@@ -414,7 +335,7 @@ const ChatPage = () => {
                       variant={unreadCount > 0 ? "destructive" : "secondary"}
                       onClick={() => setShowInbox(true)}
                     >
-                      <Bell className="h-5 w-5" />
+                      <Inbox className="h-5 w-5" />
                       {unreadCount > 0 && (
                         <Badge 
                           variant="destructive" 
@@ -429,73 +350,125 @@ const ChatPage = () => {
                     <div className="h-full flex flex-col">
                       <div className="p-4 border-b flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <ArrowLeft className="h-5 w-5" />
+                          <Inbox className="h-5 w-5" />
                           <h2 className="text-lg font-semibold">Inbox</h2>
                         </div>
-                        <SheetClose asChild>
-                          <Button variant="ghost" size="icon">
-                            <X className="h-5 w-5" />
-                          </Button>
-                        </SheetClose>
+                        <Button variant="ghost" size="icon" onClick={() => setShowInbox(false)}>
+                          <X className="h-5 w-5" />
+                        </Button>
                       </div>
                       
                       <ScrollArea className="flex-1">
-                        <div className="px-1">
-                          {inboxMessages.map((message) => (
-                            <div 
-                              key={message.id}
-                              className={`p-3 hover:bg-secondary/50 rounded-md cursor-pointer flex items-start justify-between ${
-                                !message.isRead ? 'bg-secondary/20' : ''
-                              }`}
-                              onClick={() => handleUserSelect(message.senderId)}
-                            >
-                              <div className="flex gap-3">
-                                <Avatar>
-                                  <AvatarImage src={message.avatar} alt={message.sender} />
-                                  <AvatarFallback>
-                                    <User className="h-5 w-5" />
-                                  </AvatarFallback>
-                                </Avatar>
-                                
-                                <div>
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-medium">{message.sender}</span>
-                                    {!message.isRead && (
-                                      <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                                    )}
+                        {inboxMessages.length > 0 ? (
+                          <div className="px-1">
+                            {inboxMessages.map((message) => (
+                              <div 
+                                key={message.id}
+                                className={`p-3 hover:bg-secondary/50 rounded-md cursor-pointer flex items-start justify-between ${
+                                  !message.isRead ? 'bg-secondary/20' : ''
+                                }`}
+                                onClick={() => handleUserSelect(message.senderId)}
+                              >
+                                <div className="flex gap-3">
+                                  <Avatar>
+                                    <AvatarImage src={message.avatar} alt={message.sender} />
+                                    <AvatarFallback>
+                                      <User className="h-5 w-5" />
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-medium">{message.sender}</span>
+                                      {!message.isRead && (
+                                        <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                                      )}
+                                    </div>
+                                    <p className="text-sm text-muted-foreground line-clamp-1">
+                                      {message.content}
+                                    </p>
+                                    <span className="text-xs text-muted-foreground">
+                                      {new Date(message.timestamp).toLocaleTimeString([], { 
+                                        hour: '2-digit', 
+                                        minute: '2-digit'
+                                      })}
+                                    </span>
                                   </div>
-                                  <p className="text-sm text-muted-foreground line-clamp-1">
-                                    {message.content}
-                                  </p>
-                                  <span className="text-xs text-muted-foreground">
-                                    {new Date(message.timestamp).toLocaleTimeString([], { 
-                                      hour: '2-digit', 
-                                      minute: '2-digit'
-                                    })}
-                                  </span>
                                 </div>
+                                
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                      <svg 
+                                        xmlns="http://www.w3.org/2000/svg" 
+                                        width="16" 
+                                        height="16" 
+                                        viewBox="0 0 24 24" 
+                                        fill="none" 
+                                        stroke="currentColor" 
+                                        strokeWidth="2" 
+                                        strokeLinecap="round" 
+                                        strokeLinejoin="round"
+                                      >
+                                        <circle cx="12" cy="12" r="1" />
+                                        <circle cx="19" cy="12" r="1" />
+                                        <circle cx="5" cy="12" r="1" />
+                                      </svg>
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem>
+                                      <User className="mr-2 h-4 w-4" />
+                                      <span>View Profile</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => {
+                                      // Mark as read/unread
+                                      setInboxMessages(prevMessages => 
+                                        prevMessages.map(msg => 
+                                          msg.id === message.id ? { ...msg, isRead: !msg.isRead } : msg
+                                        )
+                                      );
+                                    }}>
+                                      {message.isRead ? (
+                                        <>
+                                          <MessageSquare className="mr-2 h-4 w-4" />
+                                          <span>Mark as Unread</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <MessageSquare className="mr-2 h-4 w-4" />
+                                          <span>Mark as Read</span>
+                                        </>
+                                      )}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem>
+                                      <LogOut className="mr-2 h-4 w-4" />
+                                      <span>Mute Notifications</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => {
+                                      // Remove message from inbox
+                                      setInboxMessages(prevMessages => 
+                                        prevMessages.filter(msg => msg.id !== message.id)
+                                      );
+                                    }}>
+                                      <X className="mr-2 h-4 w-4 text-destructive" />
+                                      <span className="text-destructive">Delete</span>
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                               </div>
-                              
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <svg 
-                                  xmlns="http://www.w3.org/2000/svg" 
-                                  width="16" 
-                                  height="16" 
-                                  viewBox="0 0 24 24" 
-                                  fill="none" 
-                                  stroke="currentColor" 
-                                  strokeWidth="2" 
-                                  strokeLinecap="round" 
-                                  strokeLinejoin="round"
-                                >
-                                  <circle cx="12" cy="12" r="1" />
-                                  <circle cx="19" cy="12" r="1" />
-                                  <circle cx="5" cy="12" r="1" />
-                                </svg>
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center h-full p-8 text-center text-muted-foreground">
+                            <Inbox className="h-10 w-10 mb-4 opacity-50" />
+                            <p className="text-lg font-medium">Your inbox is empty</p>
+                            <p className="text-sm max-w-xs">Messages will appear here when you receive them from other users.</p>
+                          </div>
+                        )}
                       </ScrollArea>
                     </div>
                   </SheetContent>
@@ -514,6 +487,12 @@ const ChatPage = () => {
                 >
                   Create Test VIP Account
                 </Button>
+                <div className="mt-2 text-sm text-amber-800 dark:text-amber-300">
+                  <strong>VIP Account Credentials:</strong><br/>
+                  Username: VIP_Tester<br/>
+                  Gender: male<br/>
+                  Country: US
+                </div>
               </div>
             )}
           </div>

@@ -8,7 +8,13 @@ export interface SiteSettings {
   maintenanceMode: boolean;
   siteName: string;
   siteUrl: string;
-  vipPhotoLimit: number; // Adding VIP photo limit
+  vipPhotoLimit: number;
+  vipAccessCode: string; // Access code for VIP
+  vipPricing: {
+    monthly: number;
+    yearly: number;
+    lifetime: number;
+  };
 }
 
 // Default settings
@@ -20,7 +26,13 @@ export const defaultSettings: SiteSettings = {
   maintenanceMode: false,
   siteName: "Chatiwy",
   siteUrl: "https://chatiwy.app",
-  vipPhotoLimit: 50 // VIP users get higher limits
+  vipPhotoLimit: 50, // VIP users get higher limits
+  vipAccessCode: "CHATIWY-VIP-TEST", // Default VIP access code for testing
+  vipPricing: {
+    monthly: 9.99,
+    yearly: 99.99,
+    lifetime: 299.99
+  }
 };
 
 // Get all site settings
@@ -53,6 +65,22 @@ export function getSeoSettings() {
   };
 }
 
+// Get VIP settings
+export function getVipSettings() {
+  const settings = getSiteSettings();
+  return {
+    photoLimit: settings.vipPhotoLimit,
+    accessCode: settings.vipAccessCode,
+    pricing: settings.vipPricing
+  };
+}
+
+// Check if a VIP access code is valid
+export function isValidVipCode(code: string): boolean {
+  const settings = getSiteSettings();
+  return code === settings.vipAccessCode;
+}
+
 // Save all site settings
 export function saveSiteSettings(settings: Partial<SiteSettings>): void {
   const currentSettings = getSiteSettings();
@@ -77,4 +105,27 @@ export function updateSeoSettings(title: string, description: string, keywords: 
     seoDescription: description, 
     seoKeywords: keywords 
   });
+}
+
+// Update VIP settings
+export function updateVipSettings(photoLimit: number, accessCode: string, pricing: { monthly: number, yearly: number, lifetime: number }): void {
+  saveSiteSettings({
+    vipPhotoLimit: photoLimit,
+    vipAccessCode: accessCode,
+    vipPricing: pricing
+  });
+}
+
+// Get VIP test profile
+export function getVipTestProfile(): any {
+  try {
+    const profile = localStorage.getItem('vip_test_profile');
+    if (profile) {
+      return JSON.parse(profile);
+    }
+  } catch (error) {
+    console.error('Error loading VIP test profile:', error);
+  }
+  
+  return null;
 }

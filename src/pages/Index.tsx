@@ -6,6 +6,7 @@ import { FeaturesSection } from '@/components/FeaturesSection';
 import { VIPSection } from '@/components/VIPSection';
 import { CTASection } from '@/components/CTASection';
 import { Footer } from '@/components/Footer';
+import { AdSensePlaceholder } from '@/components/AdSensePlaceholder';
 
 const Index = () => {
   // JSON-LD structured data for rich search results
@@ -59,8 +60,28 @@ const Index = () => {
       
       <main>
         <HeroSection />
+        
+        {/* First AdSense Placeholder - After Hero Section */}
+        <div className="container mx-auto px-4 my-8">
+          <AdSensePlaceholder 
+            slot="1234567890" 
+            format="horizontal" 
+            className="h-24 sm:h-32 md:h-40" 
+          />
+        </div>
+        
         <FeaturesSection />
         <VIPSection />
+        
+        {/* Second AdSense Placeholder - Before CTA Section */}
+        <div className="container mx-auto px-4 my-8">
+          <AdSensePlaceholder 
+            slot="0987654321" 
+            format="horizontal" 
+            className="h-24 sm:h-32 md:h-40" 
+          />
+        </div>
+        
         <CTASection />
       </main>
       
