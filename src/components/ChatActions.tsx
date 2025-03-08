@@ -95,6 +95,10 @@ export function ChatActions({
                 <Ban className="mr-2 h-4 w-4" />
                 <span>Block User</span>
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onReport(username)} className="text-destructive">
+                <Flag className="mr-2 h-4 w-4" />
+                <span>Report User</span>
+              </DropdownMenuItem>
             </>
           )}
         </DropdownMenuContent>

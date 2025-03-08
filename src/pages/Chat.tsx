@@ -63,8 +63,8 @@ const ChatPage = () => {
   const sheetRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
-    const guidanceAccepted = localStorage.getItem(GUIDANCE_ACCEPTED_KEY) === 'true';
-    setShowGuidance(!guidanceAccepted);
+    localStorage.removeItem(GUIDANCE_ACCEPTED_KEY);
+    setShowGuidance(true);
   }, []);
   
   useEffect(() => {

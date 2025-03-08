@@ -26,7 +26,7 @@ export function GuidancePopup({ onAccept, onDecline }: GuidancePopupProps) {
   };
 
   return (
-    <AlertDialog defaultOpen={true}>
+    <AlertDialog defaultOpen={true} open={true}>
       <AlertDialogContent className="max-w-lg">
         <AlertDialogHeader>
           <AlertDialogTitle>Welcome to Chatiwy!</AlertDialogTitle>
