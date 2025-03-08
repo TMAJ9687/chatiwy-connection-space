@@ -55,7 +55,7 @@ export function GuidancePopup({ onAccept, onDecline }: GuidancePopupProps) {
               <strong>No Spam:</strong> Do not send unsolicited messages, advertisements, or engage in activities that disrupt the platform.
             </li>
             <li>
-              <strong>Age Requirement:</strong> You must be at least 13 years old to use Chatiwy. Users between 13-18 should have parental permission.
+              <strong>Age Requirement:</strong> You must be at least 18 years old to use Chatiwy.
             </li>
             <li>
               <strong>Report Violations:</strong> If you encounter a user violating these guidelines, please report them using the report feature.

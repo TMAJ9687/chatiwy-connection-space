@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -37,10 +36,10 @@ export function VIPSection() {
         if (user.isVIP) {
           // If user has completed profile with country and interests, go directly to chat
           if (user.country && user.interests && user.interests.length > 0) {
-            navigate('/chat', { state: { userProfile: user }});
+            navigate('/chat', { state: { userProfile: user }, replace: true });
           } else {
             // Otherwise go to profile setup
-            navigate('/vip/profile');
+            navigate('/vip/profile', { replace: true });
           }
         } else {
           // Non-VIP user, show auth modal
