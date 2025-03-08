@@ -9,10 +9,20 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { History, Ban, MessageSquare } from 'lucide-react';
-import { Message, BLOCKED_USERS_KEY, MAX_MESSAGE_LENGTH_REGULAR, MAX_MESSAGE_LENGTH_VIP } from '@/utils/chatUtils';
+import { 
+  Message, 
+  BLOCKED_USERS_KEY, 
+  MAX_MESSAGE_LENGTH_REGULAR, 
+  MAX_MESSAGE_LENGTH_VIP,
+  ALLOWED_IMAGE_TYPES,
+  IMAGE_UPLOADS_KEY,
+  MAX_IMAGE_SIZE 
+} from '@/utils/chatUtils';
 import { getPhotoLimit } from '@/utils/siteSettings';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { botProfiles } from '@/utils/botProfiles';
+import { toast } from 'sonner';
+import socketService from '@/services/socketService';
 
 interface ChatInterfaceProps {
   userProfile: any;
@@ -206,18 +216,32 @@ export function ChatInterface({
         });
         
       } else if (currentChat && currentChat.isBot) {
-        handleReceiveMessage({
-          sender: currentChat.username,
-          senderId: currentChat.userId,
-          content: messageInput,
-          timestamp: new Date(),
-          isBot: false
-        });
+        handleReceiveMessage(messageData);
       }
 
       setLastMessage(messageInput);
       setMessageInput('');
     }
+  };
+  
+  const handleReceiveMessage = (messageData: any) => {
+    setTimeout(() => {
+      const botResponse = {
+        id: Math.random().toString(36).substring(2, 15),
+        sender: currentChat?.username || 'Bot',
+        senderId: currentChat?.userId,
+        content: `Auto-response to: ${messageData.content}`,
+        timestamp: new Date(),
+        isBot: true
+      };
+      
+      setMessages(prevMessages => {
+        if (currentChat) {
+          userChatHistories[currentChat.userId] = [...(userChatHistories[currentChat.userId] || []), botResponse];
+        }
+        return [...prevMessages, botResponse];
+      });
+    }, 1000);
   };
   
   const handleBlockUser = () => {

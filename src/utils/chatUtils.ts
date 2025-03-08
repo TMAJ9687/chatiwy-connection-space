@@ -54,7 +54,7 @@ export const getCountryFlag = (countryCode: string | undefined) => {
 // Constants
 export const IMAGE_UPLOADS_KEY = 'chatiwy_daily_image_uploads';
 export const IMAGE_UPLOADS_DATE_KEY = 'chatiwy_image_uploads_date';
-export const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+export const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 export const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
 export const GUIDANCE_ACCEPTED_KEY = 'chatiwy_guidance_accepted';
 export const MAX_MESSAGE_LENGTH_REGULAR = 140;
