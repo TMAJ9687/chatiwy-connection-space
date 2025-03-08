@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Helmet } from 'react-helmet';
 import { Navbar } from '@/components/Navbar';
@@ -10,7 +9,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import socketService from '@/services/socketService';
 import { Button } from '@/components/ui/button';
-import { LogOut, MessageSquare, X, Inbox, User, ArrowLeft } from 'lucide-react';
+import { MessageSquare, X, Inbox, User, ArrowLeft } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -29,7 +28,6 @@ const sessionKey = 'chatiwy_session_id';
 const RENDER_URL = 'https://chatiwy-test.onrender.com';
 const GUIDANCE_ACCEPTED_KEY = 'chatiwy_guidance_accepted';
 
-// Initialize global for unread messages
 declare global {
   interface Window {
     unreadMessagesPerUser: Set<string>;
@@ -50,13 +48,12 @@ interface InboxMessage {
   isRead: boolean;
 }
 
-// Empty mock inbox for demonstration
 const mockInboxMessages: InboxMessage[] = [];
 
 const ChatPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [showGuidance, setShowGuidance] = useState(true); // Changed to true by default
+  const [showGuidance, setShowGuidance] = useState(true);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [socketConnected, setSocketConnected] = useState(false);
@@ -65,7 +62,6 @@ const ChatPage = () => {
   const [isVipUser, setIsVipUser] = useState(false);
   const sheetRef = useRef<HTMLDivElement>(null);
   
-  // Check if guidance was previously accepted
   useEffect(() => {
     const guidanceAccepted = localStorage.getItem(GUIDANCE_ACCEPTED_KEY) === 'true';
     setShowGuidance(!guidanceAccepted);
@@ -106,17 +102,14 @@ const ChatPage = () => {
   }, []);
   
   useEffect(() => {
-    // Get session ID
     let sessionId = sessionStorage.getItem(sessionKey);
     if (!sessionId) {
       sessionId = Math.random().toString(36).substring(2, 15);
       sessionStorage.setItem(sessionKey, sessionId);
     }
     
-    // Handle page refresh by checking localStorage instead of just relying on location state
     const storedUserProfile = localStorage.getItem('userProfile');
     
-    // If we have location state with userProfile, use that (coming from direct navigation)
     if (location.state?.userProfile) {
       const profile = location.state.userProfile;
       
@@ -126,7 +119,6 @@ const ChatPage = () => {
         return;
       }
       
-      // Check if user is VIP
       setIsVipUser(!!profile.isVIP);
       
       if (socketConnected) {
@@ -140,7 +132,6 @@ const ChatPage = () => {
             sessionId
           });
           
-          // Save updated profile to localStorage for persistence
           localStorage.setItem('userProfile', JSON.stringify({
             ...profile,
             id: registeredUser.id,
@@ -172,17 +163,14 @@ const ChatPage = () => {
         
         setUserProfile(profile);
         
-        // Save updated profile to localStorage for persistence
         localStorage.setItem('userProfile', JSON.stringify(profile));
         
-        // Clean up existing user with the same session ID
         mockConnectedUsers.forEach((user, key) => {
           if (user.sessionId === sessionId) {
             mockConnectedUsers.delete(key);
           }
         });
         
-        // Remove any offline users immediately
         mockConnectedUsers.forEach((user, key) => {
           if (!user.isOnline) {
             mockConnectedUsers.delete(key);
@@ -197,13 +185,10 @@ const ChatPage = () => {
         
         console.log("Current connected users:", Array.from(mockConnectedUsers.entries()));
       }
-    } 
-    // Handle page refresh: if no location state but we have a stored VIP profile
-    else if (storedUserProfile) {
+    } else if (storedUserProfile) {
       try {
         const profile = JSON.parse(storedUserProfile);
         
-        // Only proceed if the profile is valid
         if (profile && profile.username) {
           setIsVipUser(!!profile.isVIP);
           
@@ -213,7 +198,6 @@ const ChatPage = () => {
           
           setUserProfile(profile);
           
-          // Register with socket or add to mock users just like above
           if (socketConnected) {
             socketService.registerUser({
               ...profile,
@@ -227,15 +211,12 @@ const ChatPage = () => {
               
               setUserProfile(updatedProfile);
               
-              // Save updated profile to localStorage
               localStorage.setItem('userProfile', JSON.stringify(updatedProfile));
             }).catch(error => {
               console.error('Registration error:', error);
-              // Don't navigate away on refresh errors - just show a toast
               toast.error('Connection error. Using offline mode.');
             });
           } else {
-            // Clean up existing users and add to mock connected users
             mockConnectedUsers.forEach((user, key) => {
               if (user.sessionId === sessionId) {
                 mockConnectedUsers.delete(key);
@@ -249,14 +230,13 @@ const ChatPage = () => {
             });
           }
           
-          return; // Successfully loaded profile, don't redirect
+          return;
         }
       } catch (error) {
         console.error('Error parsing stored user profile:', error);
       }
     }
     
-    // If we reach here with no valid profile, redirect to home
     if (!location.state?.userProfile && !storedUserProfile) {
       navigate('/');
       toast.error('Please complete your profile first');
@@ -266,7 +246,6 @@ const ChatPage = () => {
       if (userProfile && userProfile.id && !socketConnected) {
         const user = mockConnectedUsers.get(userProfile.id);
         if (user) {
-          // Immediately remove the user when they disconnect
           mockConnectedUsers.delete(userProfile.id);
         }
       }
@@ -294,7 +273,6 @@ const ChatPage = () => {
   
   const handleGuidanceAccept = () => {
     setShowGuidance(false);
-    // Save guidance acceptance to localStorage
     localStorage.setItem(GUIDANCE_ACCEPTED_KEY, 'true');
     toast.success('Welcome to Chatiwy! You can now start chatting.');
   };
@@ -307,14 +285,12 @@ const ChatPage = () => {
   const handleUserSelect = (userId: string) => {
     setSelectedUser(userId);
     
-    // Mark messages from this user as read
     setInboxMessages(prevMessages => 
       prevMessages.map(msg => 
         msg.senderId === userId ? { ...msg, isRead: true } : msg
       )
     );
     
-    // Close inbox if open
     setShowInbox(false);
   };
 
@@ -324,12 +300,9 @@ const ChatPage = () => {
     toast.success('You have been logged out successfully');
   };
 
-  // Count unread messages
   const unreadCount = inboxMessages.filter(msg => !msg.isRead).length;
 
-  // Create a Test VIP account for testing purposes
   const createTestVipAccount = () => {
-    // Create a mock VIP profile
     const vipProfile = {
       username: "VIP_Tester",
       gender: "male",
@@ -338,15 +311,12 @@ const ChatPage = () => {
       joinDate: new Date().toISOString()
     };
     
-    // Store in localStorage for persistence
     localStorage.setItem('vip_test_profile', JSON.stringify(vipProfile));
     
-    // Navigate to chat with this profile
     navigate('/chat', { state: { userProfile: vipProfile } });
     
     toast.success('Test VIP account created! You are now logged in as a VIP user.');
     
-    // Display credentials
     toast.info('VIP Credentials - Username: VIP_Tester | Gender: male | Country: US', {
       duration: 10000
     });
@@ -402,7 +372,6 @@ const ChatPage = () => {
                   socketConnected={socketConnected}
                 />
                 
-                {/* Inbox Floating Button - Only visible in chat interface */}
                 <Sheet>
                   <SheetTrigger asChild>
                     <Button
@@ -500,7 +469,6 @@ const ChatPage = () => {
                                       <span>View Profile</span>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => {
-                                      // Mark as read/unread
                                       setInboxMessages(prevMessages => 
                                         prevMessages.map(msg => 
                                           msg.id === message.id ? { ...msg, isRead: !msg.isRead } : msg
@@ -525,7 +493,6 @@ const ChatPage = () => {
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem onClick={() => {
-                                      // Remove message from inbox
                                       setInboxMessages(prevMessages => 
                                         prevMessages.filter(msg => msg.id !== message.id)
                                       );
@@ -552,7 +519,6 @@ const ChatPage = () => {
               </div>
             </div>
             
-            {/* Test VIP Account Button - Only visible in development */}
             {process.env.NODE_ENV === 'development' && (
               <div className="mt-4 p-4 bg-amber-100 dark:bg-amber-900/30 rounded-md">
                 <h3 className="font-medium mb-2">Development Tools</h3>
