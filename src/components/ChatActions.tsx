@@ -59,7 +59,7 @@ export function ChatActions({
                 className="text-white hover:bg-primary-foreground/20"
                 onClick={onBlock}
               >
-                <UserMinus size={18} />
+                <UserX size={18} />
               </Button>
             </TooltipTrigger>
             <TooltipContent>

@@ -2,6 +2,7 @@
 import React, { useState, useRef, ChangeEvent } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Smile, Image as ImageIcon, Mic, Send } from 'lucide-react';
 import { toast } from 'sonner';
@@ -129,21 +130,31 @@ export function MessageInput({
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="icon" 
-                  onClick={onImageUpload}
-                  className="h-10 w-10"
-                  disabled={imageUploads >= getPhotoLimit(isVipUser)}
-                >
-                  <ImageIcon size={20} />
-                </Button>
+                <div className="relative">
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    onClick={onImageUpload}
+                    className="h-10 w-10"
+                    disabled={!isVipUser && imageUploads >= getPhotoLimit(isVipUser)}
+                  >
+                    <ImageIcon size={20} />
+                  </Button>
+                  {!isVipUser && (
+                    <Badge 
+                      variant="secondary" 
+                      className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs"
+                    >
+                      {imageUploads}/{getPhotoLimit(isVipUser)}
+                    </Badge>
+                  )}
+                </div>
               </TooltipTrigger>
               <TooltipContent>
                 <p>
-                  {imageUploads >= getPhotoLimit(isVipUser) 
+                  {!isVipUser && imageUploads >= getPhotoLimit(false) 
                     ? 'Daily image upload limit reached' 
-                    : `Add image (${imageUploads}/${getPhotoLimit(isVipUser)})`}
+                    : isVipUser ? 'Add image (unlimited)' : `Add image (${imageUploads}/${getPhotoLimit(false)})`}
                 </p>
               </TooltipContent>
             </Tooltip>

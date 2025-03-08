@@ -16,7 +16,8 @@ import {
   EyeOff,
   X,
   Wifi,
-  WifiOff
+  WifiOff,
+  UserX
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { botProfiles, getRandomBotResponse } from '@/utils/botProfiles';
@@ -74,6 +75,7 @@ const IMAGE_UPLOADS_DATE_KEY = 'chatiwy_image_uploads_date';
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
 const GUIDANCE_ACCEPTED_KEY = 'chatiwy_guidance_accepted';
+const BLOCKED_USERS_KEY = 'chatiwy_blocked_users';
 
 const MAX_MESSAGE_LENGTH_REGULAR = 140;
 const MAX_MESSAGE_LENGTH_VIP = 200;
@@ -125,7 +127,8 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
   const [showHistorySidebar, setShowHistorySidebar] = useState(false);
   const [showReportForm, setShowReportForm] = useState(false);
   const [reportedUser, setReportedUser] = useState('');
-  
+  const [blockedUsersList, setBlockedUsersList] = useState<string[]>([]);
+
   const getMaxMessageLength = () => isVipUser ? MAX_MESSAGE_LENGTH_VIP : MAX_MESSAGE_LENGTH_REGULAR;
 
   useEffect(() => {
@@ -239,6 +242,19 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
     }
   }, [userProfile]);
 
+  useEffect(() => {
+    try {
+      const storedBlockedUsers = localStorage.getItem(BLOCKED_USERS_KEY);
+      if (storedBlockedUsers) {
+        const parsedBlockedUsers = JSON.parse(storedBlockedUsers);
+        parsedBlockedUsers.forEach((userId: string) => blockedUsers.add(userId));
+        setBlockedUsersList(Array.from(blockedUsers));
+      }
+    } catch (error) {
+      console.error('Error loading blocked users:', error);
+    }
+  }, []);
+
   const scrollToBottom = () => {
     messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -342,6 +358,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
   const handleBlockUser = () => {
     if (currentChat) {
       blockedUsers.add(currentChat.userId);
+      updateBlockedUsersStorage();
       toast.success(`You have blocked ${currentChat.username}.`);
       setMessages([]);
       setCurrentChat(null);
@@ -351,6 +368,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
 
   const handleUnblockUser = (userId: string) => {
     blockedUsers.delete(userId);
+    updateBlockedUsersStorage();
     setView('chat');
     toast.success('User has been unblocked.');
   };
@@ -742,28 +760,16 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
               <h2 className="text-lg font-medium">Blocked Users</h2>
             </div>
             <ScrollArea className="flex-1 p-4">
-              {Array.from(blockedUsers).length > 0 ? (
+              {blockedUsersList.length > 0 ? (
                 <div className="space-y-2">
-                  {Array.from(blockedUsers).map(userId => {
+                  {blockedUsersList.map(userId => {
                     const username = mockConnectedUsers.get(userId)?.username || 
                                     botProfiles.find(b => b.id === userId)?.username || 
                                     'Unknown User';
                     return (
                       <Card key={userId} className="p-3 flex justify-between items-center">
                         <div className="flex items-center gap-2">
-                          <svg 
-                            xmlns="http://www.w3.org/2000/svg" 
-                            className="h-5 w-5 text-muted-foreground"
-                            viewBox="0 0 24 24" 
-                            fill="none" 
-                            stroke="currentColor" 
-                            strokeWidth="2" 
-                            strokeLinecap="round" 
-                            strokeLinejoin="round"
-                          >
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                            <circle cx="12" cy="7" r="4" />
-                          </svg>
+                          <UserX className="h-5 w-5 text-muted-foreground" />
                           <span>{username}</span>
                         </div>
                         <Button 
@@ -779,19 +785,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                 </div>
               ) : (
                 <div className="text-center text-muted-foreground py-8">
-                  <svg 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    className="h-12 w-12 mx-auto mb-2 opacity-50"
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    strokeWidth="2" 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round"
-                  >
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="m4.93 4.93 14.14 14.14" />
-                  </svg>
+                  <UserX className="h-12 w-12 mx-auto mb-2 opacity-50" />
                   <p className="text-lg">No blocked users</p>
                   <p className="text-sm">When you block someone, they'll appear here</p>
                 </div>
@@ -812,6 +806,15 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
             </Card>
           </div>
         );
+    }
+  };
+
+  const updateBlockedUsersStorage = () => {
+    try {
+      localStorage.setItem(BLOCKED_USERS_KEY, JSON.stringify(Array.from(blockedUsers)));
+      setBlockedUsersList(Array.from(blockedUsers));
+    } catch (error) {
+      console.error('Error saving blocked users:', error);
     }
   };
 
@@ -919,3 +922,4 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
     </div>
   );
 }
+

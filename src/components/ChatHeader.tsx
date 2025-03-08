@@ -44,6 +44,11 @@ export function ChatHeader({
                 Admin
               </Badge>
             )}
+            {isBot && (
+              <Badge variant="outline" className="ml-1 text-[10px] border-primary-foreground/30">
+                Bot
+              </Badge>
+            )}
           </div>
           <div className="text-xs opacity-80 flex items-center gap-1">
             {countryFlag && <span>{countryFlag} </span>}
