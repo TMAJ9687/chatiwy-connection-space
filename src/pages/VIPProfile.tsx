@@ -113,8 +113,14 @@ const VIPProfilePage = () => {
         
         toast.success('Profile completed! Starting chat...');
         
-        // Navigate to chat page with user profile
-        navigate('/chat');
+        // Navigate to chat page with the updated profile as state
+        // This fixes the redirect to landing page issue
+        navigate('/chat', { 
+          state: { 
+            userProfile: updatedProfile 
+          },
+          replace: true // Use replace to prevent back button issues
+        });
       } catch (error) {
         console.error('Error updating user profile:', error);
         toast.error('Something went wrong. Please try again.');

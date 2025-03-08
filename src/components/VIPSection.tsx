@@ -27,14 +27,25 @@ export function VIPSection() {
 
   const handleVIPClick = () => {
     // Check if user is logged in
-    const userProfile = localStorage.getItem('userProfile');
-    if (userProfile) {
-      const user = JSON.parse(userProfile);
-      // If user is already a VIP, go to chat
-      if (user.isVIP) {
-        navigate('/chat');
-      } else {
-        // Otherwise go to registration
+    const userProfileStr = localStorage.getItem('userProfile');
+    if (userProfileStr) {
+      try {
+        const user = JSON.parse(userProfileStr);
+        // If user is already a VIP, go to profile setup or chat
+        if (user.isVIP) {
+          // If user has completed profile with country and interests, go directly to chat
+          if (user.country && user.interests && user.interests.length > 0) {
+            navigate('/chat', { state: { userProfile: user }});
+          } else {
+            // Otherwise go to profile setup
+            navigate('/vip/profile');
+          }
+        } else {
+          // Non-VIP user, show auth modal
+          setShowAuthModal(true);
+        }
+      } catch (error) {
+        console.error('Error parsing user profile:', error);
         setShowAuthModal(true);
       }
     } else {

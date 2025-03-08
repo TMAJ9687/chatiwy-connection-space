@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Helmet } from 'react-helmet';
 import { Navbar } from '@/components/Navbar';
@@ -105,12 +106,17 @@ const ChatPage = () => {
   }, []);
   
   useEffect(() => {
+    // Get session ID
     let sessionId = sessionStorage.getItem(sessionKey);
     if (!sessionId) {
       sessionId = Math.random().toString(36).substring(2, 15);
       sessionStorage.setItem(sessionKey, sessionId);
     }
     
+    // Handle page refresh by checking localStorage instead of just relying on location state
+    const storedUserProfile = localStorage.getItem('userProfile');
+    
+    // If we have location state with userProfile, use that (coming from direct navigation)
     if (location.state?.userProfile) {
       const profile = location.state.userProfile;
       
@@ -181,7 +187,62 @@ const ChatPage = () => {
         
         console.log("Current connected users:", Array.from(mockConnectedUsers.entries()));
       }
-    } else {
+    } 
+    // Handle page refresh: if no location state but we have a stored VIP profile
+    else if (storedUserProfile) {
+      try {
+        const profile = JSON.parse(storedUserProfile);
+        
+        // Only proceed if the profile is valid and is a VIP user
+        if (profile && profile.username) {
+          setIsVipUser(!!profile.isVIP);
+          
+          profile.id = profile.id || sessionId;
+          profile.sessionId = sessionId;
+          profile.isOnline = true;
+          
+          setUserProfile(profile);
+          
+          // Register with socket or add to mock users just like above
+          if (socketConnected) {
+            socketService.registerUser({
+              ...profile,
+              sessionId
+            }).then(registeredUser => {
+              setUserProfile({
+                ...profile,
+                id: registeredUser.id,
+                sessionId
+              });
+            }).catch(error => {
+              console.error('Registration error:', error);
+              // Don't navigate away on refresh errors - just show a toast
+              toast.error('Connection error. Using offline mode.');
+            });
+          } else {
+            // Clean up existing users and add to mock connected users
+            mockConnectedUsers.forEach((user, key) => {
+              if (user.sessionId === sessionId) {
+                mockConnectedUsers.delete(key);
+              }
+            });
+            
+            mockConnectedUsers.set(profile.id, {
+              ...profile,
+              isOnline: true,
+              lastSeen: new Date()
+            });
+          }
+          
+          return; // Successfully loaded profile, don't redirect
+        }
+      } catch (error) {
+        console.error('Error parsing stored user profile:', error);
+      }
+    }
+    
+    // If we reach here with no valid profile, redirect to home
+    if (!location.state?.userProfile && !storedUserProfile) {
       navigate('/');
       toast.error('Please complete your profile first');
     }

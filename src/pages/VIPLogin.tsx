@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
@@ -10,13 +10,29 @@ import { Label } from '@/components/ui/label';
 import { useNavigate } from 'react-router-dom';
 import { X, Mail, Lock, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
-import { isValidVipCode, getVipSettings } from '@/utils/siteSettings';
+import { isValidVipCode, getVipSettings, saveVipTestProfile } from '@/utils/siteSettings';
 
 const VIPLoginPage = () => {
   const navigate = useNavigate();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Check if already logged in as VIP
+  useEffect(() => {
+    const userProfile = localStorage.getItem('userProfile');
+    if (userProfile) {
+      try {
+        const profile = JSON.parse(userProfile);
+        if (profile.isVIP) {
+          // Already logged in as VIP, redirect to profile page
+          navigate('/vip/profile');
+        }
+      } catch (error) {
+        console.error('Error parsing user profile:', error);
+      }
+    }
+  }, [navigate]);
 
   const handleClose = () => {
     navigate('/');
@@ -40,18 +56,25 @@ const VIPLoginPage = () => {
     // In a real app, this would validate against a database
     if (isVipTester || isValidVipCode(password)) {
       // Store VIP user profile in localStorage
-      localStorage.setItem('userProfile', JSON.stringify({
+      const vipProfile = {
         username: identifier,
         isVIP: true,
         joinDate: new Date().toISOString()
-      }));
+      };
+      
+      localStorage.setItem('userProfile', JSON.stringify(vipProfile));
+      
+      // If this is the VIP tester, save the profile for testing purposes
+      if (isVipTester) {
+        saveVipTestProfile(vipProfile);
+      }
       
       toast.success('Login successful! Welcome to VIP.');
       
-      // Redirect to VIP profile setup page
+      // Redirect to VIP profile setup page with clear navigation path
       setTimeout(() => {
         setIsLoading(false);
-        navigate('/vip/profile');
+        navigate('/vip/profile', { replace: true });
       }, 800);
     } else {
       setIsLoading(false);
