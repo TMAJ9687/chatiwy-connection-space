@@ -8,7 +8,7 @@ import { ReportForm } from '@/components/ReportForm';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
-import { History, Ban, MessageSquare } from 'lucide-react';
+import { History, Ban, MessageSquare, Inbox } from 'lucide-react';
 import { 
   Message, 
   BLOCKED_USERS_KEY, 
@@ -70,6 +70,7 @@ export function ChatInterface({
   const [isVipUser, setIsVipUser] = useState(false);
   const [showHistorySidebar, setShowHistorySidebar] = useState(false);
   const [showBlockedSidebar, setShowBlockedSidebar] = useState(false);
+  const [showInboxSidebar, setShowInboxSidebar] = useState(false);
   const [showReportForm, setShowReportForm] = useState(false);
   const [reportedUser, setReportedUser] = useState('');
   const [blockedUsersList, setBlockedUsersList] = useState<string[]>([]);
@@ -565,6 +566,24 @@ export function ChatInterface({
             </TooltipTrigger>
             <TooltipContent>
               <p>Blocked Users</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                className="rounded-full"
+                size="icon"
+                variant="secondary"
+                onClick={() => setShowInboxSidebar(true)}
+              >
+                <Inbox className="h-5 w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Inbox</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

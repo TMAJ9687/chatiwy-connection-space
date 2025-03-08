@@ -97,10 +97,6 @@ export function Navbar({ children }: NavbarProps) {
             {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </button>
           
-          <div className="flex items-center border border-gray-200 dark:border-gray-800 rounded-full px-2 py-1">
-            <img src="https://flagcdn.com/gb.svg" alt="English" className="w-6 h-6 rounded-full object-cover" />
-          </div>
-          
           <Button 
             className="btn-vip hidden sm:flex"
             onClick={handleVIPClick}

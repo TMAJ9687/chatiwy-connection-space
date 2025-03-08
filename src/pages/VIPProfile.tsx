@@ -59,8 +59,8 @@ const VIPProfilePage = () => {
         setAvatarUrl(userProfile.avatar || '');
         setProfileLoaded(true);
         
-        // If not explicitly editing, start in view mode
-        if (!isEditing && !location.state?.edit) {
+        // If not explicitly editing and not a new profile, start in view mode
+        if (!location.state?.edit) {
           setIsEditing(false);
         } else {
           setIsEditing(true);
@@ -145,6 +145,7 @@ const VIPProfilePage = () => {
         
         toast.success('Profile saved successfully!');
         setIsEditing(false);
+        setProfileLoaded(true);
       } catch (error) {
         console.error('Error updating user profile:', error);
         toast.error('Something went wrong. Please try again.');
@@ -248,7 +249,7 @@ const VIPProfilePage = () => {
                         <SelectValue placeholder="Select your age" />
                       </SelectTrigger>
                       <SelectContent>
-                        {ageOptions.map((age) => (
+                        {Array.from({ length: 63 }, (_, i) => i + 18).map((age) => (
                           <SelectItem key={age} value={age.toString()}>
                             {age}
                           </SelectItem>
@@ -271,7 +272,7 @@ const VIPProfilePage = () => {
                         type="button"
                         variant={gender === 'Male' ? 'default' : 'outline'}
                         className={`h-12 ${gender === 'Male' ? 'bg-blue-500 hover:bg-blue-600' : ''}`}
-                        onClick={() => handleGenderSelection('Male')}
+                        onClick={() => setGender('Male')}
                       >
                         Male
                       </Button>
@@ -279,7 +280,7 @@ const VIPProfilePage = () => {
                         type="button"
                         variant={gender === 'Female' ? 'default' : 'outline'}
                         className={`h-12 ${gender === 'Female' ? 'bg-pink-500 hover:bg-pink-600' : ''}`}
-                        onClick={() => handleGenderSelection('Female')}
+                        onClick={() => setGender('Female')}
                       >
                         Female
                       </Button>
@@ -324,7 +325,10 @@ const VIPProfilePage = () => {
                   </label>
                   {isEditing ? (
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                      {interests.map((interest) => {
+                      {["Music", "Movies", "Gaming", "Reading", "Sports", 
+                        "Cooking", "Travel", "Photography", "Art", "Technology",
+                        "Fashion", "Fitness", "Dance", "Writing", "Languages",
+                        "Science", "History", "Nature", "Animals", "Meditation"].map((interest) => {
                         const isSelected = selectedInterests.includes(interest);
                         return (
                           <Button
