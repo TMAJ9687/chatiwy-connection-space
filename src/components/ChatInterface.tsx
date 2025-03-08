@@ -1,4 +1,4 @@
-<lov-code>
+
 import React, { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -60,6 +60,7 @@ import {
 import socketService from '@/services/socketService';
 import { countries } from '@/utils/countryData';
 import { useNavigate } from 'react-router-dom';
+import { getPhotoLimit } from '@/utils/siteSettings';
 
 interface Message {
   id: string;
@@ -172,7 +173,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
   const [messageInput, setMessageInput] = useState('');
   const [lastMessage, setLastMessage] = useState<string>('');
   const [duplicateCount, setDuplicateCount] = useState(0);
-  const [view, setView<'chat' | 'history' | 'inbox' | 'blocked'>>('chat');
+  const [view, setView] = useState<'chat' | 'history' | 'inbox' | 'blocked'>('chat');
   const [isReportFormOpen, setIsReportFormOpen] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [currentEmojiCategory, setCurrentEmojiCategory] = useState<keyof typeof emojiCategories>('smileys');
@@ -459,7 +460,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
     }
 
     try {
-      const photoLimit = isVipUser ? 50 : 10;
+      const photoLimit = getPhotoLimit(isVipUser);
       
       if (imageUploads >= photoLimit) {
         if (isVipUser) {
@@ -830,16 +831,16 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                             size="icon" 
                             onClick={handleImageUpload}
                             className="h-10 w-10"
-                            disabled={imageUploads >= 10}
+                            disabled={imageUploads >= getPhotoLimit(isVipUser)}
                           >
                             <ImageIcon size={20} />
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>
                           <p>
-                            {imageUploads >= 10 
+                            {imageUploads >= getPhotoLimit(isVipUser) 
                               ? 'Daily image upload limit reached' 
-                              : `Add image (${imageUploads}/10)`}
+                              : `Add image (${imageUploads}/${getPhotoLimit(isVipUser)})`}
                           </p>
                         </TooltipContent>
                       </Tooltip>
@@ -869,4 +870,173 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                           <Button 
                             variant="default" 
                             size="icon" 
-                            onClick
+                            onClick={handleSendMessage}
+                            className="h-10 w-10"
+                          >
+                            <Send size={20} />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Send message</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 border-t text-center text-muted-foreground">
+                <AlertTriangle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p>You have blocked this user.</p>
+              </div>
+            )}
+
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              className="hidden" 
+              accept={ALLOWED_IMAGE_TYPES.join(',')}
+              onChange={handleFileChange}
+            />
+
+            {showImageModal && fullResImage && (
+              <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setShowImageModal(false)}>
+                <div className="relative max-w-3xl max-h-[90vh] overflow-auto" onClick={e => e.stopPropagation()}>
+                  <Button 
+                    className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 rounded-full" 
+                    size="icon"
+                    onClick={() => setShowImageModal(false)}
+                  >
+                    <X size={20} />
+                  </Button>
+                  <img src={fullResImage} alt="Full resolution" className="max-w-full max-h-[90vh] object-contain" />
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      
+      case 'history':
+        return (
+          <div className="h-full flex flex-col">
+            <div className="bg-primary text-white p-4 rounded-t-md flex items-center gap-2">
+              <Button variant="ghost" size="icon" onClick={() => setView('chat')} className="text-white hover:bg-primary-foreground/20">
+                <ArrowLeft size={18} />
+              </Button>
+              <h2 className="text-lg font-medium">Message History</h2>
+            </div>
+            <ScrollArea className="flex-1 p-4">
+              <div className="space-y-4">
+                {messages.length > 0 ? (
+                  messages.map(message => (
+                    <Card key={message.id} className="p-3">
+                      <div className="flex justify-between items-start mb-1">
+                        <h3 className="font-medium">{message.sender}</h3>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(message.timestamp).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="text-sm">
+                        {message.image ? (
+                          <div className="mb-2">
+                            <img 
+                              src={message.image.url} 
+                              alt="Shared image" 
+                              className="max-w-full max-h-[200px] object-contain rounded-md" 
+                            />
+                          </div>
+                        ) : (
+                          message.content
+                        )}
+                      </div>
+                    </Card>
+                  ))
+                ) : (
+                  <div className="text-center text-muted-foreground py-8">
+                    <History className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                    <p className="text-lg">No messages yet</p>
+                    <p className="text-sm">Start a conversation to see your message history</p>
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+          </div>
+        );
+        
+      case 'blocked':
+        return (
+          <div className="h-full flex flex-col">
+            <div className="bg-primary text-white p-4 rounded-t-md flex items-center gap-2">
+              <Button variant="ghost" size="icon" onClick={() => setView('chat')} className="text-white hover:bg-primary-foreground/20">
+                <ArrowLeft size={18} />
+              </Button>
+              <h2 className="text-lg font-medium">Blocked Users</h2>
+            </div>
+            <ScrollArea className="flex-1 p-4">
+              {Array.from(blockedUsers).length > 0 ? (
+                <div className="space-y-2">
+                  {Array.from(blockedUsers).map(userId => {
+                    const username = mockConnectedUsers.get(userId)?.username || 'Unknown User';
+                    return (
+                      <Card key={userId} className="p-3 flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <User className="h-5 w-5 text-muted-foreground" />
+                          <span>{username}</span>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => {
+                            blockedUsers.delete(userId);
+                            setView('chat');
+                          }}
+                        >
+                          Unblock
+                        </Button>
+                      </Card>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center text-muted-foreground py-8">
+                  <Ban className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                  <p className="text-lg">No blocked users</p>
+                  <p className="text-sm">When you block someone, they'll appear here</p>
+                </div>
+              )}
+            </ScrollArea>
+          </div>
+        );
+      
+      default:
+        return (
+          <div className="flex items-center justify-center h-full">
+            <Card className="p-6 max-w-md text-center">
+              <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
+              <h2 className="text-lg font-medium mb-2">Select a chat to start messaging</h2>
+              <p className="text-muted-foreground">
+                Choose a user from the list to begin a conversation
+              </p>
+            </Card>
+          </div>
+        );
+    }
+  };
+
+  return (
+    <div className="rounded-md overflow-hidden border border-border h-full">
+      {currentChat && renderContent()}
+      {!currentChat && (
+        <div className="flex items-center justify-center h-full">
+          <Card className="p-6 max-w-md text-center">
+            <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
+            <h2 className="text-lg font-medium mb-2">Select a chat to start messaging</h2>
+            <p className="text-muted-foreground">
+              Choose a user from the list to begin a conversation
+            </p>
+          </Card>
+        </div>
+      )}
+    </div>
+  );
+}
