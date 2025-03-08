@@ -8,6 +8,9 @@ import { CTASection } from '@/components/CTASection';
 import { Footer } from '@/components/Footer';
 import { AdSensePlaceholder } from '@/components/AdSensePlaceholder';
 
+// Add CSS for the chat bubbles
+import '../styles/chat-bubbles.css';
+
 const Index = () => {
   // JSON-LD structured data for rich search results
   const jsonLd = {

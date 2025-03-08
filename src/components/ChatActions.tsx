@@ -1,16 +1,15 @@
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Flag, UserX, Ban, UserMinus, MoreHorizontal, History } from 'lucide-react';
-import { 
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { Button } from "@/components/ui/button";
+import { History, MoreVertical, Flag, Ban, UserX } from 'lucide-react';
 
 interface ChatActionsProps {
   username: string;
@@ -21,85 +20,65 @@ interface ChatActionsProps {
   onViewBlocked: () => void;
 }
 
-export function ChatActions({ 
-  username, 
-  isAdmin = false, 
-  onBlock, 
-  onReport, 
-  onViewHistory, 
-  onViewBlocked 
+export function ChatActions({
+  username,
+  isAdmin = false,
+  onBlock,
+  onReport,
+  onViewHistory,
+  onViewBlocked
 }: ChatActionsProps) {
   return (
-    <div className="flex gap-1">
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="text-white hover:bg-primary-foreground/20"
-              onClick={() => onReport(username)}
-            >
-              <Flag size={18} />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Report User</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+    <div className="flex items-center gap-2">
+      <Button 
+        variant="ghost" 
+        size="icon" 
+        onClick={onBlock}
+        className="text-white hover:bg-primary-foreground/20"
+        title="Block User"
+      >
+        <Ban className="h-5 w-5" />
+      </Button>
       
-      {!isAdmin && (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="text-white hover:bg-primary-foreground/20"
-                onClick={onBlock}
-              >
-                <UserX size={18} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Block User</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      )}
+      <Button 
+        variant="ghost" 
+        size="icon" 
+        onClick={() => onReport(username)}
+        className="text-white hover:bg-primary-foreground/20"
+        title="Report User"
+      >
+        <Flag className="h-5 w-5" />
+      </Button>
       
       <DropdownMenu>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-white hover:bg-primary-foreground/20">
-                  <MoreHorizontal size={18} />
-                </Button>
-              </DropdownMenuTrigger>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>More Options</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <DropdownMenuTrigger asChild>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="text-white hover:bg-primary-foreground/20"
+          >
+            <MoreVertical className="h-5 w-5" />
+          </Button>
+        </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+          <DropdownMenuLabel>Chat Options</DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={onViewHistory}>
             <History className="mr-2 h-4 w-4" />
-            <span>Message History</span>
+            <span>View Message History</span>
           </DropdownMenuItem>
           <DropdownMenuItem onClick={onViewBlocked}>
-            <Ban className="mr-2 h-4 w-4" />
-            <span>Blocked Users</span>
+            <UserX className="mr-2 h-4 w-4" />
+            <span>View Blocked Users</span>
           </DropdownMenuItem>
           {!isAdmin && (
-            <DropdownMenuItem onClick={onBlock}>
-              <UserX className="mr-2 h-4 w-4" />
-              <span>Block User</span>
-            </DropdownMenuItem>
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={onBlock} className="text-destructive">
+                <Ban className="mr-2 h-4 w-4" />
+                <span>Block User</span>
+              </DropdownMenuItem>
+            </>
           )}
         </DropdownMenuContent>
       </DropdownMenu>

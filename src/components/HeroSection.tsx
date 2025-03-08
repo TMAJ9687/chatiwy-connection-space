@@ -53,23 +53,22 @@ export function HeroSection() {
 
   return (
     <section className="relative min-h-screen flex items-center pt-16">
-      {/* Decorative elements */}
+      {/* Decorative elements - Chat bubbles */}
       <div className="absolute inset-0 overflow-hidden -z-10">
-        <div className="floating-bubble bg-teal-200 w-24 h-24 top-1/4 left-1/5 opacity-60"></div>
-        <div className="floating-bubble bg-coral-200 w-32 h-32 top-1/3 right-1/4 opacity-50 animate-delay-2"></div>
-        <div className="floating-bubble bg-amber-200 w-20 h-20 bottom-1/4 left-1/3 opacity-70 animate-delay-1"></div>
-        <div className="floating-bubble bg-teal-100 w-40 h-40 bottom-1/5 right-1/5 opacity-50 animate-delay-3"></div>
+        <div className="chat-bubble bg-red-400 w-32 h-24 rounded-tl-3xl rounded-tr-3xl rounded-bl-3xl top-1/4 left-1/5 opacity-90"></div>
+        <div className="chat-bubble bg-orange-300 w-20 h-14 rounded-tl-2xl rounded-tr-2xl rounded-br-2xl top-1/3 right-1/4 opacity-70 animate-delay-2"></div>
+        <div className="chat-bubble bg-teal-500 w-48 h-40 rounded-tl-[40px] rounded-tr-[40px] rounded-br-[40px] bottom-1/4 left-1/5 opacity-80 animate-delay-1"></div>
+        <div className="chat-bubble bg-teal-400 w-56 h-44 rounded-tl-[50px] rounded-tr-[50px] rounded-bl-[50px] bottom-1/5 right-1/5 opacity-90 animate-delay-3"></div>
+        <div className="chat-bubble bg-red-500 w-12 h-12 rounded-full bottom-1/3 left-1/3 opacity-60"></div>
+        <div className="chat-bubble bg-amber-400 w-16 h-16 rounded-tl-xl rounded-tr-xl rounded-br-xl top-2/5 right-1/3 opacity-80"></div>
+        <div className="chat-bubble bg-red-300 w-8 h-8 rounded-full bottom-2/5 left-1/2 opacity-70"></div>
+        <div className="chat-bubble bg-amber-500 w-5 h-5 rounded-full bottom-1/4 right-1/2 opacity-80"></div>
       </div>
       
       <div className="container mx-auto px-4 grid md:grid-cols-2 gap-12 items-center">
         <div className="relative z-10 animate-fade-in">
-          <div className="relative">
-            <img
-              src="/lovable-uploads/ec98aca3-0a3a-4bc8-8503-f1f89219fb15.png"
-              alt="Chatiwy conversation bubbles"
-              className="w-full max-w-lg mx-auto"
-            />
-          </div>
+          {/* Empty div for the chat bubbles displayed via CSS */}
+          <div className="relative h-96 md:h-auto"></div>
         </div>
         
         <div className="relative z-10">
