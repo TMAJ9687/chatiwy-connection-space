@@ -55,14 +55,22 @@ export function HeroSection() {
     <section className="relative min-h-screen flex items-center pt-16">
       {/* Decorative elements - Chat bubbles */}
       <div className="absolute inset-0 overflow-hidden -z-10">
-        <div className="chat-bubble bg-red-400 w-32 h-24 rounded-tl-3xl rounded-tr-3xl rounded-bl-3xl top-1/4 left-1/5 opacity-90"></div>
-        <div className="chat-bubble bg-orange-300 w-20 h-14 rounded-tl-2xl rounded-tr-2xl rounded-br-2xl top-1/3 right-1/4 opacity-70 animate-delay-2"></div>
-        <div className="chat-bubble bg-teal-500 w-48 h-40 rounded-tl-[40px] rounded-tr-[40px] rounded-br-[40px] bottom-1/4 left-1/5 opacity-80 animate-delay-1"></div>
-        <div className="chat-bubble bg-teal-400 w-56 h-44 rounded-tl-[50px] rounded-tr-[50px] rounded-bl-[50px] bottom-1/5 right-1/5 opacity-90 animate-delay-3"></div>
-        <div className="chat-bubble bg-red-500 w-12 h-12 rounded-full bottom-1/3 left-1/3 opacity-60"></div>
-        <div className="chat-bubble bg-amber-400 w-16 h-16 rounded-tl-xl rounded-tr-xl rounded-br-xl top-2/5 right-1/3 opacity-80"></div>
-        <div className="chat-bubble bg-red-300 w-8 h-8 rounded-full bottom-2/5 left-1/2 opacity-70"></div>
-        <div className="chat-bubble bg-amber-500 w-5 h-5 rounded-full bottom-1/4 right-1/2 opacity-80"></div>
+        {/* Concentrated in the center with more bubbles */}
+        <div className="chat-bubble bg-red-400 w-32 h-24 rounded-tl-3xl rounded-tr-3xl rounded-bl-3xl top-1/3 left-1/3 opacity-80 hover:scale-110 hover:opacity-100 transition-all duration-300 cursor-pointer"></div>
+        <div className="chat-bubble bg-amber-300 w-20 h-14 rounded-tl-2xl rounded-tr-2xl rounded-br-2xl top-2/5 left-1/2 opacity-70 animate-delay-2 hover:scale-110 hover:opacity-100 transition-all duration-300 cursor-pointer"></div>
+        <div className="chat-bubble bg-teal-500 w-48 h-40 rounded-tl-[40px] rounded-tr-[40px] rounded-br-[40px] top-1/2 left-2/5 opacity-70 animate-delay-1 hover:scale-110 hover:opacity-100 transition-all duration-300 cursor-pointer"></div>
+        <div className="chat-bubble bg-teal-400 w-56 h-44 rounded-tl-[50px] rounded-tr-[50px] rounded-bl-[50px] top-2/5 right-1/3 opacity-80 animate-delay-3 hover:scale-110 hover:opacity-100 transition-all duration-300 cursor-pointer"></div>
+        <div className="chat-bubble bg-red-500 w-12 h-12 rounded-full top-1/3 right-1/2 opacity-60 hover:scale-110 hover:opacity-100 transition-all duration-300 cursor-pointer"></div>
+        <div className="chat-bubble bg-purple-400 w-16 h-16 rounded-tl-xl rounded-tr-xl rounded-br-xl top-2/5 left-[45%] opacity-70 hover:scale-110 hover:opacity-100 transition-all duration-300 cursor-pointer"></div>
+        <div className="chat-bubble bg-red-300 w-8 h-8 rounded-full top-1/2 left-[55%] opacity-60 hover:scale-110 hover:opacity-100 transition-all duration-300 cursor-pointer"></div>
+        <div className="chat-bubble bg-amber-500 w-5 h-5 rounded-full top-2/5 right-[45%] opacity-70 hover:scale-110 hover:opacity-100 transition-all duration-300 cursor-pointer"></div>
+        
+        {/* Additional bubbles concentrated in center */}
+        <div className="chat-bubble bg-blue-400 w-24 h-18 rounded-tl-2xl rounded-tr-2xl rounded-bl-2xl top-[48%] left-[48%] opacity-75 hover:scale-110 hover:opacity-100 transition-all duration-300 cursor-pointer"></div>
+        <div className="chat-bubble bg-green-400 w-14 h-10 rounded-tl-xl rounded-tr-xl rounded-br-xl top-[52%] left-[46%] opacity-65 hover:scale-110 hover:opacity-100 transition-all duration-300 cursor-pointer"></div>
+        <div className="chat-bubble bg-pink-400 w-10 h-10 rounded-full top-[45%] left-[52%] opacity-70 hover:scale-110 hover:opacity-100 transition-all duration-300 cursor-pointer"></div>
+        <div className="chat-bubble bg-indigo-400 w-18 h-14 rounded-tl-2xl rounded-tr-2xl rounded-br-2xl top-[55%] left-[49%] opacity-75 animate-delay-2 hover:scale-110 hover:opacity-100 transition-all duration-300 cursor-pointer"></div>
+        <div className="chat-bubble bg-yellow-400 w-7 h-7 rounded-full top-[42%] left-[51%] opacity-65 hover:scale-110 hover:opacity-100 transition-all duration-300 cursor-pointer"></div>
       </div>
       
       <div className="container mx-auto px-4 grid md:grid-cols-2 gap-12 items-center">

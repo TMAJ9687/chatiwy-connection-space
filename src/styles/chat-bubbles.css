@@ -4,6 +4,14 @@
   position: absolute;
   transform: rotate(-5deg);
   animation: float 8s ease-in-out infinite;
+  transition: transform 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease;
+  z-index: 1;
+}
+
+.chat-bubble:hover {
+  z-index: 10;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  animation-play-state: paused;
 }
 
 .chat-bubble:nth-child(odd) {
