@@ -39,10 +39,16 @@ export function ChatActions({
   onViewBlocked
 }: ChatActionsProps) {
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
+  const [showReportConfirm, setShowReportConfirm] = useState(false);
 
   const handleBlockConfirm = () => {
     setShowBlockConfirm(false);
     onBlock();
+  };
+
+  const handleReportConfirm = () => {
+    setShowReportConfirm(false);
+    onReport(username);
   };
 
   return (
@@ -60,7 +66,7 @@ export function ChatActions({
       <Button 
         variant="ghost" 
         size="icon" 
-        onClick={() => onReport(username)}
+        onClick={() => setShowReportConfirm(true)}
         className="text-white hover:bg-primary-foreground/20"
         title="Report User"
       >
@@ -95,7 +101,7 @@ export function ChatActions({
                 <Ban className="mr-2 h-4 w-4" />
                 <span>Block User</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onReport(username)} className="text-destructive">
+              <DropdownMenuItem onClick={() => setShowReportConfirm(true)} className="text-destructive">
                 <Flag className="mr-2 h-4 w-4" />
                 <span>Report User</span>
               </DropdownMenuItem>
@@ -116,6 +122,23 @@ export function ChatActions({
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleBlockConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Block User
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showReportConfirm} onOpenChange={setShowReportConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Report User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to report "{username}"? Our moderators will review this report.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleReportConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Report User
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

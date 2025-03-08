@@ -1,7 +1,7 @@
 
 import { countries } from '@/utils/countryData';
 import { botProfiles } from '@/utils/botProfiles';
-import { STANDARD_AVATARS } from './types';
+import { STANDARD_AVATARS, MALE_AVATARS, FEMALE_AVATARS } from './types';
 
 // Utility function to get country flag
 export const getCountryFlag = (countryName?: string): string => {
@@ -18,6 +18,12 @@ export const getAvatarUrl = (name: string, gender: string): string => {
   return gender.toLowerCase() === 'male' 
     ? STANDARD_AVATARS.male 
     : STANDARD_AVATARS.female;
+};
+
+// Function to get VIP avatar URL
+export const getVIPAvatarUrl = (gender: string, index: number = 0): string => {
+  const avatars = gender.toLowerCase() === 'male' ? MALE_AVATARS : FEMALE_AVATARS;
+  return avatars[index % avatars.length];
 };
 
 // Function to get connected users

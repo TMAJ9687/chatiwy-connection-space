@@ -4,8 +4,9 @@ import { MessageList } from '@/components/MessageList';
 import { ChatHeader } from '@/components/ChatHeader';
 import { Card } from '@/components/ui/card';
 import { MessageSquare } from 'lucide-react';
-import { Message, getAvatarUrl, getGenderForAvatar, getCountryFlag } from '@/utils/chatUtils';
+import { Message, getCountryFlag } from '@/utils/chatUtils';
 import { botProfiles } from '@/utils/botProfiles';
+import { STANDARD_AVATARS, MALE_AVATARS, FEMALE_AVATARS } from '@/components/connected-users/types';
 
 interface ChatMessageSectionProps {
   currentChat: {
@@ -52,6 +53,14 @@ export function ChatMessageSection({
       </div>
     );
   }
+
+  const getAvatarForChat = (username: string, isBot: boolean) => {
+    const botProfile = botProfiles.find(b => b.id === currentChat.userId);
+    const gender = botProfile?.gender || 'Male';
+    
+    // For bots and regular users, use standard avatars
+    return gender.toLowerCase() === 'male' ? STANDARD_AVATARS.male : STANDARD_AVATARS.female;
+  };
   
   return (
     <div className="flex flex-col h-full">
@@ -59,10 +68,7 @@ export function ChatMessageSection({
         username={currentChat.username}
         isAdmin={currentChat.isAdmin}
         isBot={currentChat.isBot}
-        avatarUrl={getAvatarUrl(
-          currentChat.username, 
-          getGenderForAvatar(currentChat.username, currentChat.isBot)
-        )}
+        avatarUrl={getAvatarForChat(currentChat.username, currentChat.isBot)}
         countryFlag={getCountryFlag(botProfiles.find(b => b.id === currentChat.userId)?.country)}
         interests={botProfiles.find(b => b.id === currentChat.userId)?.interests?.slice(0, 2)}
         onBlock={onBlockUser}
