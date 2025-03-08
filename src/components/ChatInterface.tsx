@@ -8,7 +8,7 @@ import { ReportForm } from '@/components/ReportForm';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
-import { History, Ban, MessageSquare, Inbox } from 'lucide-react';
+import { History, Ban, MessageSquare, Inbox, Flag } from 'lucide-react';
 import { 
   Message, 
   BLOCKED_USERS_KEY, 
@@ -23,6 +23,16 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { botProfiles } from '@/utils/botProfiles';
 import { toast } from 'sonner';
 import socketService from '@/services/socketService';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface ChatInterfaceProps {
   userProfile: any;
@@ -75,6 +85,7 @@ export function ChatInterface({
   const [reportedUser, setReportedUser] = useState('');
   const [blockedUsersList, setBlockedUsersList] = useState<string[]>([]);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+  const [showBlockConfirm, setShowBlockConfirm] = useState(false);
   
   const messageEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -247,11 +258,29 @@ export function ChatInterface({
   
   const handleBlockUser = () => {
     if (currentChat) {
+      setShowBlockConfirm(true);
+    } else {
+      toast.error("Please select a chat first");
+    }
+  };
+  
+  const confirmBlockUser = () => {
+    if (currentChat) {
       blockedUsers.add(currentChat.userId);
       updateBlockedUsersStorage();
       setMessages([]);
       setCurrentChat(null);
       onUserSelect(null);
+      setShowBlockConfirm(false);
+    }
+  };
+  
+  const handleReportUserButton = () => {
+    if (currentChat) {
+      setReportedUser(currentChat.username);
+      setShowReportForm(true);
+    } else {
+      toast.error("Please select a chat first");
     }
   };
   
@@ -487,8 +516,26 @@ export function ChatInterface({
           isOpen={showReportForm}
           onClose={handleReportClose}
           userName={reportedUser}
+          onSubmitReport={(reason) => onUserSelect(null)}
         />
       )}
+      
+      <AlertDialog open={showBlockConfirm} onOpenChange={setShowBlockConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Block User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to block "{currentChat?.username}"? You won't receive messages from them anymore.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmBlockUser} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Block User
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       
       {currentChat ? (
         <div className="flex flex-col h-full">
@@ -552,6 +599,42 @@ export function ChatInterface({
       />
 
       <div className="absolute top-4 right-4 flex gap-2">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                className="rounded-full"
+                size="icon"
+                variant="destructive"
+                onClick={handleBlockUser}
+              >
+                <Ban className="h-5 w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Block User</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                className="rounded-full"
+                size="icon"
+                variant="warning"
+                onClick={handleReportUserButton}
+              >
+                <Flag className="h-5 w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Report User</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
