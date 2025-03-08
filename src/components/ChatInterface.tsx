@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -112,7 +113,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
   const [messageInput, setMessageInput] = useState('');
   const [lastMessage, setLastMessage] = useState<string>('');
   const [duplicateCount, setDuplicateCount] = useState(0);
-  const [view, setView<'chat' | 'history' | 'inbox' | 'blocked'>>('chat');
+  const [view, setView] = useState<'chat' | 'history' | 'inbox' | 'blocked'>('chat');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const messageEndRef = useRef<HTMLDivElement>(null);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
