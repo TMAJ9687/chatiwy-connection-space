@@ -56,7 +56,7 @@ const mockInboxMessages: InboxMessage[] = [];
 const ChatPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [showGuidance, setShowGuidance] = useState(false);
+  const [showGuidance, setShowGuidance] = useState(true); // Changed to true by default
   const [userProfile, setUserProfile] = useState<any>(null);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [socketConnected, setSocketConnected] = useState(false);

@@ -1,72 +1,29 @@
 
 import React, { useState, useEffect, useRef, ChangeEvent } from 'react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Textarea } from '@/components/ui/textarea';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Card } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { ReportForm } from '@/components/ReportForm';
+import { ChatHeader } from '@/components/ChatHeader';
+import { MessageInput } from '@/components/MessageInput';
+import { EmojiPicker } from '@/components/EmojiPicker';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { 
-  Send, 
-  Image as ImageIcon,
-  Mic, 
-  Smile, 
-  MoreHorizontal, 
   AlertTriangle,
-  User,
-  Flag,
-  UserX,
+  MessageSquare,
   History,
-  Inbox,
-  Bell,
-  BellDot,
-  Ban,
-  AlertOctagon,
-  Wifi,
-  WifiOff,
-  ShieldAlert,
-  UserMinus,
   Eye,
   EyeOff,
   X,
-  MessageSquare,
-  LogOut,
-  ArrowLeft,
+  Wifi,
+  WifiOff
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { botProfiles, getRandomBotResponse } from '@/utils/botProfiles';
-import { 
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import socketService from '@/services/socketService';
 import { countries } from '@/utils/countryData';
-import { useNavigate } from 'react-router-dom';
 import { getPhotoLimit } from '@/utils/siteSettings';
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 interface Message {
   id: string;
@@ -112,38 +69,14 @@ declare global {
 }
 window.unreadMessagesPerUser = new Set<string>();
 
-const emojiCategories = {
-  smileys: ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '🥲', '☺️', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘'],
-  gestures: ['👋', '🤚', '🖐', '✋', '🖖', '👌', '🤌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '👇', '👍', '👎'],
-  people: ['👶', '👧', '🧒', '👦', '👩', '🧑', '👨', '👩‍🦱', '🧑‍🦱', '👨‍🦱', '👩‍🦰', '🧑‍🦰', '👨‍🦰', '👱‍♀️', '👱'],
-  animals: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐻‍❄️', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🙈', '🙉'],
-  food: ['🍏', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅'],
-  activities: ['⚽️', '🏀', '🏈', '⚾️', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏'],
-  travel: ['🚗', '🚕', '🚙', '🚌', '🚎', '🏎', '🚓', '🚑', '🚒', '🚐', '🛻', '🚚', '🚛', '🚜', '🦯', '🦽', '🦼', '🛴'],
-  symbols: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❤️‍🔥', '❤️‍🩹', '❣️', '💕', '💞', '💓', '💗', '💖']
-};
-
-const allEmojis = [
-  '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '🥲', '☺️', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘',
-  '👋', '🤚', '🖐', '✋', '🖖', '👌', '🤌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '👇', '👍', '👎',
-  '👶', '👧', '🧒', '👦', '👩', '🧑', '👨', '👩‍🦱', '🧑‍🦱', '👨‍🦱', '👩‍🦰', '🧑‍🦰', '👨‍🦰', '👱‍♀️', '👱',
-  '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐻‍❄️', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🙈', '🙉',
-  '🍏', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅',
-  '⚽️', '🏀', '🏈', '⚾️', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏',
-  '🚗', '🚕', '🚙', '🚌', '🚎', '🏎', '🚓', '🚑', '🚒', '🚐', '🛻', '🚚', '🚛', '🚜', '🦯', '🦽', '🦼', '🛴',
-  '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❤️‍🔥', '❤️‍🩹', '❣️', '💕', '💞', '💓', '💗', '💖',
-  '😎', '🤓', '🧐', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭',
-  '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🫣', '🤗', '🫡', '🤔', '🫢',
-  '👨‍👩‍👧‍👦', '👨‍👩‍👧', '👨‍👩‍👦‍👦', '👨‍👩‍👧‍👧', '👩‍👩‍👦', '👩‍👩‍👧', '👩‍👩‍👧‍👦', '👩‍👩‍👦‍👦', '👩‍👩‍👧‍👧',
-  '🌍', '🌎', '🌏', '🌱', '🌲', '🌳', '🌴', '🌵', '🌷', '🌸', '🌹', '🌺', '🌻', '🌼', '🌽', '🌾', '🌿', '☘️', '🍀',
-  '🎄', '🎉', '🎊', '🎈', '🎁', '🎂', '🎀', '🪄', '🧨', '✨', '🎐', '🎏', '🎎', '🎌', '🧧', '📮', '📫', '📯'
-];
-
 const IMAGE_UPLOADS_KEY = 'chatiwy_daily_image_uploads';
 const IMAGE_UPLOADS_DATE_KEY = 'chatiwy_image_uploads_date';
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
 const GUIDANCE_ACCEPTED_KEY = 'chatiwy_guidance_accepted';
+
+const MAX_MESSAGE_LENGTH_REGULAR = 140;
+const MAX_MESSAGE_LENGTH_VIP = 200;
 
 const getAvatarUrl = (username: string, gender: string = 'male') => {
   const nameHash = username.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -166,9 +99,6 @@ const getCountryFlag = (countryCode: string | undefined) => {
   return country.flag || country.code;
 };
 
-const MAX_MESSAGE_LENGTH_REGULAR = 140;
-const MAX_MESSAGE_LENGTH_VIP = 200;
-
 export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketConnected = false }: ChatInterfaceProps) {
   const [currentChat, setCurrentChat] = useState<{
     userId: string;
@@ -181,18 +111,14 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
   const [lastMessage, setLastMessage] = useState<string>('');
   const [duplicateCount, setDuplicateCount] = useState(0);
   const [view, setView] = useState<'chat' | 'history' | 'inbox' | 'blocked'>('chat');
-  const [isReportFormOpen, setIsReportFormOpen] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [currentEmojiCategory, setCurrentEmojiCategory] = useState<keyof typeof emojiCategories>('smileys');
   const messageEndRef = useRef<HTMLDivElement>(null);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imageUploads, setImageUploads] = useState<number>(0);
-  const navigate = useNavigate();
   const [showImageModal, setShowImageModal] = useState(false);
   const [fullResImage, setFullResImage] = useState<string | null>(null);
   const [isVipUser, setIsVipUser] = useState(false);
@@ -586,14 +512,6 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
     });
   };
 
-  const handleVoiceMessage = () => {
-    if (!isVipUser) {
-      toast.info('Voice messages are available for VIP users only. Upgrade to VIP for full access!');
-    } else {
-      toast.info('Voice recording started...');
-    }
-  };
-
   const openImageInFullResolution = (imageUrl: string) => {
     setFullResImage(imageUrl);
     setShowImageModal(true);
@@ -633,85 +551,27 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
       case 'chat':
         return (
           <div className="flex flex-col h-full">
-            <div className="bg-primary text-white p-4 rounded-t-md flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <img 
-                  src={getAvatarUrl(
-                    currentChat?.username || 'User', 
-                    getGenderForAvatar(currentChat?.username || 'User', currentChat?.isBot)
-                  )} 
-                  alt="Avatar" 
-                  className="w-10 h-10 rounded-full" 
-                />
-                <div>
-                  <div className="font-semibold flex items-center gap-1">
-                    {currentChat?.username} 
-                    {currentChat?.isAdmin && (
-                      <Badge variant="success" className="ml-1 text-[10px]">
-                        Admin
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="text-xs opacity-80 flex items-center gap-1">
-                    {currentChat?.isBot ? (
-                      <>
-                        {getCountryFlag(botProfiles.find(b => b.id === currentChat.userId)?.country)}
-                        {' '}
-                        {botProfiles.find(b => b.id === currentChat.userId)?.interests.slice(0, 2).join(', ')}
-                      </>
-                    ) : (
-                      <>
-                        {userProfile.interests && userProfile.interests.length > 0 
-                          ? userProfile.interests.slice(0, 2).join(', ')
-                          : 'Chatiwy user'}
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div className="flex gap-1">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="text-white hover:bg-primary-foreground/20"
-                  onClick={() => handleReport(currentChat?.username || 'User')}
-                >
-                  <Flag size={18} />
-                </Button>
-                
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="text-white hover:bg-primary-foreground/20">
-                      <MoreHorizontal size={18} />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => setView('history')}>
-                      <History className="mr-2 h-4 w-4" />
-                      <span>Message History</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setView('blocked')}>
-                      <Ban className="mr-2 h-4 w-4" />
-                      <span>Blocked Users</span>
-                    </DropdownMenuItem>
-                    {!currentChat?.isAdmin && currentChat && (
-                      <DropdownMenuItem onClick={handleBlockUser}>
-                        <UserX className="mr-2 h-4 w-4" />
-                        <span>Block User</span>
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </div>
+            {currentChat && (
+              <ChatHeader 
+                username={currentChat.username}
+                isAdmin={currentChat.isAdmin}
+                isBot={currentChat.isBot}
+                avatarUrl={getAvatarUrl(
+                  currentChat.username, 
+                  getGenderForAvatar(currentChat.username, currentChat.isBot)
+                )}
+                countryFlag={getCountryFlag(botProfiles.find(b => b.id === currentChat.userId)?.country)}
+                interests={botProfiles.find(b => b.id === currentChat.userId)?.interests.slice(0, 2)}
+                onBlock={handleBlockUser}
+                onReport={handleReport}
+                onViewHistory={() => setView('history')}
+                onViewBlocked={() => setView('blocked')}
+              />
+            )}
             
-            <ScrollArea 
-              className="flex-1 p-4 overflow-auto"
-            >
+            <ScrollArea className="flex-1 p-4 overflow-auto">
               <div className="space-y-4">
-                {messages.map((message, index) => (
+                {messages.map((message) => (
                   <div 
                     key={message.id} 
                     className={`flex ${message.sender === userProfile.username ? 'justify-end' : 'justify-start'}`}
@@ -774,148 +634,27 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
               </div>
             </ScrollArea>
             
-            {imagePreview && (
-              <div className="p-4 border-t">
-                <div className="flex justify-between items-center mb-2">
-                  <p className="text-sm font-medium">Image preview</p>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={cancelImageUpload}
-                    className="h-8 w-8 p-0"
-                  >
-                    <X size={16} />
-                  </Button>
-                </div>
-                <img 
-                  src={imagePreview} 
-                  alt="Upload preview" 
-                  className="max-h-[200px] rounded-md mx-auto object-contain" 
-                />
-                <div className="flex justify-end mt-2">
-                  <Button onClick={sendImageMessage} size="sm">
-                    Send Image
-                  </Button>
-                </div>
-              </div>
-            )}
-            
             {!blockedUsers.has(currentChat?.userId || '') ? (
-              <div className="p-4 border-t">
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 relative">
-                    {showEmojiPicker && (
-                      <Card className="absolute bottom-full mb-2 p-2 max-h-[300px] w-full overflow-auto">
-                        <div className="grid grid-cols-8 gap-1">
-                          {allEmojis.map((emoji, index) => (
-                            <Button 
-                              key={index} 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-14 w-14 p-0 text-2xl"
-                              onClick={() => handleEmojiClick(emoji)}
-                            >
-                              {emoji}
-                            </Button>
-                          ))}
-                        </div>
-                      </Card>
-                    )}
-                    
-                    <div className="flex h-10 w-full items-center relative">
-                      <Input
-                        value={messageInput}
-                        onChange={handleInputChange}
-                        onKeyDown={handleKeyDown}
-                        placeholder="Type a message..."
-                        className="pr-16 h-10"
-                        maxLength={getMaxMessageLength()}
-                      />
-                      <div className="absolute right-2 text-xs text-muted-foreground pointer-events-none">
-                        {messageInput.length}/{getMaxMessageLength()}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex gap-1">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            variant="outline" 
-                            size="icon" 
-                            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                            className="h-10 w-10"
-                          >
-                            <Smile size={20} />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Add emoji</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            variant="outline" 
-                            size="icon" 
-                            onClick={handleImageUpload}
-                            className="h-10 w-10"
-                            disabled={imageUploads >= getPhotoLimit(isVipUser)}
-                          >
-                            <ImageIcon size={20} />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>
-                            {imageUploads >= getPhotoLimit(isVipUser) 
-                              ? 'Daily image upload limit reached' 
-                              : `Add image (${imageUploads}/${getPhotoLimit(isVipUser)})`}
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            variant="outline" 
-                            size="icon" 
-                            onClick={handleVoiceMessage}
-                            className="h-10 w-10"
-                          >
-                            <Mic size={20} />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Voice messages (VIP only)</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            variant="default" 
-                            size="icon" 
-                            onClick={handleSendMessage}
-                            className="h-10 w-10"
-                          >
-                            <Send size={20} />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Send message</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                </div>
+              <div className="relative">
+                {showEmojiPicker && (
+                  <EmojiPicker onEmojiClick={handleEmojiClick} />
+                )}
+                
+                <MessageInput 
+                  messageInput={messageInput}
+                  imagePreview={imagePreview}
+                  isVipUser={isVipUser}
+                  imageUploads={imageUploads}
+                  onInputChange={handleInputChange}
+                  onKeyDown={handleKeyDown}
+                  onSendMessage={handleSendMessage}
+                  onEmojiPickerToggle={() => setShowEmojiPicker(!showEmojiPicker)}
+                  onImageUpload={handleImageUpload}
+                  onSendImage={sendImageMessage}
+                  onCancelImage={cancelImageUpload}
+                  maxMessageLength={getMaxMessageLength()}
+                  showEmojiPicker={showEmojiPicker}
+                />
               </div>
             ) : (
               <div className="p-4 border-t text-center text-muted-foreground">
@@ -954,7 +693,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
           <div className="h-full flex flex-col">
             <div className="bg-primary text-white p-4 rounded-t-md flex items-center gap-2">
               <Button variant="ghost" size="icon" onClick={() => setView('chat')} className="text-white hover:bg-primary-foreground/20">
-                <ArrowLeft size={18} />
+                <X size={18} />
               </Button>
               <h2 className="text-lg font-medium">Message History</h2>
             </div>
@@ -1001,7 +740,7 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
           <div className="h-full flex flex-col">
             <div className="bg-primary text-white p-4 rounded-t-md flex items-center gap-2">
               <Button variant="ghost" size="icon" onClick={() => setView('chat')} className="text-white hover:bg-primary-foreground/20">
-                <ArrowLeft size={18} />
+                <X size={18} />
               </Button>
               <h2 className="text-lg font-medium">Blocked Users</h2>
             </div>
@@ -1015,7 +754,19 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                     return (
                       <Card key={userId} className="p-3 flex justify-between items-center">
                         <div className="flex items-center gap-2">
-                          <User className="h-5 w-5 text-muted-foreground" />
+                          <svg 
+                            xmlns="http://www.w3.org/2000/svg" 
+                            className="h-5 w-5 text-muted-foreground"
+                            viewBox="0 0 24 24" 
+                            fill="none" 
+                            stroke="currentColor" 
+                            strokeWidth="2" 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round"
+                          >
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                            <circle cx="12" cy="7" r="4" />
+                          </svg>
                           <span>{username}</span>
                         </div>
                         <Button 
@@ -1031,7 +782,19 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
                 </div>
               ) : (
                 <div className="text-center text-muted-foreground py-8">
-                  <Ban className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                  <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    className="h-12 w-12 mx-auto mb-2 opacity-50"
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="2" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="m4.93 4.93 14.14 14.14" />
+                  </svg>
                   <p className="text-lg">No blocked users</p>
                   <p className="text-sm">When you block someone, they'll appear here</p>
                 </div>
