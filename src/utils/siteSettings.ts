@@ -27,11 +27,11 @@ export const defaultSettings: SiteSettings = {
   siteName: "Chatiwy",
   siteUrl: "https://chatiwy.app",
   vipPhotoLimit: 50, // VIP users get higher limits
-  vipAccessCode: "CHATIWY-VIP-TEST", // Default VIP access code for testing
+  vipAccessCode: "CHATIWY-VIP-2023", // Default VIP access code (password for VIP_Tester)
   vipPricing: {
-    monthly: 9.99,
-    yearly: 99.99,
-    lifetime: 299.99
+    monthly: 5.00,
+    yearly: 49.99,
+    lifetime: 199.99
   }
 };
 
@@ -119,12 +119,23 @@ export function updateVipSettings(photoLimit: number, accessCode: string, pricin
 // Get VIP test profile
 export function getVipTestProfile(): any {
   try {
-    const profile = localStorage.getItem('vip_test_profile');
-    if (profile) {
-      return JSON.parse(profile);
-    }
+    const testProfile = {
+      id: "vip_test_id_123",
+      username: "VIP_Tester",
+      isVIP: true,
+      email: "vip_tester@chatiwy.app",
+      gender: "male",
+      country: "US",
+      interests: ["chatting", "music", "travel", "technology"],
+      registrationDate: new Date().toISOString(),
+      photoUploaded: 0,
+      accessCode: defaultSettings.vipAccessCode
+    };
+    
+    localStorage.setItem('vip_test_profile', JSON.stringify(testProfile));
+    return testProfile;
   } catch (error) {
-    console.error('Error loading VIP test profile:', error);
+    console.error('Error creating VIP test profile:', error);
   }
   
   return null;
