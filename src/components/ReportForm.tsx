@@ -18,9 +18,10 @@ export interface ReportFormProps {
   isOpen: boolean;
   onClose: () => void;
   userName: string;
+  onSubmitReport?: (reason: string) => void;
 }
 
-export const ReportForm = ({ isOpen, onClose, userName }: ReportFormProps) => {
+export const ReportForm = ({ isOpen, onClose, userName, onSubmitReport }: ReportFormProps) => {
   const [reportReason, setReportReason] = useState<string>('');
   const [otherReason, setOtherReason] = useState<string>('');
   
@@ -43,6 +44,11 @@ export const ReportForm = ({ isOpen, onClose, userName }: ReportFormProps) => {
     
     // Here we would submit the report to the backend
     toast.success(`Report against ${userName} submitted successfully`);
+    
+    // Call the callback with the reason
+    if (onSubmitReport) {
+      onSubmitReport(reportReason === 'other' ? otherReason : reportReason);
+    }
     
     // Reset form and close
     setReportReason('');

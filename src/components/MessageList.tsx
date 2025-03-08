@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Mic } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface Message {
@@ -16,6 +16,9 @@ interface Message {
   image?: {
     url: string;
     blurred: boolean;
+  };
+  audio?: {
+    url: string;
   };
 }
 
@@ -81,6 +84,17 @@ export function MessageList({
                       </Button>
                     </div>
                   )}
+                </div>
+              ) : message.audio ? (
+                <div className="mb-2">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Mic size={16} className={message.sender === currentUsername ? 'text-primary-foreground' : ''} />
+                    <span className="text-sm">Voice message</span>
+                  </div>
+                  <audio controls className="w-full max-w-[240px]">
+                    <source src={message.audio.url} type="audio/wav" />
+                    Your browser does not support the audio element.
+                  </audio>
                 </div>
               ) : (
                 <div className="break-words">{message.content}</div>

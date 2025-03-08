@@ -20,6 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { ReportForm } from '@/components/ReportForm';
 
 interface ChatActionsProps {
   username: string;
@@ -39,16 +40,16 @@ export function ChatActions({
   onViewBlocked
 }: ChatActionsProps) {
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
-  const [showReportConfirm, setShowReportConfirm] = useState(false);
+  const [showReportForm, setShowReportForm] = useState(false);
 
   const handleBlockConfirm = () => {
     setShowBlockConfirm(false);
     onBlock();
   };
 
-  const handleReportConfirm = () => {
-    setShowReportConfirm(false);
+  const handleReportUser = (username: string) => {
     onReport(username);
+    setShowReportForm(false);
   };
 
   return (
@@ -66,7 +67,7 @@ export function ChatActions({
       <Button 
         variant="ghost" 
         size="icon" 
-        onClick={() => setShowReportConfirm(true)}
+        onClick={() => setShowReportForm(true)}
         className="text-white hover:bg-primary-foreground/20"
         title="Report User"
       >
@@ -101,7 +102,7 @@ export function ChatActions({
                 <Ban className="mr-2 h-4 w-4" />
                 <span>Block User</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setShowReportConfirm(true)} className="text-destructive">
+              <DropdownMenuItem onClick={() => setShowReportForm(true)} className="text-destructive">
                 <Flag className="mr-2 h-4 w-4" />
                 <span>Report User</span>
               </DropdownMenuItem>
@@ -127,22 +128,12 @@ export function ChatActions({
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={showReportConfirm} onOpenChange={setShowReportConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Report User</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to report "{username}"? Our moderators will review this report.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleReportConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Report User
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ReportForm 
+        isOpen={showReportForm} 
+        onClose={() => setShowReportForm(false)} 
+        userName={username}
+        onSubmitReport={(reason) => handleReportUser(username)}
+      />
     </div>
   );
 }
