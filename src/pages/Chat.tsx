@@ -9,7 +9,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import socketService from '@/services/socketService';
 import { Button } from '@/components/ui/button';
-import { MessageSquare, X, Inbox, User, ArrowLeft } from 'lucide-react';
+import { MessageSquare, X, Inbox, User, ArrowLeft, LogOut } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
