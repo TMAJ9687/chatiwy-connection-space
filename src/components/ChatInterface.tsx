@@ -8,6 +8,8 @@ import { ReportForm } from '@/components/ReportForm';
 import { ChatHeader } from '@/components/ChatHeader';
 import { MessageInput } from '@/components/MessageInput';
 import { EmojiPicker } from '@/components/EmojiPicker';
+import { BlockedUsersSidebar } from '@/components/BlockedUsersSidebar';
+import { ChatHistorySidebar } from '@/components/ChatHistorySidebar';
 import {
   AlertTriangle,
   MessageSquare,
@@ -25,7 +27,7 @@ import { botProfiles, getRandomBotResponse } from '@/utils/botProfiles';
 import socketService from '@/services/socketService';
 import { countries } from '@/utils/countryData';
 import { getPhotoLimit } from '@/utils/siteSettings';
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 interface Message {
   id: string;
@@ -134,61 +136,6 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
   const getMaxMessageLength = () => isVipUser ? MAX_MESSAGE_LENGTH_VIP : MAX_MESSAGE_LENGTH_REGULAR;
 
   useEffect(() => {
-    if (selectedUser) {
-      if (!socketConnected && mockConnectedUsers.size === 0) {
-        botProfiles.forEach(bot => {
-          mockConnectedUsers.set(bot.id, {
-            id: bot.id,
-            username: bot.username,
-            isBot: false,
-            interests: bot.interests,
-            gender: bot.gender,
-            country: bot.country,
-            age: bot.age,
-            isOnline: true
-          });
-        });
-      }
-
-      const user = socketConnected
-        ? { 
-            id: selectedUser, 
-            username: botProfiles.find(b => b.id === selectedUser)?.username || 'User',
-            isBot: false
-          }
-        : mockConnectedUsers.get(selectedUser);
-
-      if (user) {
-        setCurrentChat({
-          userId: user.id,
-          username: user.username,
-          isBot: false,
-          isAdmin: !!user.isAdmin
-        });
-      }
-    } else {
-      setCurrentChat(null);
-    }
-  }, [selectedUser, socketConnected]);
-
-  useEffect(() => {
-    if (currentChat) {
-      const userId = currentChat.userId;
-      if (userChatHistories[userId]) {
-        setMessages(userChatHistories[userId]);
-      } else {
-        setMessages([]);
-      }
-
-      if (window.unreadMessagesPerUser.has(userId)) {
-        window.unreadMessagesPerUser.delete(userId);
-        setUnreadCount(0);
-        onUserSelect(null);
-      }
-    }
-  }, [currentChat, onUserSelect]);
-
-  useEffect(() => {
     if (socketConnected) {
       socketService.on('message', handleReceiveMessage);
       
@@ -256,6 +203,61 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
       console.error('Error loading blocked users:', error);
     }
   }, []);
+
+  useEffect(() => {
+    if (selectedUser) {
+      if (!socketConnected && mockConnectedUsers.size === 0) {
+        botProfiles.forEach(bot => {
+          mockConnectedUsers.set(bot.id, {
+            id: bot.id,
+            username: bot.username,
+            isBot: false,
+            interests: bot.interests,
+            gender: bot.gender,
+            country: bot.country,
+            age: bot.age,
+            isOnline: true
+          });
+        });
+      }
+
+      const user = socketConnected
+        ? { 
+            id: selectedUser, 
+            username: botProfiles.find(b => b.id === selectedUser)?.username || 'User',
+            isBot: false
+          }
+        : mockConnectedUsers.get(selectedUser);
+
+      if (user) {
+        setCurrentChat({
+          userId: user.id,
+          username: user.username,
+          isBot: false,
+          isAdmin: !!user.isAdmin
+        });
+      }
+    } else {
+      setCurrentChat(null);
+    }
+  }, [selectedUser, socketConnected]);
+
+  useEffect(() => {
+    if (currentChat) {
+      const userId = currentChat.userId;
+      if (userChatHistories[userId]) {
+        setMessages(userChatHistories[userId]);
+      } else {
+        setMessages([]);
+      }
+
+      if (window.unreadMessagesPerUser.has(userId)) {
+        window.unreadMessagesPerUser.delete(userId);
+        setUnreadCount(0);
+        onUserSelect(null);
+      }
+    }
+  }, [currentChat, onUserSelect]);
 
   const scrollToBottom = () => {
     messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -563,6 +565,21 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
     });
   };
 
+  const getUsernameById = (userId: string): string => {
+    return mockConnectedUsers.get(userId)?.username || 
+           botProfiles.find(b => b.id === userId)?.username || 
+           'Unknown User';
+  };
+
+  const updateBlockedUsersStorage = () => {
+    try {
+      localStorage.setItem(BLOCKED_USERS_KEY, JSON.stringify(Array.from(blockedUsers)));
+      setBlockedUsersList(Array.from(blockedUsers));
+    } catch (error) {
+      console.error('Error saving blocked users:', error);
+    }
+  };
+
   const renderContent = () => {
     switch (view) {
       case 'chat':
@@ -811,132 +828,22 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
     }
   };
 
-  const updateBlockedUsersStorage = () => {
-    try {
-      localStorage.setItem(BLOCKED_USERS_KEY, JSON.stringify(Array.from(blockedUsers)));
-      setBlockedUsersList(Array.from(blockedUsers));
-    } catch (error) {
-      console.error('Error saving blocked users:', error);
-    }
-  };
-
   return (
     <div className="rounded-md overflow-hidden border border-border h-full">
-      <Sheet open={showHistorySidebar} onOpenChange={setShowHistorySidebar}>
-        <SheetContent side="right" className="sm:max-w-md w-[90vw] p-0">
-          <div className="h-full flex flex-col">
-            <div className="p-4 border-b flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <History className="h-5 w-5" />
-                <h2 className="text-lg font-semibold">Chat History</h2>
-              </div>
-              <Button variant="ghost" size="icon" onClick={() => setShowHistorySidebar(false)}>
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
-            
-            <ScrollArea className="flex-1">
-              {getAllChatHistories().length > 0 ? (
-                <div className="px-1">
-                  {getAllChatHistories().map((history) => (
-                    <div 
-                      key={history.userId}
-                      className="p-3 hover:bg-secondary/50 rounded-md cursor-pointer flex items-start justify-between"
-                      onClick={() => {
-                        onUserSelect(history.userId);
-                        setShowHistorySidebar(false);
-                      }}
-                    >
-                      <div className="flex gap-3">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{history.username}</span>
-                          </div>
-                          <p className="text-sm text-muted-foreground line-clamp-1">
-                            {history.lastMessage?.content || '(Image)'}
-                          </p>
-                          <span className="text-xs text-muted-foreground">
-                            {history.lastMessage ? new Date(history.lastMessage.timestamp).toLocaleString([], {
-                              month: 'short',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            }) : ''}
-                          </span>
-                        </div>
-                      </div>
-                      <Badge variant="secondary">{history.messageCount}</Badge>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center h-full p-8 text-center text-muted-foreground">
-                  <History className="h-10 w-10 mb-4 opacity-50" />
-                  <p className="text-lg font-medium">No chat history</p>
-                  <p className="text-sm max-w-xs">Start conversations with users to see your chat history here.</p>
-                </div>
-              )}
-            </ScrollArea>
-          </div>
-        </SheetContent>
-      </Sheet>
+      <ChatHistorySidebar 
+        open={showHistorySidebar}
+        onOpenChange={setShowHistorySidebar}
+        chatHistories={getAllChatHistories()}
+        onSelectUser={onUserSelect}
+      />
 
-      <Sheet open={showBlockedSidebar} onOpenChange={setShowBlockedSidebar}>
-        <SheetContent side="right" className="sm:max-w-md w-[90vw] p-0">
-          <div className="h-full flex flex-col">
-            <div className="p-4 border-b flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Ban className="h-5 w-5" />
-                <h2 className="text-lg font-semibold">Blocked Users</h2>
-              </div>
-              <Button variant="ghost" size="icon" onClick={() => setShowBlockedSidebar(false)}>
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
-            
-            <ScrollArea className="flex-1">
-              {blockedUsersList.length > 0 ? (
-                <div className="px-1">
-                  {blockedUsersList.map(userId => {
-                    const username = mockConnectedUsers.get(userId)?.username || 
-                                    botProfiles.find(b => b.id === userId)?.username || 
-                                    'Unknown User';
-                    return (
-                      <div 
-                        key={userId}
-                        className="p-3 hover:bg-secondary/50 rounded-md cursor-pointer flex items-start justify-between"
-                      >
-                        <div className="flex gap-3">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <UserX className="h-5 w-5 text-muted-foreground" />
-                              <span className="font-medium">{username}</span>
-                            </div>
-                            <p className="text-sm text-muted-foreground">Blocked user</p>
-                          </div>
-                        </div>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => handleUnblockUser(userId)}
-                        >
-                          Unblock
-                        </Button>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center h-full p-8 text-center text-muted-foreground">
-                  <Ban className="h-10 w-10 mb-4 opacity-50" />
-                  <p className="text-lg font-medium">No blocked users</p>
-                  <p className="text-sm max-w-xs">When you block someone, they'll appear here.</p>
-                </div>
-              )}
-            </ScrollArea>
-          </div>
-        </SheetContent>
-      </Sheet>
+      <BlockedUsersSidebar
+        open={showBlockedSidebar}
+        onOpenChange={setShowBlockedSidebar}
+        blockedUsers={blockedUsersList}
+        onUnblock={handleUnblockUser}
+        getUsernameById={getUsernameById}
+      />
 
       {showReportForm && (
         <ReportForm 
