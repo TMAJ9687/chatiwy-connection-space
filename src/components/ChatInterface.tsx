@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -18,7 +17,8 @@ import {
   X,
   Wifi,
   WifiOff,
-  UserX
+  UserX,
+  Ban
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { botProfiles, getRandomBotResponse } from '@/utils/botProfiles';
@@ -902,6 +902,24 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
       )}
 
       <div className="absolute top-4 right-4 flex gap-2">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                className="rounded-full"
+                size="icon"
+                variant="secondary"
+                onClick={() => setView('blocked')}
+              >
+                <Ban className="h-5 w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Blocked Users</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>

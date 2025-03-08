@@ -139,15 +139,15 @@ export function MessageInput({
                     disabled={!isVipUser && imageUploads >= getPhotoLimit(isVipUser)}
                   >
                     <ImageIcon size={20} />
-                    {!isVipUser && (
-                      <Badge 
-                        variant="secondary" 
-                        className="absolute -top-3 -right-3 px-1 py-0 min-w-5 h-5 flex items-center justify-center text-xs"
-                      >
-                        {imageUploads}/{getPhotoLimit(isVipUser)}
-                      </Badge>
-                    )}
                   </Button>
+                  {!isVipUser && (
+                    <Badge 
+                      variant="secondary" 
+                      className="absolute -bottom-3 left-1/2 transform -translate-x-1/2 px-1 py-0 min-w-5 h-5 flex items-center justify-center text-xs"
+                    >
+                      {imageUploads}/{getPhotoLimit(isVipUser)}
+                    </Badge>
+                  )}
                 </div>
               </TooltipTrigger>
               <TooltipContent>

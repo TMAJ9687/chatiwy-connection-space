@@ -9,7 +9,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import socketService from '@/services/socketService';
 import { Button } from '@/components/ui/button';
-import { MessageSquare, X, Inbox, User, ArrowLeft, LogOut } from 'lucide-react';
+import { MessageSquare, X, Inbox, User, ArrowLeft, LogOut, UserX } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -334,15 +334,7 @@ const ChatPage = () => {
       </Helmet>
       
       <Navbar>
-        <Button 
-          onClick={handleLogout} 
-          variant="destructive" 
-          size="sm"
-          className="mr-2"
-        >
-          <LogOut className="h-4 w-4 mr-1" />
-          Logout
-        </Button>
+        {/* Remove the duplicate LogOut button that was here */}
       </Navbar>
       
       <main className="flex-1 py-4 pt-20">
