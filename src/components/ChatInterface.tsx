@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { ReportForm } from '@/components/ReportForm';
 import { ChatHeader } from '@/components/ChatHeader';
@@ -126,7 +126,6 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
   const [showReportForm, setShowReportForm] = useState(false);
   const [reportedUser, setReportedUser] = useState('');
   
-  // Get the maximum message length based on user VIP status
   const getMaxMessageLength = () => isVipUser ? MAX_MESSAGE_LENGTH_VIP : MAX_MESSAGE_LENGTH_REGULAR;
 
   useEffect(() => {
@@ -517,7 +516,6 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
     setShowImageModal(true);
   };
 
-  // Get chat history for all users
   const getAllChatHistories = () => {
     const histories: { 
       userId: string; 
@@ -539,7 +537,6 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
     });
     
     return histories.sort((a, b) => {
-      // Sort by most recent message
       const aTime = a.lastMessage?.timestamp?.getTime() || 0;
       const bTime = b.lastMessage?.timestamp?.getTime() || 0;
       return bTime - aTime;
@@ -820,7 +817,6 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
 
   return (
     <div className="rounded-md overflow-hidden border border-border h-full">
-      {/* Chat history sidebar */}
       <Sheet open={showHistorySidebar} onOpenChange={setShowHistorySidebar}>
         <SheetContent side="right" className="sm:max-w-md w-[90vw] p-0">
           <div className="h-full flex flex-col">
@@ -880,7 +876,6 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
         </SheetContent>
       </Sheet>
 
-      {/* Report Form Dialog */}
       {showReportForm && (
         <ReportForm 
           isOpen={showReportForm}
@@ -902,7 +897,6 @@ export function ChatInterface({ userProfile, selectedUser, onUserSelect, socketC
         </div>
       )}
 
-      {/* Floating buttons */}
       <div className="absolute top-4 right-4 flex gap-2">
         <TooltipProvider>
           <Tooltip>
