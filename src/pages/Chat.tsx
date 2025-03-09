@@ -27,8 +27,8 @@ import {
 const mockConnectedUsers = new Map();
 const sessionKey = 'chatiwy_session_id';
 
-// Server URLs - Make sure to update these with your actual deployed server URLs
-const RENDER_URL = 'https://chatiwy-test.onrender.com';
+// Server URLs - Updated to the new server URL
+const RENDER_URL = 'https://chatiwy-connection-space.onrender.com';
 const DIGITAL_OCEAN_URL = '';
 const GUIDANCE_ACCEPTED_KEY = 'chatiwy_guidance_accepted';
 

@@ -1,3 +1,4 @@
+
 import { io, Socket } from 'socket.io-client';
 import { toast } from 'sonner';
 import { formatConnectionError, diagnoseWebSocketConnectivity } from '@/utils/chatUtils';
@@ -5,13 +6,13 @@ import { formatConnectionError, diagnoseWebSocketConnectivity } from '@/utils/ch
 // Define the server URL with fallback options
 // The server can be configured via environment variable or explicitly defined here
 const SERVER_URLS = [
-  // Try the user's Render.com deployment if provided
-  "https://chatiwy-test.onrender.com",
+  // Primary server URL (user provided)
+  "https://chatiwy-connection-space.onrender.com",
   // Try HTTP version if HTTPS fails
-  "http://chatiwy-test.onrender.com",
+  "http://chatiwy-connection-space.onrender.com",
   // Try WebSocket protocols explicitly
-  "wss://chatiwy-test.onrender.com",
-  "ws://chatiwy-test.onrender.com",
+  "wss://chatiwy-connection-space.onrender.com",
+  "ws://chatiwy-connection-space.onrender.com",
   // Try the origin (if this app is deployed with the backend)
   window.location.origin.replace(/^https/, 'wss').replace(/^http/, 'ws'),
   // Alternative WebSocket protocol if 'wss://' doesn't work
