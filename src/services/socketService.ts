@@ -1,17 +1,23 @@
 
 import { io, Socket } from 'socket.io-client';
 import { toast } from 'sonner';
+import { formatConnectionError } from '@/utils/chatUtils';
 
 // Define the server URL with fallback options
 // The server can be configured via environment variable or explicitly defined here
 const SERVER_URLS = [
   // Try the user's Render.com deployment if provided
-  // Replace this with your actual Render deployment URL once you have it
   "https://chatiwy-test.onrender.com",
+  // Try HTTP version if HTTPS fails
+  "http://chatiwy-test.onrender.com",
   // Try the origin (if this app is deployed with the backend)
   window.location.origin.replace(/^https/, 'wss').replace(/^http/, 'ws'),
-  // Try local development server
+  // Alternative WebSocket protocol if 'wss://' doesn't work
+  window.location.origin,
+  // Try local development server with different ports
   'http://localhost:5000',
+  'http://localhost:3001',
+  'http://localhost:8080',
   // Add additional fallback servers here if needed
 ].filter(Boolean); // Remove undefined values
 
@@ -42,13 +48,15 @@ class SocketService {
   private socket: Socket | null = null;
   private registeredCallbacks: Map<string, Function[]> = new Map();
   private reconnectAttempts: number = 0;
-  private maxReconnectAttempts: number = 3;
+  private maxReconnectAttempts: number = 5; // Increased from 3
   private currentServerIndex: number = 0;
   private connectionInProgress: boolean = false;
   private userId: string | null = null;
   private blockedUsers: Set<string> = new Set();
   public connectedUsers: Map<string, ConnectedUser> = new Map();
-  private typingTimeout: NodeJS.Timeout | null = null;
+  private typingTimeoutRef: NodeJS.Timeout | null = null;
+  private connectionTimer: NodeJS.Timeout | null = null;
+  private lastError: string | null = null;
 
   // Initialize the socket connection
   connect(): Promise<Socket> {
@@ -56,7 +64,9 @@ class SocketService {
       return Promise.reject(new Error('Connection attempt already in progress'));
     }
     
+    console.log('Starting socket connection attempt...');
     this.connectionInProgress = true;
+    this.reconnectAttempts += 1;
     
     return new Promise<Socket>((resolve, reject) => {
       this.tryNextServer(resolve, reject);
@@ -68,6 +78,7 @@ class SocketService {
   private tryNextServer(resolve: (socket: Socket) => void, reject: (error: Error) => void): void {
     if (this.currentServerIndex >= SERVER_URLS.length) {
       console.error('All server connection attempts failed');
+      this.lastError = 'All connection attempts failed';
       toast.error('Unable to connect to chat server. Using offline mode.');
       reject(new Error('All connection attempts failed'));
       return;
@@ -83,35 +94,64 @@ class SocketService {
         this.socket = null;
       }
       
+      // Clear any existing connection timer
+      if (this.connectionTimer) {
+        clearTimeout(this.connectionTimer);
+      }
+      
       // Configure socket with better connection options
       this.socket = io(serverUrl, {
-        reconnectionAttempts: 2,
-        timeout: 5000,
+        reconnectionAttempts: 3,
+        timeout: 10000, // Increased timeout
         transports: ['websocket', 'polling'], // Try WebSocket first, fall back to polling
+        forceNew: true, // Force a new connection
         extraHeaders: {
           "Access-Control-Allow-Origin": "*"
         }
       });
 
       // Set a connection timeout
-      const connectionTimeout = setTimeout(() => {
+      this.connectionTimer = setTimeout(() => {
         console.log(`Connection timeout for server ${serverUrl}`);
-        this.socket?.disconnect();
+        
+        // Log detailed debugging information
+        console.debug('Connection details:', {
+          url: serverUrl,
+          attempt: this.currentServerIndex + 1,
+          totalServers: SERVER_URLS.length,
+        });
+        
+        if (this.socket) {
+          this.socket.disconnect();
+        }
         this.currentServerIndex++;
         this.tryNextServer(resolve, reject);
-      }, 7000);
+      }, 12000); // Increased from 7000
 
       this.socket.on('connect', () => {
         console.log(`Connected to WebSocket server: ${serverUrl}`);
-        clearTimeout(connectionTimeout);
+        if (this.connectionTimer) {
+          clearTimeout(this.connectionTimer);
+        }
         this.reconnectAttempts = 0;
+        this.lastError = null;
         this.setupEventListeners();
         resolve(this.socket);
       });
 
       this.socket.on('connect_error', (error) => {
         console.error(`Connection error for ${serverUrl}:`, error);
-        clearTimeout(connectionTimeout);
+        this.lastError = formatConnectionError(error);
+        
+        console.debug('Connection error details:', {
+          url: serverUrl,
+          error: this.lastError,
+          transportType: this.socket?.io?.engine?.transport?.name,
+        });
+        
+        if (this.connectionTimer) {
+          clearTimeout(this.connectionTimer);
+        }
         
         // Try next server in the list
         this.currentServerIndex++;
@@ -119,6 +159,12 @@ class SocketService {
       });
     } catch (error) {
       console.error(`Socket connection error for ${serverUrl}:`, error);
+      this.lastError = formatConnectionError(error);
+      
+      if (this.connectionTimer) {
+        clearTimeout(this.connectionTimer);
+      }
+      
       this.currentServerIndex++;
       this.tryNextServer(resolve, reject);
     }
@@ -130,8 +176,7 @@ class SocketService {
 
     this.socket.on('error', (error) => {
       console.error('Socket error:', error);
-      // Don't show toast for socket errors, only UI relevant errors
-      // toast.error('Chat server error: ' + error);
+      this.lastError = formatConnectionError(error);
     });
 
     this.socket.on('disconnect', (reason) => {
@@ -139,10 +184,21 @@ class SocketService {
       
       // Don't show error toast for client-initiated disconnects
       if (reason !== 'io client disconnect') {
-        // Don't show disconnection toasts to not interfere with chat
         console.log('Disconnected from chat server:', reason);
       }
     });
+
+    // Add a ping/pong to check connection health
+    setInterval(() => {
+      if (this.socket?.connected) {
+        const start = Date.now();
+        
+        this.socket.emit('ping', () => {
+          const latency = Date.now() - start;
+          console.debug(`WebSocket latency: ${latency}ms`);
+        });
+      }
+    }, 30000);
 
     // Reapply all previously registered callbacks
     this.registeredCallbacks.forEach((callbacks, event) => {
@@ -162,14 +218,25 @@ class SocketService {
         return;
       }
 
+      console.log('Attempting to register user:', userProfile.username);
+      
       this.socket.emit('register_user', userProfile);
 
+      // Add timeouts to prevent hanging
+      const registrationTimeout = setTimeout(() => {
+        reject('Registration timeout. Server did not respond in time.');
+      }, 15000);
+
       this.socket.once('registration_success', (data) => {
+        clearTimeout(registrationTimeout);
+        console.log('User registration successful:', data);
         this.userId = data.id; // Save the user ID for message sending
         resolve(data);
       });
 
       this.socket.once('registration_error', (error) => {
+        clearTimeout(registrationTimeout);
+        console.error('User registration error:', error);
         reject(error);
       });
     });
@@ -229,9 +296,9 @@ class SocketService {
     }
     
     // Clear previous timeout
-    if (this.typingTimeout) {
-      clearTimeout(this.typingTimeout);
-      this.typingTimeout = null;
+    if (this.typingTimeoutRef) {
+      clearTimeout(this.typingTimeoutRef);
+      this.typingTimeoutRef = null;
     }
     
     // Send typing status
@@ -239,7 +306,7 @@ class SocketService {
     
     // Set auto-clear timeout for typing indicator
     if (data.isTyping) {
-      this.typingTimeout = setTimeout(() => {
+      this.typingTimeoutRef = setTimeout(() => {
         if (this.socket && data.to) {
           this.socket.emit('typing', { to: data.to, isTyping: false });
         }
@@ -320,8 +387,32 @@ class SocketService {
     return this.userId;
   }
   
+  // Get the last error message
+  getLastError(): string | null {
+    return this.lastError;
+  }
+  
+  // Get connection details for debugging
+  getConnectionDetails(): {
+    connected: boolean;
+    currentUrl: string | null;
+    lastError: string | null;
+    reconnectAttempts: number;
+    transport?: string;
+  } {
+    return {
+      connected: this.isConnected(),
+      currentUrl: this.currentServerIndex < SERVER_URLS.length ? 
+        SERVER_URLS[this.currentServerIndex] : null,
+      lastError: this.lastError,
+      reconnectAttempts: this.reconnectAttempts,
+      transport: this.socket?.io?.engine?.transport?.name
+    };
+  }
+  
   // Retry connection
   retryConnection(): Promise<Socket> {
+    console.log('Manually retrying connection...');
     this.currentServerIndex = 0; // Reset to try all servers again
     return this.connect();
   }
@@ -329,10 +420,13 @@ class SocketService {
   // Update the server URL array with a custom URL
   setCustomServerUrl(url: string): void {
     if (url && typeof url === 'string' && url.trim() !== '') {
-      // Insert the custom URL at the beginning of the array
-      SERVER_URLS.splice(1, 0, url.trim());
-      console.log("Added custom server URL:", url);
-      console.log("Server URLs:", SERVER_URLS);
+      // Insert the custom URL at the beginning of the array if it's not already there
+      const trimmedUrl = url.trim();
+      if (!SERVER_URLS.includes(trimmedUrl)) {
+        SERVER_URLS.unshift(trimmedUrl);
+        console.log("Added custom server URL:", url);
+        console.log("Server URLs:", SERVER_URLS);
+      }
     }
   }
 }

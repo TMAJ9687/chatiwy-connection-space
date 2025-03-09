@@ -10,7 +10,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import socketService from '@/services/socketService';
 import { Button } from '@/components/ui/button';
-import { MessageSquare, X, Inbox, User, ArrowLeft, LogOut, UserX, RefreshCw } from 'lucide-react';
+import { MessageSquare, X, Inbox, User, ArrowLeft, LogOut, UserX, RefreshCw, AlertTriangle, Check } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -62,10 +62,12 @@ const ChatPage = () => {
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [socketConnected, setSocketConnected] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [connectionDetails, setConnectionDetails] = useState<any>(null);
   const [inboxMessages, setInboxMessages] = useState<InboxMessage[]>(mockInboxMessages);
   const [showInbox, setShowInbox] = useState(false);
   const [isVipUser, setIsVipUser] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [connectionAttempts, setConnectionAttempts] = useState(0);
   const sheetRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
@@ -76,6 +78,7 @@ const ChatPage = () => {
   const connectToSocket = async () => {
     setIsConnecting(true);
     setConnectionError(null);
+    setConnectionAttempts(prev => prev + 1);
     
     try {
       if (DIGITAL_OCEAN_URL) {
@@ -90,6 +93,9 @@ const ChatPage = () => {
       setSocketConnected(true);
       console.log('Connected to WebSocket server');
       toast.success('Connected to chat server');
+      
+      // Get updated connection details
+      setConnectionDetails(socketService.getConnectionDetails());
       
       // Re-register user if we have a profile
       if (userProfile) {
@@ -110,6 +116,7 @@ const ChatPage = () => {
     } catch (error) {
       console.error('Failed to connect to WebSocket server:', error);
       setConnectionError(String(error));
+      setConnectionDetails(socketService.getConnectionDetails());
       toast.error('Unable to connect to chat server. Using offline mode.');
     } finally {
       setIsConnecting(false);
@@ -124,10 +131,18 @@ const ChatPage = () => {
         console.log('Attempting to reconnect to WebSocket server...');
         connectToSocket();
       }
-    }, 30000); // Try to reconnect every 30 seconds
+    }, 60000); // Try to reconnect every 60 seconds (increased from 30 seconds)
+    
+    // Add a regular check to update the connection status
+    const statusCheckInterval = setInterval(() => {
+      setSocketConnected(socketService.isConnected());
+      setConnectionError(socketService.getLastError());
+      setConnectionDetails(socketService.getConnectionDetails());
+    }, 5000);
     
     return () => {
       clearInterval(reconnectionInterval);
+      clearInterval(statusCheckInterval);
       socketService.disconnect();
     };
   }, []);
@@ -335,6 +350,25 @@ const ChatPage = () => {
     connectToSocket();
   };
 
+  const renderConnectionTips = () => {
+    if (!connectionError) return null;
+    
+    return (
+      <div className="mt-2 text-sm space-y-1">
+        <p className="font-medium">Troubleshooting tips:</p>
+        <ul className="list-disc pl-5 space-y-1">
+          <li>Make sure the server is running properly</li>
+          <li>Check if the server URL is correct (currently using: {RENDER_URL || 'default URLs'})</li>
+          <li>Verify your network connection and any firewalls</li>
+          {connectionError.includes('CORS') && (
+            <li>CORS issue detected - make sure the server allows connections from this domain</li>
+          )}
+          <li>Try restarting the application or refreshing the page</li>
+        </ul>
+      </div>
+    );
+  };
+
   const unreadCount = inboxMessages.filter(msg => !msg.isRead).length;
 
   const createTestVipAccount = () => {
@@ -382,37 +416,58 @@ const ChatPage = () => {
         
         {!showGuidance && (
           <div className="container mx-auto px-4">
-            {/* Connection Status Indicator */}
+            {/* Improved Connection Status Indicator */}
             {!socketConnected && (
-              <div className="mb-4 p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-md flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className="w-3 h-3 bg-yellow-500 rounded-full mr-2"></div>
-                  <span className="text-yellow-800 dark:text-yellow-200">
-                    {isConnecting ? 'Connecting to chat server...' : 'Offline Mode: Unable to connect to chat server.'}
-                  </span>
+              <div className="mb-4 p-4 bg-yellow-100 dark:bg-yellow-900/40 rounded-md">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center">
+                    <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mr-2" />
+                    <span className="text-yellow-800 dark:text-yellow-200 font-medium">
+                      {isConnecting ? 'Connecting to chat server...' : 'Offline Mode: Unable to connect to chat server.'}
+                    </span>
+                  </div>
+                  <Button 
+                    onClick={handleRetryConnection} 
+                    variant="outline" 
+                    size="sm" 
+                    disabled={isConnecting}
+                    className="text-yellow-800 dark:text-yellow-200 border-yellow-300 dark:border-yellow-700"
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-1 ${isConnecting ? 'animate-spin' : ''}`} />
+                    {isConnecting ? 'Connecting...' : 'Retry Connection'}
+                  </Button>
                 </div>
-                <Button 
-                  onClick={handleRetryConnection} 
-                  variant="outline" 
-                  size="sm" 
-                  disabled={isConnecting}
-                  className="text-yellow-800 dark:text-yellow-200 border-yellow-300 dark:border-yellow-700"
-                >
-                  <RefreshCw className={`h-4 w-4 mr-1 ${isConnecting ? 'animate-spin' : ''}`} />
-                  {isConnecting ? 'Connecting...' : 'Retry Connection'}
-                </Button>
+                
+                {connectionError && (
+                  <div className="p-3 bg-yellow-200/50 dark:bg-yellow-800/30 rounded-md mt-2">
+                    <p className="text-yellow-800 dark:text-yellow-200 text-sm font-mono">
+                      <strong>Connection Error:</strong> {connectionError}
+                    </p>
+                    {renderConnectionTips()}
+                  </div>
+                )}
+                
+                {connectionDetails && (
+                  <div className="text-xs text-yellow-700 dark:text-yellow-300 mt-3 space-y-1">
+                    <p><strong>Last attempt:</strong> {connectionDetails.currentUrl || 'No URL'}</p>
+                    <p><strong>Attempts:</strong> {connectionAttempts}</p>
+                    <p><strong>Transport:</strong> {connectionDetails.transport || 'None'}</p>
+                  </div>
+                )}
               </div>
             )}
             
-            {/* Connection Error Details */}
-            {connectionError && (
-              <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 rounded-md">
-                <p className="text-red-800 dark:text-red-200 text-sm font-mono">
-                  <strong>Connection Error:</strong> {connectionError}
-                </p>
-                <p className="text-red-700 dark:text-red-300 text-xs mt-2">
-                  Make sure your server is running and accessible. Check the server URL in Chat.tsx (RENDER_URL constant).
-                </p>
+            {socketConnected && (
+              <div className="mb-4 p-3 bg-green-100 dark:bg-green-900/30 rounded-md flex items-center justify-between">
+                <div className="flex items-center">
+                  <Check className="w-5 h-5 text-green-600 dark:text-green-400 mr-2" />
+                  <span className="text-green-800 dark:text-green-200">
+                    Connected to chat server
+                  </span>
+                </div>
+                <Badge variant="outline" className="bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200">
+                  Live
+                </Badge>
               </div>
             )}
             
@@ -580,7 +635,7 @@ const ChatPage = () => {
               </div>
             </div>
             
-            {/* Server Connection Debug Info (only shown in dev mode) */}
+            {/* Improved Server Connection Debug Info (only shown in dev mode) */}
             {process.env.NODE_ENV === 'development' && (
               <div className="mt-4 p-4 bg-amber-100 dark:bg-amber-900/30 rounded-md">
                 <h3 className="font-medium mb-2">Development Tools</h3>
@@ -596,21 +651,38 @@ const ChatPage = () => {
                     <div className="p-2 bg-amber-200/50 dark:bg-amber-800/50 rounded">
                       <strong>Current Server:</strong> {RENDER_URL || 'None configured'}
                     </div>
+                    <div className="p-2 bg-amber-200/50 dark:bg-amber-800/50 rounded">
+                      <strong>Connection Attempts:</strong> {connectionAttempts}
+                    </div>
+                    {connectionDetails && connectionDetails.transport && (
+                      <div className="p-2 bg-amber-200/50 dark:bg-amber-800/50 rounded">
+                        <strong>Transport Type:</strong> {connectionDetails.transport}
+                      </div>
+                    )}
                   </div>
                 </div>
                 
-                <Button 
-                  onClick={createTestVipAccount} 
-                  variant="outline" 
-                  className="bg-amber-200 dark:bg-amber-800 hover:bg-amber-300 dark:hover:bg-amber-700"
-                >
-                  Create Test VIP Account
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={handleRetryConnection} 
+                    variant="outline" 
+                    className="bg-amber-200 dark:bg-amber-800 hover:bg-amber-300 dark:hover:bg-amber-700"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Test Connection
+                  </Button>
+                  
+                  <Button 
+                    onClick={createTestVipAccount} 
+                    variant="outline" 
+                    className="bg-amber-200 dark:bg-amber-800 hover:bg-amber-300 dark:hover:bg-amber-700"
+                  >
+                    Create Test VIP Account
+                  </Button>
+                </div>
+                
                 <div className="mt-2 text-sm text-amber-800 dark:text-amber-300">
-                  <strong>VIP Account Credentials:</strong><br/>
-                  Username: VIP_Tester<br/>
-                  Gender: male<br/>
-                  Country: US
+                  <strong>Test Server:</strong> Make sure your server is running at {RENDER_URL || 'the configured URL'}
                 </div>
               </div>
             )}

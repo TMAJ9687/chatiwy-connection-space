@@ -10,7 +10,7 @@ export interface Message {
   timestamp: Date;
   isBot: boolean;
   isRead?: boolean;
-  status?: 'sent' | 'delivered' | 'read'; // Added message status
+  status?: 'sent' | 'delivered' | 'read';
   image?: {
     url: string;
     blurred: boolean;
@@ -30,7 +30,7 @@ export interface ConnectedUser {
   country?: string;
   age?: number;
   isOnline?: boolean;
-  isTyping?: boolean; // Added typing indicator
+  isTyping?: boolean;
 }
 
 export interface ServerConnectionStatus {
@@ -81,6 +81,46 @@ export const formatConnectionError = (error: any): string => {
   }
   
   return JSON.stringify(error);
+};
+
+// WebSocket Connection Status
+export const getConnectionStatusText = (status: ServerConnectionStatus): string => {
+  if (status.isConnected) {
+    return 'Connected to chat server';
+  }
+  
+  if (status.reconnectAttempts > 0) {
+    return `Connection attempt ${status.reconnectAttempts} failed. Retrying...`;
+  }
+  
+  if (status.error) {
+    return `Error connecting to chat server: ${formatConnectionError(status.error)}`;
+  }
+  
+  return 'Disconnected from chat server';
+};
+
+// Get connection troubleshooting tips based on error
+export const getTroubleshootingTips = (error: string | null): string[] => {
+  const tips: string[] = [
+    'Make sure the chat server is running',
+    'Check your network connection',
+    'Verify the server URL is correct'
+  ];
+  
+  if (error?.includes('CORS')) {
+    tips.push('CORS issue detected. Make sure the server allows connections from this origin');
+  }
+  
+  if (error?.includes('WebSocket')) {
+    tips.push('WebSocket connection failed. The server might not support WebSockets or is blocking them');
+  }
+  
+  if (error?.includes('timeout')) {
+    tips.push('Connection timeout. The server might be down or unreachable');
+  }
+  
+  return tips;
 };
 
 // Constants
