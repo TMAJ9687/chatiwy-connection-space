@@ -340,6 +340,10 @@ export function ChatInterface({
     setMessageInput(prevInput => prevInput + emoji);
   };
   
+  const handleImageUpload = () => {
+    fileInputRef.current?.click();
+  };
+  
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
 
