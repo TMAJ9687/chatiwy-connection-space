@@ -59,10 +59,11 @@ export function ChatMessageSection({
   }
 
   const getAvatarForChat = (username: string, isBot: boolean) => {
-    const botProfile = botProfiles.find(b => b.id === currentChat.userId);
+    // Try to find a bot profile for the current user ID
+    const botProfile = botProfiles.find(b => b.id === currentChat.userId || b.username === username);
     const gender = botProfile?.gender || 'Male';
     
-    // For bots and regular users, use standard avatars
+    // For both bots and regular users, use standard avatars based on gender
     return gender.toLowerCase() === 'male' ? STANDARD_AVATARS.male : STANDARD_AVATARS.female;
   };
   

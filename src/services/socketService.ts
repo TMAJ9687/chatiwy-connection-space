@@ -295,6 +295,7 @@ class SocketService {
     
     normalized.from = data.from || data.senderId || data.userId || data.sender;
     normalized.sender = data.sender || data.username || data.from || 'Unknown';
+    normalized.senderId = data.senderId || data.from || data.userId || normalized.from;
     normalized.content = data.content || data.message || data.text || '';
     normalized.timestamp = data.timestamp ? new Date(data.timestamp) : new Date();
     normalized.messageId = data.messageId || data.id || Math.random().toString(36).substring(2, 15);

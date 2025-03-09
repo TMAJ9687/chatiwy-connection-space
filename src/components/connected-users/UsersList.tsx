@@ -37,6 +37,9 @@ export function UsersList({
           ? STANDARD_AVATARS.male 
           : STANDARD_AVATARS.female;
         
+        // Ensure we have a fallback username if username is not provided
+        const displayUsername = user.username || `User-${user.id.substring(0, 5)}`;
+        
         return (
           <div 
             key={user.id}
@@ -49,14 +52,14 @@ export function UsersList({
               <Avatar>
                 <AvatarImage 
                   src={user.avatar || defaultAvatar} 
-                  alt={user.username}
+                  alt={displayUsername}
                 />
-                <AvatarFallback>{user.username.substring(0, 2).toUpperCase()}</AvatarFallback>
+                <AvatarFallback>{displayUsername.substring(0, 2).toUpperCase()}</AvatarFallback>
               </Avatar>
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1">
-                <span className={`font-medium truncate ${hasUnread ? 'font-bold' : ''}`}>{user.username}</span>
+                <span className={`font-medium truncate ${hasUnread ? 'font-bold' : ''}`}>{displayUsername}</span>
                 <span className="text-xs opacity-70">{user.age}</span>
                 <span className="ml-1 text-lg">{user.flag || getCountryFlag(user.country)}</span>
                 
