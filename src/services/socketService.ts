@@ -1,4 +1,3 @@
-
 import { io, Socket } from 'socket.io-client';
 import { toast } from 'sonner';
 import { formatConnectionError, diagnoseWebSocketConnectivity } from '@/utils/chatUtils';
@@ -41,6 +40,8 @@ interface ConnectedUser {
 // Define the message interface
 interface MessageData {
   to?: string;
+  from?: string;
+  sender?: string;
   content: string;
   messageId?: string;
   image?: {
@@ -58,6 +59,7 @@ class SocketService {
   private currentServerIndex: number = 0;
   private connectionInProgress: boolean = false;
   private userId: string | null = null;
+  private username: string | null = null;
   private blockedUsers: Set<string> = new Set();
   public connectedUsers: Map<string, ConnectedUser> = new Map();
   private typingTimeoutRef: NodeJS.Timeout | null = null;
@@ -66,6 +68,7 @@ class SocketService {
   private successfulConnectionUrl: string | null = null;
   private connectionDiagnostics: Record<string, any> = {};
   private messageCallbacks: Map<string, (data: any) => void> = new Map();
+  private activeListeners: Set<string> = new Set();
 
   // Initialize the socket connection
   connect(): Promise<Socket> {
@@ -231,12 +234,18 @@ class SocketService {
       }
     });
 
-    // Add explicit message event handler
-    this.socket.on('message', (data) => {
-      console.log('Received message event:', data);
-      
-      // Process the message and notify any registered callbacks
-      this.processIncomingMessage(data);
+    // Add explicit message event handlers for different message types
+    const messageEvents = ['message', 'direct_message', 'chat_message', 'receive_message'];
+    
+    messageEvents.forEach(eventType => {
+      // Only add listener if it's not already active
+      if (!this.activeListeners.has(eventType)) {
+        this.socket?.on(eventType, (data) => {
+          console.log(`Received ${eventType} event:`, data);
+          this.processIncomingMessage(data);
+        });
+        this.activeListeners.add(eventType);
+      }
     });
 
     // Add a ping/pong to check connection health
@@ -265,9 +274,13 @@ class SocketService {
   private processIncomingMessage(data: any) {
     try {
       console.log('Processing incoming message:', data);
+      
+      // Normalize the data structure (different message events might have different formats)
+      const normalizedData = this.normalizeMessageData(data);
+      
       // Check if the message is from a blocked user
-      if (data.from && this.blockedUsers.has(data.from)) {
-        console.log(`Ignoring message from blocked user: ${data.from}`);
+      if (normalizedData.from && this.blockedUsers.has(normalizedData.from)) {
+        console.log(`Ignoring message from blocked user: ${normalizedData.from}`);
         return;
       }
 
@@ -275,7 +288,7 @@ class SocketService {
       const callbacks = this.registeredCallbacks.get('receive_message') || [];
       callbacks.forEach(callback => {
         try {
-          callback(data);
+          callback(normalizedData);
         } catch (error) {
           console.error('Error in message callback:', error);
         }
@@ -283,6 +296,34 @@ class SocketService {
     } catch (error) {
       console.error('Error processing incoming message:', error);
     }
+  }
+  
+  // Normalize message data to a standard format
+  private normalizeMessageData(data: any): any {
+    // Create a normalized copy of the data
+    const normalized: any = { ...data };
+    
+    // Handle case where 'from' might be in different properties
+    normalized.from = data.from || data.senderId || data.userId || data.sender;
+    
+    // Handle case where 'sender' or username might be in different properties
+    normalized.sender = data.sender || data.username || data.from || 'Unknown';
+    
+    // Ensure there's a content field
+    normalized.content = data.content || data.message || data.text || '';
+    
+    // Ensure there's a timestamp
+    normalized.timestamp = data.timestamp ? new Date(data.timestamp) : new Date();
+    
+    // Set a default message ID if not present
+    normalized.messageId = data.messageId || data.id || Math.random().toString(36).substring(2, 15);
+    
+    // Keep the image data if present
+    if (data.image) {
+      normalized.image = data.image;
+    }
+    
+    return normalized;
   }
 
   // Register a user with the server
@@ -294,6 +335,9 @@ class SocketService {
       }
 
       console.log('Attempting to register user:', userProfile.username);
+      
+      // Store username for later use
+      this.username = userProfile.username;
       
       this.socket.emit('register_user', userProfile);
 
@@ -327,16 +371,18 @@ class SocketService {
     
     console.log(`Setting up message receiving for user ID: ${this.userId}`);
     
-    // Listen for direct messages to this user
-    this.socket.on('direct_message', (data) => {
-      console.log('Received direct message:', data);
-      this.processIncomingMessage(data);
-    });
+    // Ensure we've registered for all message event types
+    const messageEvents = ['message', 'direct_message', 'chat_message', 'receive_message'];
     
-    // Listen for general messages (if applicable)
-    this.socket.on('chat_message', (data) => {
-      console.log('Received chat message:', data);
-      this.processIncomingMessage(data);
+    messageEvents.forEach(eventType => {
+      // Only add listener if it's not already active
+      if (!this.activeListeners.has(eventType)) {
+        this.socket?.on(eventType, (data) => {
+          console.log(`Received ${eventType} event:`, data);
+          this.processIncomingMessage(data);
+        });
+        this.activeListeners.add(eventType);
+      }
     });
   }
 
@@ -377,7 +423,8 @@ class SocketService {
     const enhancedMessage = {
       ...message,
       from: this.userId, // Include sender's ID
-      recipientId: message.to, // Ensure recipientId is set explicitly
+      sender: this.username, // Explicitly include sender's username
+      recipientId: message.to, // Ensure recipientId is set explicitly 
       messageId: message.messageId || Math.random().toString(36).substring(2, 15)
     };
 
@@ -406,14 +453,21 @@ class SocketService {
       this.typingTimeoutRef = null;
     }
     
-    // Send typing status
-    this.socket.emit('typing', data);
+    // Send typing status with username
+    this.socket.emit('typing', {
+      ...data,
+      username: this.username // Include username with typing events
+    });
     
     // Set auto-clear timeout for typing indicator
     if (data.isTyping) {
       this.typingTimeoutRef = setTimeout(() => {
         if (this.socket && data.to) {
-          this.socket.emit('typing', { to: data.to, isTyping: false });
+          this.socket.emit('typing', { 
+            to: data.to, 
+            isTyping: false,
+            username: this.username
+          });
         }
       }, 5000);
     }
@@ -449,6 +503,9 @@ class SocketService {
     this.socket.on(event, (...args) => {
       callback(...args);
     });
+    
+    // Mark as active
+    this.activeListeners.add(event);
   }
 
   // Unsubscribe from an event
@@ -468,6 +525,7 @@ class SocketService {
       // Remove all callbacks for this event
       this.registeredCallbacks.delete(event);
       this.socket.off(event);
+      this.activeListeners.delete(event);
     }
   }
 
@@ -492,6 +550,11 @@ class SocketService {
   // Get the user ID
   getUserId(): string | null {
     return this.userId;
+  }
+  
+  // Get the username
+  getUsername(): string | null {
+    return this.username;
   }
   
   // Get the last error message

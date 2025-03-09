@@ -133,7 +133,7 @@ export function ChatInterface({
       if (user) {
         setCurrentChat({
           userId: user.id,
-          username: user.username,
+          username: user.username || user.id,
           isBot: false,
           isAdmin: !!user.isAdmin
         });
@@ -224,7 +224,11 @@ export function ChatInterface({
         };
 
         if (currentChat) {
-          userChatHistories[currentChat.userId] = [...(userChatHistories[currentChat.userId] || []), newMessage];
+          if (!userChatHistories[currentChat.userId]) {
+            userChatHistories[currentChat.userId] = [];
+          }
+          
+          userChatHistories[currentChat.userId] = [...userChatHistories[currentChat.userId], newMessage];
         }
         return [...prevMessages, newMessage];
       });
@@ -275,14 +279,12 @@ export function ChatInterface({
   const handleReceiveMessage = (messageData: any) => {
     console.log('Received message data:', messageData);
     
-    // Extract relevant data
     const sender = messageData.sender || messageData.username || 'Unknown';
     const senderId = messageData.senderId || messageData.from || messageData.userId || 'unknown-id';
     const isBot = messageData.isBot || false;
     const content = messageData.content || '';
     const image = messageData.image;
     
-    // Create message object
     const receivedMessage: Message = {
       id: messageData.id || messageData.messageId || Math.random().toString(36).substring(2, 15),
       sender,
@@ -293,37 +295,54 @@ export function ChatInterface({
       image
     };
     
-    // Check if this is a valid message for the current chat
     if (currentChat && (senderId === currentChat.userId || receivedMessage.senderId === currentChat.userId)) {
       setMessages(prevMessages => {
+        const isDuplicate = prevMessages.some(msg => 
+          msg.id === receivedMessage.id || 
+          (msg.content === receivedMessage.content && 
+           Math.abs(new Date(msg.timestamp).getTime() - new Date(receivedMessage.timestamp).getTime()) < 2000)
+        );
+        
+        if (isDuplicate) {
+          console.log('Duplicate message detected, ignoring:', receivedMessage);
+          return prevMessages;
+        }
+        
         const updatedMessages = [...prevMessages, receivedMessage];
         
-        // Update chat history
         if (currentChat) {
+          if (!userChatHistories[currentChat.userId]) {
+            userChatHistories[currentChat.userId] = [];
+          }
           userChatHistories[currentChat.userId] = updatedMessages;
         }
         
         return updatedMessages;
       });
       
-      // Ensure we scroll to the new message
       setTimeout(() => {
         scrollToBottom();
       }, 100);
     } else {
-      // Message is from another user, not in current chat
-      console.log('Message is from another user, not in current chat:', senderId);
-      
-      // Store in chat history for that user
       if (senderId) {
-        userChatHistories[senderId] = [...(userChatHistories[senderId] || []), receivedMessage];
+        if (!userChatHistories[senderId]) {
+          userChatHistories[senderId] = [];
+        }
         
-        // Add to unread messages
-        window.unreadMessagesPerUser.add(senderId);
+        const isDuplicate = userChatHistories[senderId].some(msg => 
+          msg.id === receivedMessage.id || 
+          (msg.content === receivedMessage.content && 
+           Math.abs(new Date(msg.timestamp).getTime() - new Date(receivedMessage.timestamp).getTime()) < 2000)
+        );
         
-        // Show notification
-        if (!blockedUsers.has(senderId)) {
-          toast.info(`New message from ${sender}`);
+        if (!isDuplicate) {
+          userChatHistories[senderId] = [...userChatHistories[senderId], receivedMessage];
+          
+          window.unreadMessagesPerUser.add(senderId);
+          
+          if (!blockedUsers.has(senderId)) {
+            toast.info(`New message from ${sender}`);
+          }
         }
       }
     }
@@ -461,7 +480,10 @@ export function ChatInterface({
         };
 
         if (currentChat) {
-          userChatHistories[currentChat.userId] = [...(userChatHistories[currentChat.userId] || []), newMessage];
+          if (!userChatHistories[currentChat.userId]) {
+            userChatHistories[currentChat.userId] = [];
+          }
+          userChatHistories[currentChat.userId] = [...userChatHistories[currentChat.userId], newMessage];
         }
         return [...prevMessages, newMessage];
       });
@@ -571,22 +593,20 @@ export function ChatInterface({
     if (socketConnected) {
       console.log('Setting up socket event listeners for real-time messaging');
       
-      // Listen for typing status
       socketService.on('typing', (data: { from: string; username: string; isTyping: boolean }) => {
         if (isVipUser) {
           setTypingUsers(prev => {
             const newSet = new Set(prev);
             if (data.isTyping) {
-              newSet.add(data.username);
+              newSet.add(data.username || data.from);
             } else {
-              newSet.delete(data.username);
+              newSet.delete(data.username || data.from);
             }
             return newSet;
           });
         }
       });
       
-      // Listen for message status updates
       socketService.on('message_status', (data: { messageId: string; status: 'delivered' | 'read' }) => {
         if (isVipUser) {
           setMessages(prevMessages => 
@@ -597,37 +617,27 @@ export function ChatInterface({
         }
       });
       
-      // Listen for received messages
       const handleReceivedMessage = (data: any) => {
         console.log('New message received via socket:', data);
         handleReceiveMessage(data);
       };
       
-      // Register for direct messages
-      socketService.on('direct_message', handleReceivedMessage);
-      
-      // Also listen for general messages
-      socketService.on('chat_message', handleReceivedMessage);
-      
-      // Listen for generic message events
-      socketService.on('message', handleReceivedMessage);
-      
-      // Listen for receive_message events
-      socketService.on('receive_message', handleReceivedMessage);
+      const messageEvents = ['direct_message', 'chat_message', 'message', 'receive_message'];
+      messageEvents.forEach(eventType => {
+        socketService.on(eventType, handleReceivedMessage);
+      });
       
       return () => {
-        // Clean up event listeners
         if (socketConnected) {
           socketService.off('typing');
           socketService.off('message_status');
-          socketService.off('direct_message');
-          socketService.off('chat_message');
-          socketService.off('message');
-          socketService.off('receive_message');
+          messageEvents.forEach(eventType => {
+            socketService.off(eventType);
+          });
         }
       };
     }
-  }, [socketConnected, isVipUser]);
+  }, [socketConnected, isVipUser, currentChat]);
   
   useEffect(() => {
     if (socketConnected && currentChat && messageInput.length > 0) {

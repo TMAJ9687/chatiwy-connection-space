@@ -69,71 +69,79 @@ export function MessageList({
           return (
             <div 
               key={message.id} 
-              className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
+              className={`flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'}`}
             >
-              <Card className={`max-w-[80%] p-3 ${
-                isCurrentUser 
-                  ? 'bg-primary text-primary-foreground' 
-                  : 'bg-muted'
-              }`}>
-                {message.image ? (
-                  <div className="mb-2 relative">
-                    <div className={message.image.blurred ? 'blur-xl' : ''}>
-                      <img 
-                        src={message.image.url} 
-                        alt="Shared image" 
-                        className="max-w-full rounded-md max-h-[300px] object-contain" 
-                        onClick={() => !message.image.blurred && openImageInFullResolution(message.image.url)}
-                      />
-                    </div>
-                    {message.image.blurred && (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <Button 
-                          variant="secondary" 
-                          size="sm" 
-                          className="opacity-90 z-10"
-                          onClick={() => toggleImageBlur(message.id, false)}
-                        >
-                          <Eye size={16} className="mr-1" /> Reveal image
-                        </Button>
-                      </div>
-                    )}
-                    {!message.image.blurred && (
-                      <div className="absolute bottom-2 right-2">
-                        <Button 
-                          variant="secondary" 
-                          size="sm" 
-                          className="opacity-75 hover:opacity-100"
-                          onClick={() => toggleImageBlur(message.id, true)}
-                        >
-                          <EyeOff size={12} className="mr-1" /> Blur
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                ) : message.audio ? (
-                  <div className="mb-2">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Mic size={16} className={message.sender === currentUsername ? 'text-primary-foreground' : ''} />
-                      <span className="text-sm">Voice message</span>
-                    </div>
-                    <audio controls className="w-full max-w-[240px]">
-                      <source src={message.audio.url} type="audio/wav" />
-                      Your browser does not support the audio element.
-                    </audio>
-                  </div>
-                ) : (
-                  <div className="break-words">{message.content}</div>
-                )}
-                <div className={`text-xs mt-1 flex items-center ${
+              <div className={`flex items-start max-w-[80%]`}>
+                <Card className={`p-3 ${
                   isCurrentUser 
-                    ? 'text-primary-foreground/80' 
-                    : 'text-muted-foreground'
+                    ? 'bg-primary text-primary-foreground' 
+                    : 'bg-muted'
                 }`}>
-                  {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  {renderMessageStatus(message, isCurrentUser)}
-                </div>
-              </Card>
+                  {!isCurrentUser && (
+                    <div className="text-xs font-medium mb-1 text-muted-foreground">
+                      {message.sender}
+                    </div>
+                  )}
+                  
+                  {message.image ? (
+                    <div className="mb-2 relative">
+                      <div className={message.image.blurred ? 'blur-xl' : ''}>
+                        <img 
+                          src={message.image.url} 
+                          alt="Shared image" 
+                          className="max-w-full rounded-md max-h-[300px] object-contain" 
+                          onClick={() => !message.image.blurred && openImageInFullResolution(message.image.url)}
+                        />
+                      </div>
+                      {message.image.blurred && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <Button 
+                            variant="secondary" 
+                            size="sm" 
+                            className="opacity-90 z-10"
+                            onClick={() => toggleImageBlur(message.id, false)}
+                          >
+                            <Eye size={16} className="mr-1" /> Reveal image
+                          </Button>
+                        </div>
+                      )}
+                      {!message.image.blurred && (
+                        <div className="absolute bottom-2 right-2">
+                          <Button 
+                            variant="secondary" 
+                            size="sm" 
+                            className="opacity-75 hover:opacity-100"
+                            onClick={() => toggleImageBlur(message.id, true)}
+                          >
+                            <EyeOff size={12} className="mr-1" /> Blur
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ) : message.audio ? (
+                    <div className="mb-2">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Mic size={16} className={message.sender === currentUsername ? 'text-primary-foreground' : ''} />
+                        <span className="text-sm">Voice message</span>
+                      </div>
+                      <audio controls className="w-full max-w-[240px]">
+                        <source src={message.audio.url} type="audio/wav" />
+                        Your browser does not support the audio element.
+                      </audio>
+                    </div>
+                  ) : (
+                    <div className="break-words">{message.content}</div>
+                  )}
+                  <div className={`text-xs mt-1 flex items-center ${
+                    isCurrentUser 
+                      ? 'text-primary-foreground/80' 
+                      : 'text-muted-foreground'
+                  }`}>
+                    {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {renderMessageStatus(message, isCurrentUser)}
+                  </div>
+                </Card>
+              </div>
             </div>
           );
         })}
