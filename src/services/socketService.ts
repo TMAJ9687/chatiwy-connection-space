@@ -1,3 +1,4 @@
+
 import { io, Socket } from 'socket.io-client';
 import { toast } from 'sonner';
 import { formatConnectionError, diagnoseWebSocketConnectivity } from '@/utils/chatUtils';
@@ -31,6 +32,7 @@ interface MessageData {
   to?: string;
   from?: string;
   sender?: string;
+  senderId?: string;
   content: string;
   messageId?: string;
   image?: {
