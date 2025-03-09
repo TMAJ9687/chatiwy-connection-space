@@ -33,6 +33,14 @@ export interface ConnectedUser {
   isTyping?: boolean; // Added typing indicator
 }
 
+export interface ServerConnectionStatus {
+  isConnected: boolean;
+  lastConnectedAt: Date | null;
+  serverUrl: string | null;
+  reconnectAttempts: number;
+  error: string | null;
+}
+
 export const BLOCKED_USERS_KEY = 'chatiwy_blocked_users';
 
 export const getAvatarUrl = (username: string, gender: string = 'male') => {
@@ -54,6 +62,25 @@ export const getCountryFlag = (countryCode: string | undefined) => {
   const country = countries.find(c => c.code === countryCode);
   if (!country) return null;
   return country.flag || country.code;
+};
+
+// Connection utilities
+export const formatConnectionError = (error: any): string => {
+  if (!error) return 'Unknown error';
+  
+  if (typeof error === 'string') {
+    return error;
+  }
+  
+  if (error instanceof Error) {
+    return error.message;
+  }
+  
+  if (error.message) {
+    return error.message;
+  }
+  
+  return JSON.stringify(error);
 };
 
 // Constants

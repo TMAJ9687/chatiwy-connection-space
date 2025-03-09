@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Helmet } from 'react-helmet';
 import { Navbar } from '@/components/Navbar';
@@ -9,7 +10,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import socketService from '@/services/socketService';
 import { Button } from '@/components/ui/button';
-import { MessageSquare, X, Inbox, User, ArrowLeft, LogOut, UserX } from 'lucide-react';
+import { MessageSquare, X, Inbox, User, ArrowLeft, LogOut, UserX, RefreshCw } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -26,7 +27,8 @@ import {
 const mockConnectedUsers = new Map();
 const sessionKey = 'chatiwy_session_id';
 
-const RENDER_URL = 'https://chatiwy-server.onrender.com';
+// Server URLs - Make sure to update these with your actual deployed server URLs
+const RENDER_URL = 'https://chatiwy-test.onrender.com';
 const DIGITAL_OCEAN_URL = '';
 const GUIDANCE_ACCEPTED_KEY = 'chatiwy_guidance_accepted';
 
@@ -59,9 +61,11 @@ const ChatPage = () => {
   const [userProfile, setUserProfile] = useState<any>(null);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [socketConnected, setSocketConnected] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   const [inboxMessages, setInboxMessages] = useState<InboxMessage[]>(mockInboxMessages);
   const [showInbox, setShowInbox] = useState(false);
   const [isVipUser, setIsVipUser] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
   const sheetRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
@@ -69,37 +73,58 @@ const ChatPage = () => {
     setShowGuidance(true);
   }, []);
   
-  useEffect(() => {
-    let isConnected = false;
+  const connectToSocket = async () => {
+    setIsConnecting(true);
+    setConnectionError(null);
     
-    const connectToSocket = async () => {
-      try {
-        if (DIGITAL_OCEAN_URL) {
-          socketService.setCustomServerUrl(DIGITAL_OCEAN_URL);
-        }
-        
-        if (RENDER_URL) {
-          socketService.setCustomServerUrl(RENDER_URL);
-        }
-        
-        await socketService.connect();
-        setSocketConnected(true);
-        isConnected = true;
-        console.log('Connected to WebSocket server');
-      } catch (error) {
-        console.error('Failed to connect to WebSocket server:', error);
-        toast.error('Unable to connect to chat server. Using offline mode.');
+    try {
+      if (DIGITAL_OCEAN_URL) {
+        socketService.setCustomServerUrl(DIGITAL_OCEAN_URL);
       }
-    };
-    
+      
+      if (RENDER_URL) {
+        socketService.setCustomServerUrl(RENDER_URL);
+      }
+      
+      await socketService.connect();
+      setSocketConnected(true);
+      console.log('Connected to WebSocket server');
+      toast.success('Connected to chat server');
+      
+      // Re-register user if we have a profile
+      if (userProfile) {
+        try {
+          const sessionId = sessionStorage.getItem(sessionKey) || 
+            Math.random().toString(36).substring(2, 15);
+          
+          await socketService.registerUser({
+            ...userProfile,
+            sessionId
+          });
+          
+          console.log('User re-registered after connection');
+        } catch (error) {
+          console.error('Error re-registering user:', error);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to connect to WebSocket server:', error);
+      setConnectionError(String(error));
+      toast.error('Unable to connect to chat server. Using offline mode.');
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+  
+  useEffect(() => {
     connectToSocket();
     
     const reconnectionInterval = setInterval(() => {
-      if (!socketService.isConnected() && !isConnected) {
+      if (!socketService.isConnected() && !isConnecting) {
         console.log('Attempting to reconnect to WebSocket server...');
         connectToSocket();
       }
-    }, 10000);
+    }, 30000); // Try to reconnect every 30 seconds
     
     return () => {
       clearInterval(reconnectionInterval);
@@ -305,6 +330,10 @@ const ChatPage = () => {
     navigate('/');
     toast.success('You have been logged out successfully');
   };
+  
+  const handleRetryConnection = () => {
+    connectToSocket();
+  };
 
   const unreadCount = inboxMessages.filter(msg => !msg.isRead).length;
 
@@ -353,6 +382,40 @@ const ChatPage = () => {
         
         {!showGuidance && (
           <div className="container mx-auto px-4">
+            {/* Connection Status Indicator */}
+            {!socketConnected && (
+              <div className="mb-4 p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-md flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="w-3 h-3 bg-yellow-500 rounded-full mr-2"></div>
+                  <span className="text-yellow-800 dark:text-yellow-200">
+                    {isConnecting ? 'Connecting to chat server...' : 'Offline Mode: Unable to connect to chat server.'}
+                  </span>
+                </div>
+                <Button 
+                  onClick={handleRetryConnection} 
+                  variant="outline" 
+                  size="sm" 
+                  disabled={isConnecting}
+                  className="text-yellow-800 dark:text-yellow-200 border-yellow-300 dark:border-yellow-700"
+                >
+                  <RefreshCw className={`h-4 w-4 mr-1 ${isConnecting ? 'animate-spin' : ''}`} />
+                  {isConnecting ? 'Connecting...' : 'Retry Connection'}
+                </Button>
+              </div>
+            )}
+            
+            {/* Connection Error Details */}
+            {connectionError && (
+              <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 rounded-md">
+                <p className="text-red-800 dark:text-red-200 text-sm font-mono">
+                  <strong>Connection Error:</strong> {connectionError}
+                </p>
+                <p className="text-red-700 dark:text-red-300 text-xs mt-2">
+                  Make sure your server is running and accessible. Check the server URL in Chat.tsx (RENDER_URL constant).
+                </p>
+              </div>
+            )}
+            
             <div className="flex flex-col lg:flex-row gap-4">
               <div className="w-full lg:w-1/4">
                 <ConnectedUsers 
@@ -517,9 +580,25 @@ const ChatPage = () => {
               </div>
             </div>
             
+            {/* Server Connection Debug Info (only shown in dev mode) */}
             {process.env.NODE_ENV === 'development' && (
               <div className="mt-4 p-4 bg-amber-100 dark:bg-amber-900/30 rounded-md">
                 <h3 className="font-medium mb-2">Development Tools</h3>
+                <div className="mb-4">
+                  <h4 className="text-sm font-semibold mb-1">Server Status & Connection</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                    <div className="p-2 bg-amber-200/50 dark:bg-amber-800/50 rounded">
+                      <strong>Connection Status:</strong> {socketConnected ? 'Connected' : 'Disconnected'}
+                    </div>
+                    <div className="p-2 bg-amber-200/50 dark:bg-amber-800/50 rounded">
+                      <strong>Socket ID:</strong> {socketService.getSocketId() || 'Not connected'}
+                    </div>
+                    <div className="p-2 bg-amber-200/50 dark:bg-amber-800/50 rounded">
+                      <strong>Current Server:</strong> {RENDER_URL || 'None configured'}
+                    </div>
+                  </div>
+                </div>
+                
                 <Button 
                   onClick={createTestVipAccount} 
                   variant="outline" 
