@@ -7,6 +7,10 @@ export interface BotProfile {
   country: string;
   interests: string[];
   isVIP?: boolean;
+  // Add missing properties
+  isOnline?: boolean;
+  isAdmin?: boolean;
+  flag?: string;
 }
 
 export const botProfiles: BotProfile[] = [
@@ -17,7 +21,9 @@ export const botProfiles: BotProfile[] = [
     gender: 'Male',
     country: 'United States',
     interests: ['Travel', 'Photography', 'Languages'],
-    isVIP: true
+    isVIP: true,
+    isOnline: true,
+    flag: '🇺🇸'
   },
   {
     id: 'bot2',
@@ -26,7 +32,9 @@ export const botProfiles: BotProfile[] = [
     gender: 'Female',
     country: 'Canada',
     interests: ['Fitness', 'Nutrition', 'Yoga'],
-    isVIP: false
+    isVIP: false,
+    isOnline: true,
+    flag: '🇨🇦'
   },
   {
     id: 'bot3',
@@ -35,7 +43,9 @@ export const botProfiles: BotProfile[] = [
     gender: 'Male',
     country: 'Germany',
     interests: ['Coding', 'Gaming', 'AI'],
-    isVIP: true
+    isVIP: true,
+    isOnline: true,
+    flag: '🇩🇪'
   },
   {
     id: 'bot4',
@@ -44,7 +54,9 @@ export const botProfiles: BotProfile[] = [
     gender: 'Female',
     country: 'United Kingdom',
     interests: ['Literature', 'Poetry', 'Writing'],
-    isVIP: false
+    isVIP: false,
+    isOnline: true,
+    flag: '🇬🇧'
   },
   {
     id: 'bot5',
@@ -53,7 +65,9 @@ export const botProfiles: BotProfile[] = [
     gender: 'Male',
     country: 'France',
     interests: ['Music', 'DJing', 'Concerts'],
-    isVIP: true
+    isVIP: true,
+    isOnline: true,
+    flag: '🇫🇷'
   },
   {
     id: 'bot6',
@@ -62,7 +76,9 @@ export const botProfiles: BotProfile[] = [
     gender: 'Female',
     country: 'Italy',
     interests: ['Art', 'Drawing', 'Museums'],
-    isVIP: false
+    isVIP: false,
+    isOnline: true,
+    flag: '🇮🇹'
   },
   {
     id: 'bot7',
@@ -71,7 +87,9 @@ export const botProfiles: BotProfile[] = [
     gender: 'Male',
     country: 'Spain',
     interests: ['Cooking', 'Baking', 'Food'],
-    isVIP: true
+    isVIP: true,
+    isOnline: true,
+    flag: '🇪🇸'
   },
   {
     id: 'bot8',
@@ -80,7 +98,9 @@ export const botProfiles: BotProfile[] = [
     gender: 'Female',
     country: 'Australia',
     interests: ['Hiking', 'Camping', 'Outdoors'],
-    isVIP: false
+    isVIP: false,
+    isOnline: true,
+    flag: '🇦🇺'
   },
   {
     id: 'bot9',
@@ -89,7 +109,9 @@ export const botProfiles: BotProfile[] = [
     gender: 'Male',
     country: 'Brazil',
     interests: ['Soccer', 'Basketball', 'Tennis'],
-    isVIP: true
+    isVIP: true,
+    isOnline: true,
+    flag: '🇧🇷'
   },
   {
     id: 'bot10',
@@ -98,6 +120,55 @@ export const botProfiles: BotProfile[] = [
     gender: 'Female',
     country: 'Japan',
     interests: ['Fashion', 'Design', 'Trends'],
-    isVIP: false
+    isVIP: false,
+    isOnline: true,
+    flag: '🇯🇵'
   }
 ];
+
+// Add function to generate random bot responses
+export const getRandomBotResponse = (topic?: string): string => {
+  const genericResponses = [
+    "That's interesting! Tell me more.",
+    "I see what you mean. What else is on your mind?",
+    "That's a great point. I appreciate your perspective.",
+    "I'm enjoying our conversation. What else would you like to talk about?",
+    "That's fascinating. I'd love to hear more about that.",
+    "Thanks for sharing that with me! How are you feeling about it?",
+    "I'm glad you brought that up. Let's discuss it further.",
+    "I hadn't thought about it that way before. Tell me more.",
+    "That's really cool! What makes you interested in that?",
+    "I'm curious to hear more about your experiences with that."
+  ];
+
+  const topicResponses: {[key: string]: string[]} = {
+    travel: [
+      "Have you traveled anywhere exciting recently?",
+      "What's your favorite place you've ever visited?",
+      "I love exploring new places! Any travel plans coming up?",
+      "If you could go anywhere in the world, where would it be?",
+      "Travel broadens the mind, don't you think?"
+    ],
+    music: [
+      "What kind of music do you enjoy listening to?",
+      "Have you been to any good concerts lately?",
+      "Music is such a powerful form of expression. What artists inspire you?",
+      "Do you play any instruments?",
+      "What's your go-to song when you need a mood boost?"
+    ],
+    food: [
+      "What's your favorite cuisine?",
+      "Have you tried any new restaurants lately?",
+      "Cooking or ordering in - which do you prefer?",
+      "What's the best meal you've ever had?",
+      "Do you enjoy trying foods from different cultures?"
+    ]
+  };
+
+  if (topic && topicResponses[topic.toLowerCase()]) {
+    const responses = topicResponses[topic.toLowerCase()];
+    return responses[Math.floor(Math.random() * responses.length)];
+  }
+
+  return genericResponses[Math.floor(Math.random() * genericResponses.length)];
+};
