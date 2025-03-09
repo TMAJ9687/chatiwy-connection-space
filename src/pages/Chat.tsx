@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Helmet } from 'react-helmet';
 import { Navbar } from '@/components/Navbar';
@@ -85,19 +84,15 @@ const ChatPage = () => {
         socketService.setCustomServerUrl(DIGITAL_OCEAN_URL);
       }
       
-      if (RENDER_URL) {
-        socketService.setCustomServerUrl(RENDER_URL);
-      }
+      socketService.setCustomServerUrl(RENDER_URL);
       
       await socketService.connect();
       setSocketConnected(true);
       console.log('Connected to WebSocket server');
       toast.success('Connected to chat server');
       
-      // Get updated connection details
       setConnectionDetails(socketService.getConnectionDetails());
       
-      // Re-register user if we have a profile
       if (userProfile) {
         try {
           const sessionId = sessionStorage.getItem(sessionKey) || 
@@ -131,9 +126,8 @@ const ChatPage = () => {
         console.log('Attempting to reconnect to WebSocket server...');
         connectToSocket();
       }
-    }, 60000); // Try to reconnect every 60 seconds (increased from 30 seconds)
+    }, 60000);
     
-    // Add a regular check to update the connection status
     const statusCheckInterval = setInterval(() => {
       setSocketConnected(socketService.isConnected());
       setConnectionError(socketService.getLastError());
@@ -635,7 +629,6 @@ const ChatPage = () => {
               </div>
             </div>
             
-            {/* Improved Server Connection Debug Info (only shown in dev mode) */}
             {process.env.NODE_ENV === 'development' && (
               <div className="mt-4 p-4 bg-amber-100 dark:bg-amber-900/30 rounded-md">
                 <h3 className="font-medium mb-2">Development Tools</h3>

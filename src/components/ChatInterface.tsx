@@ -273,23 +273,60 @@ export function ChatInterface({
   };
   
   const handleReceiveMessage = (messageData: any) => {
-    setTimeout(() => {
-      const botResponse: Message = {
-        id: Math.random().toString(36).substring(2, 15),
-        sender: currentChat?.username || 'Bot',
-        senderId: currentChat?.userId,
-        content: `Auto-response to: ${messageData.content}`,
-        timestamp: new Date(),
-        isBot: true
-      };
-      
+    console.log('Received message data:', messageData);
+    
+    // Extract relevant data
+    const sender = messageData.sender || messageData.username || 'Unknown';
+    const senderId = messageData.senderId || messageData.from || messageData.userId || 'unknown-id';
+    const isBot = messageData.isBot || false;
+    const content = messageData.content || '';
+    const image = messageData.image;
+    
+    // Create message object
+    const receivedMessage: Message = {
+      id: messageData.id || messageData.messageId || Math.random().toString(36).substring(2, 15),
+      sender,
+      senderId,
+      content,
+      timestamp: messageData.timestamp ? new Date(messageData.timestamp) : new Date(),
+      isBot,
+      image
+    };
+    
+    // Check if this is a valid message for the current chat
+    if (currentChat && (senderId === currentChat.userId || receivedMessage.senderId === currentChat.userId)) {
       setMessages(prevMessages => {
+        const updatedMessages = [...prevMessages, receivedMessage];
+        
+        // Update chat history
         if (currentChat) {
-          userChatHistories[currentChat.userId] = [...(userChatHistories[currentChat.userId] || []), botResponse];
+          userChatHistories[currentChat.userId] = updatedMessages;
         }
-        return [...prevMessages, botResponse];
+        
+        return updatedMessages;
       });
-    }, 1000);
+      
+      // Ensure we scroll to the new message
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
+    } else {
+      // Message is from another user, not in current chat
+      console.log('Message is from another user, not in current chat:', senderId);
+      
+      // Store in chat history for that user
+      if (senderId) {
+        userChatHistories[senderId] = [...(userChatHistories[senderId] || []), receivedMessage];
+        
+        // Add to unread messages
+        window.unreadMessagesPerUser.add(senderId);
+        
+        // Show notification
+        if (!blockedUsers.has(senderId)) {
+          toast.info(`New message from ${sender}`);
+        }
+      }
+    }
   };
   
   const handleBlockUser = () => {
@@ -532,6 +569,9 @@ export function ChatInterface({
   
   useEffect(() => {
     if (socketConnected) {
+      console.log('Setting up socket event listeners for real-time messaging');
+      
+      // Listen for typing status
       socketService.on('typing', (data: { from: string; username: string; isTyping: boolean }) => {
         if (isVipUser) {
           setTypingUsers(prev => {
@@ -546,6 +586,7 @@ export function ChatInterface({
         }
       });
       
+      // Listen for message status updates
       socketService.on('message_status', (data: { messageId: string; status: 'delivered' | 'read' }) => {
         if (isVipUser) {
           setMessages(prevMessages => 
@@ -555,14 +596,37 @@ export function ChatInterface({
           );
         }
       });
+      
+      // Listen for received messages
+      const handleReceivedMessage = (data: any) => {
+        console.log('New message received via socket:', data);
+        handleReceiveMessage(data);
+      };
+      
+      // Register for direct messages
+      socketService.on('direct_message', handleReceivedMessage);
+      
+      // Also listen for general messages
+      socketService.on('chat_message', handleReceivedMessage);
+      
+      // Listen for generic message events
+      socketService.on('message', handleReceivedMessage);
+      
+      // Listen for receive_message events
+      socketService.on('receive_message', handleReceivedMessage);
+      
+      return () => {
+        // Clean up event listeners
+        if (socketConnected) {
+          socketService.off('typing');
+          socketService.off('message_status');
+          socketService.off('direct_message');
+          socketService.off('chat_message');
+          socketService.off('message');
+          socketService.off('receive_message');
+        }
+      };
     }
-    
-    return () => {
-      if (socketConnected) {
-        socketService.off('typing');
-        socketService.off('message_status');
-      }
-    };
   }, [socketConnected, isVipUser]);
   
   useEffect(() => {

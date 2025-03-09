@@ -65,6 +65,7 @@ class SocketService {
   private lastError: string | null = null;
   private successfulConnectionUrl: string | null = null;
   private connectionDiagnostics: Record<string, any> = {};
+  private messageCallbacks: Map<string, (data: any) => void> = new Map();
 
   // Initialize the socket connection
   connect(): Promise<Socket> {
@@ -230,6 +231,14 @@ class SocketService {
       }
     });
 
+    // Add explicit message event handler
+    this.socket.on('message', (data) => {
+      console.log('Received message event:', data);
+      
+      // Process the message and notify any registered callbacks
+      this.processIncomingMessage(data);
+    });
+
     // Add a ping/pong to check connection health
     setInterval(() => {
       if (this.socket?.connected) {
@@ -250,6 +259,30 @@ class SocketService {
         });
       });
     });
+  }
+
+  // Process incoming messages
+  private processIncomingMessage(data: any) {
+    try {
+      console.log('Processing incoming message:', data);
+      // Check if the message is from a blocked user
+      if (data.from && this.blockedUsers.has(data.from)) {
+        console.log(`Ignoring message from blocked user: ${data.from}`);
+        return;
+      }
+
+      // Notify any registered callbacks for 'receive_message'
+      const callbacks = this.registeredCallbacks.get('receive_message') || [];
+      callbacks.forEach(callback => {
+        try {
+          callback(data);
+        } catch (error) {
+          console.error('Error in message callback:', error);
+        }
+      });
+    } catch (error) {
+      console.error('Error processing incoming message:', error);
+    }
   }
 
   // Register a user with the server
@@ -273,6 +306,10 @@ class SocketService {
         clearTimeout(registrationTimeout);
         console.log('User registration successful:', data);
         this.userId = data.id; // Save the user ID for message sending
+        
+        // Automatically subscribe to message events for this user
+        this.setupMessageReceiving();
+        
         resolve(data);
       });
 
@@ -281,6 +318,25 @@ class SocketService {
         console.error('User registration error:', error);
         reject(error);
       });
+    });
+  }
+  
+  // Set up message receiving after registration
+  private setupMessageReceiving() {
+    if (!this.socket || !this.userId) return;
+    
+    console.log(`Setting up message receiving for user ID: ${this.userId}`);
+    
+    // Listen for direct messages to this user
+    this.socket.on('direct_message', (data) => {
+      console.log('Received direct message:', data);
+      this.processIncomingMessage(data);
+    });
+    
+    // Listen for general messages (if applicable)
+    this.socket.on('chat_message', (data) => {
+      console.log('Received chat message:', data);
+      this.processIncomingMessage(data);
     });
   }
 
@@ -325,7 +381,14 @@ class SocketService {
       messageId: message.messageId || Math.random().toString(36).substring(2, 15)
     };
 
+    console.log('Sending message:', enhancedMessage);
     this.socket.emit('send_message', enhancedMessage);
+    
+    // Also listen for acknowledgment of this specific message
+    const messageId = enhancedMessage.messageId;
+    this.socket.once(`message_sent_${messageId}`, (confirmation) => {
+      console.log('Message sent confirmation:', confirmation);
+    });
   }
 
   // Signal that the user is typing
@@ -374,6 +437,8 @@ class SocketService {
       return;
     }
 
+    console.log(`Subscribing to event: ${event}`);
+    
     // Store callback for potential reconnects
     if (!this.registeredCallbacks.has(event)) {
       this.registeredCallbacks.set(event, []);
