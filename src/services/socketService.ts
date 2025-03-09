@@ -1,7 +1,6 @@
-
 import { io, Socket } from 'socket.io-client';
 import { toast } from 'sonner';
-import { formatConnectionError } from '@/utils/chatUtils';
+import { formatConnectionError, diagnoseWebSocketConnectivity } from '@/utils/chatUtils';
 
 // Define the server URL with fallback options
 // The server can be configured via environment variable or explicitly defined here
@@ -10,6 +9,9 @@ const SERVER_URLS = [
   "https://chatiwy-test.onrender.com",
   // Try HTTP version if HTTPS fails
   "http://chatiwy-test.onrender.com",
+  // Try WebSocket protocols explicitly
+  "wss://chatiwy-test.onrender.com",
+  "ws://chatiwy-test.onrender.com",
   // Try the origin (if this app is deployed with the backend)
   window.location.origin.replace(/^https/, 'wss').replace(/^http/, 'ws'),
   // Alternative WebSocket protocol if 'wss://' doesn't work
@@ -18,6 +20,9 @@ const SERVER_URLS = [
   'http://localhost:5000',
   'http://localhost:3001',
   'http://localhost:8080',
+  'ws://localhost:5000',
+  'ws://localhost:3001',
+  'ws://localhost:8080',
   // Add additional fallback servers here if needed
 ].filter(Boolean); // Remove undefined values
 
@@ -48,7 +53,7 @@ class SocketService {
   private socket: Socket | null = null;
   private registeredCallbacks: Map<string, Function[]> = new Map();
   private reconnectAttempts: number = 0;
-  private maxReconnectAttempts: number = 5; // Increased from 3
+  private maxReconnectAttempts: number = 7; // Increased from 5
   private currentServerIndex: number = 0;
   private connectionInProgress: boolean = false;
   private userId: string | null = null;
@@ -57,6 +62,8 @@ class SocketService {
   private typingTimeoutRef: NodeJS.Timeout | null = null;
   private connectionTimer: NodeJS.Timeout | null = null;
   private lastError: string | null = null;
+  private successfulConnectionUrl: string | null = null;
+  private connectionDiagnostics: Record<string, any> = {};
 
   // Initialize the socket connection
   connect(): Promise<Socket> {
@@ -68,6 +75,13 @@ class SocketService {
     this.connectionInProgress = true;
     this.reconnectAttempts += 1;
     
+    // Reset server index if we've exceeded max reconnect attempts
+    if (this.reconnectAttempts > this.maxReconnectAttempts) {
+      console.log(`Exceeded max reconnect attempts (${this.maxReconnectAttempts}). Resetting server index.`);
+      this.currentServerIndex = 0;
+      this.reconnectAttempts = 1;
+    }
+    
     return new Promise<Socket>((resolve, reject) => {
       this.tryNextServer(resolve, reject);
     }).finally(() => {
@@ -75,10 +89,14 @@ class SocketService {
     });
   }
   
-  private tryNextServer(resolve: (socket: Socket) => void, reject: (error: Error) => void): void {
+  private async tryNextServer(resolve: (socket: Socket) => void, reject: (error: Error) => void): Promise<void> {
     if (this.currentServerIndex >= SERVER_URLS.length) {
       console.error('All server connection attempts failed');
       this.lastError = 'All connection attempts failed';
+      
+      // Log connection diagnostics
+      console.debug('Connection diagnostics:', this.connectionDiagnostics);
+      
       toast.error('Unable to connect to chat server. Using offline mode.');
       reject(new Error('All connection attempts failed'));
       return;
@@ -86,6 +104,28 @@ class SocketService {
     
     const serverUrl = SERVER_URLS[this.currentServerIndex];
     console.log(`Attempting to connect to WebSocket server at: ${serverUrl} (attempt ${this.currentServerIndex + 1}/${SERVER_URLS.length})`);
+    
+    // Run diagnostic check before attempting connection
+    try {
+      const diagnosis = await diagnoseWebSocketConnectivity(serverUrl);
+      this.connectionDiagnostics[serverUrl] = diagnosis;
+      
+      if (diagnosis.canConnect) {
+        console.log(`Diagnostic check successful for ${serverUrl}: ${JSON.stringify(diagnosis)}`);
+      } else {
+        console.warn(`Diagnostic check failed for ${serverUrl}: ${JSON.stringify(diagnosis)}`);
+        // If diagnostic clearly shows we can't connect, try next server
+        if (diagnosis.error?.includes('WebSocket initialization error') || 
+            diagnosis.error?.includes('HTTP connection failed')) {
+          console.log(`Skipping ${serverUrl} due to diagnosis failure`);
+          this.currentServerIndex++;
+          this.tryNextServer(resolve, reject);
+          return;
+        }
+      }
+    } catch (error) {
+      console.warn(`Error running diagnostic for ${serverUrl}:`, error);
+    }
     
     try {
       // Disconnect previous socket if it exists
@@ -102,7 +142,7 @@ class SocketService {
       // Configure socket with better connection options
       this.socket = io(serverUrl, {
         reconnectionAttempts: 3,
-        timeout: 10000, // Increased timeout
+        timeout: 15000, // Increased timeout
         transports: ['websocket', 'polling'], // Try WebSocket first, fall back to polling
         forceNew: true, // Force a new connection
         extraHeaders: {
@@ -126,7 +166,7 @@ class SocketService {
         }
         this.currentServerIndex++;
         this.tryNextServer(resolve, reject);
-      }, 12000); // Increased from 7000
+      }, 15000); // Increased from 12000
 
       this.socket.on('connect', () => {
         console.log(`Connected to WebSocket server: ${serverUrl}`);
@@ -135,6 +175,7 @@ class SocketService {
         }
         this.reconnectAttempts = 0;
         this.lastError = null;
+        this.successfulConnectionUrl = serverUrl;
         this.setupEventListeners();
         resolve(this.socket);
       });
@@ -410,10 +451,48 @@ class SocketService {
     };
   }
   
+  // Get connection diagnostics
+  getDiagnostics(): Record<string, any> {
+    return {
+      connectionDiagnostics: this.connectionDiagnostics,
+      successfulUrl: this.successfulConnectionUrl,
+      currentAttempt: this.currentServerIndex + 1,
+      totalServers: SERVER_URLS.length,
+      reconnectAttempts: this.reconnectAttempts,
+      isConnected: this.isConnected(),
+      lastError: this.lastError,
+      transport: this.socket?.io?.engine?.transport?.name
+    };
+  }
+  
+  // Run a diagnostic test
+  async runDiagnostic(url: string = ''): Promise<any> {
+    const serverUrl = url || (this.currentServerIndex < SERVER_URLS.length ? 
+                             SERVER_URLS[this.currentServerIndex] : SERVER_URLS[0]);
+    try {
+      return await diagnoseWebSocketConnectivity(serverUrl);
+    } catch (error) {
+      return {
+        canConnect: false,
+        error: formatConnectionError(error)
+      };
+    }
+  }
+  
+  // Get all attempted servers and their status
+  getAttemptedServers(): { url: string, status: string, diagnostic: any }[] {
+    return Object.keys(this.connectionDiagnostics).map(url => ({
+      url,
+      status: url === this.successfulConnectionUrl ? 'connected' : 'failed',
+      diagnostic: this.connectionDiagnostics[url]
+    }));
+  }
+
   // Retry connection
   retryConnection(): Promise<Socket> {
     console.log('Manually retrying connection...');
     this.currentServerIndex = 0; // Reset to try all servers again
+    this.reconnectAttempts = 1;  // Reset reconnect attempts counter
     return this.connect();
   }
 

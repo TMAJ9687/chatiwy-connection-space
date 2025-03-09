@@ -119,8 +119,92 @@ export const getTroubleshootingTips = (error: string | null): string[] => {
   if (error?.includes('timeout')) {
     tips.push('Connection timeout. The server might be down or unreachable');
   }
+
+  // Add specific diagnostics for common issues
+  if (error?.includes('failed')) {
+    tips.push('Try using a different browser or network connection');
+    tips.push('Check if your firewall or proxy is blocking WebSocket connections');
+  }
   
   return tips;
+};
+
+// WebSocket connectivity diagnostic function
+export const diagnoseWebSocketConnectivity = async (serverUrl: string): Promise<{
+  canConnect: boolean;
+  protocol: string;
+  error?: string;
+  latency?: number;
+}> => {
+  try {
+    // First check if we can reach the server via HTTP(S)
+    const start = performance.now();
+    
+    // Try to connect with fetch first to test basic connectivity
+    const response = await fetch(serverUrl.replace('ws://', 'http://').replace('wss://', 'https://'), {
+      method: 'HEAD',
+      mode: 'no-cors', // This allows us to at least attempt the connection
+      cache: 'no-cache',
+      headers: {
+        'Accept': 'text/html'
+      },
+      redirect: 'follow',
+    }).catch(e => {
+      throw new Error(`HTTP connection failed: ${e.message}`);
+    });
+    
+    const latency = performance.now() - start;
+    
+    // Now try a WebSocket connection
+    return new Promise((resolve) => {
+      try {
+        const ws = new WebSocket(serverUrl);
+        const timeout = setTimeout(() => {
+          ws.close();
+          resolve({
+            canConnect: false,
+            protocol: serverUrl.startsWith('wss') ? 'WSS' : 'WS',
+            error: 'WebSocket connection timeout after 5 seconds',
+            latency
+          });
+        }, 5000);
+        
+        ws.onopen = () => {
+          clearTimeout(timeout);
+          ws.close();
+          resolve({
+            canConnect: true,
+            protocol: ws.protocol || (serverUrl.startsWith('wss') ? 'WSS' : 'WS'),
+            latency
+          });
+        };
+        
+        ws.onerror = (error) => {
+          clearTimeout(timeout);
+          ws.close();
+          resolve({
+            canConnect: false,
+            protocol: serverUrl.startsWith('wss') ? 'WSS' : 'WS',
+            error: 'WebSocket connection error',
+            latency
+          });
+        };
+      } catch (error) {
+        resolve({
+          canConnect: false,
+          protocol: serverUrl.startsWith('wss') ? 'WSS' : 'WS',
+          error: `WebSocket initialization error: ${error instanceof Error ? error.message : String(error)}`,
+          latency
+        });
+      }
+    });
+  } catch (error) {
+    return {
+      canConnect: false,
+      protocol: serverUrl.startsWith('wss') ? 'WSS' : 'WS',
+      error: error instanceof Error ? error.message : String(error)
+    };
+  }
 };
 
 // Constants
