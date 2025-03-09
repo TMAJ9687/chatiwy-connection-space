@@ -90,6 +90,7 @@ export function ChatInterface({
   
   const messageEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   useEffect(() => {
     try {
@@ -180,8 +181,10 @@ export function ChatInterface({
       if (socketConnected && currentChat) {
         socketService.sendTyping({ to: currentChat.userId, isTyping: true });
         
-        clearTimeout(typingTimeout.current);
-        typingTimeout.current = setTimeout(() => {
+        if (typingTimeoutRef.current) {
+          clearTimeout(typingTimeoutRef.current);
+        }
+        typingTimeoutRef.current = setTimeout(() => {
           socketService.sendTyping({ to: currentChat.userId, isTyping: false });
         }, 3000);
       }
@@ -210,7 +213,7 @@ export function ChatInterface({
       const newMessageId = Math.random().toString(36).substring(2, 15);
       
       setMessages(prevMessages => {
-        const newMessage = {
+        const newMessage: Message = {
           id: newMessageId,
           sender: userProfile.username,
           senderId: userProfile.id,
@@ -237,14 +240,14 @@ export function ChatInterface({
           setTimeout(() => {
             setMessages(prevMessages => 
               prevMessages.map(msg => 
-                msg.id === newMessageId ? { ...msg, status: 'delivered' } : msg
+                msg.id === newMessageId ? { ...msg, status: 'delivered' as const } : msg
               )
             );
             
             setTimeout(() => {
               setMessages(prevMessages => 
                 prevMessages.map(msg => 
-                  msg.id === newMessageId ? { ...msg, status: 'read' } : msg
+                  msg.id === newMessageId ? { ...msg, status: 'read' as const } : msg
                 )
               );
             }, 3000);
@@ -271,7 +274,7 @@ export function ChatInterface({
   
   const handleReceiveMessage = (messageData: any) => {
     setTimeout(() => {
-      const botResponse = {
+      const botResponse: Message = {
         id: Math.random().toString(36).substring(2, 15),
         sender: currentChat?.username || 'Bot',
         senderId: currentChat?.userId,
@@ -335,10 +338,6 @@ export function ChatInterface({
   
   const handleEmojiClick = (emoji: string) => {
     setMessageInput(prevInput => prevInput + emoji);
-  };
-  
-  const handleImageUpload = () => {
-    fileInputRef.current?.click();
   };
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -407,7 +406,7 @@ export function ChatInterface({
       };
 
       setMessages(prevMessages => {
-        const newMessage = {
+        const newMessage: Message = {
           id: Math.random().toString(36).substring(2, 15),
           sender: userProfile.username,
           senderId: userProfile.id,
@@ -563,18 +562,22 @@ export function ChatInterface({
   }, [socketConnected, isVipUser]);
   
   useEffect(() => {
-    let typingTimeout: NodeJS.Timeout;
-    
     if (socketConnected && currentChat && messageInput.length > 0) {
       socketService.sendTyping({ to: currentChat.userId, isTyping: true });
       
-      typingTimeout = setTimeout(() => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      
+      typingTimeoutRef.current = setTimeout(() => {
         socketService.sendTyping({ to: currentChat.userId, isTyping: false });
       }, 3000);
     }
     
     return () => {
-      if (typingTimeout) clearTimeout(typingTimeout);
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
     };
   }, [messageInput, currentChat, socketConnected]);
   
