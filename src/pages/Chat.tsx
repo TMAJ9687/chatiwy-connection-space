@@ -100,12 +100,14 @@ const ChatPage = () => {
           
           await socketService.registerUser({
             ...userProfile,
+            id: userProfile.id,
+            username: userProfile.username,
             sessionId
           });
           
-          console.log('User re-registered after connection');
+          console.log('User registered after connection:', userProfile.username, userProfile.id);
         } catch (error) {
-          console.error('Error re-registering user:', error);
+          console.error('Error registering user:', error);
         }
       }
     } catch (error) {
@@ -161,20 +163,26 @@ const ChatPage = () => {
       
       setIsVipUser(!!profile.isVIP);
       
+      if (!profile.id) {
+        profile.id = sessionId;
+      }
+      
       if (socketConnected) {
         socketService.registerUser({
           ...profile,
           sessionId
         }).then(registeredUser => {
+          const assignedId = registeredUser.id || profile.id;
+          
           setUserProfile({
             ...profile,
-            id: registeredUser.id,
+            id: assignedId,
             sessionId
           });
           
           localStorage.setItem('userProfile', JSON.stringify({
             ...profile,
-            id: registeredUser.id,
+            id: assignedId,
             sessionId
           }));
         }).catch(error => {
@@ -245,7 +253,7 @@ const ChatPage = () => {
             }).then(registeredUser => {
               const updatedProfile = {
                 ...profile,
-                id: registeredUser.id,
+                id: registeredUser.id || profile.id,
                 sessionId
               };
               

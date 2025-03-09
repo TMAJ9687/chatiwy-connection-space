@@ -125,7 +125,7 @@ export function ChatInterface({
       const user = socketConnected
         ? { 
             id: selectedUser, 
-            username: botProfiles.find(b => b.id === selectedUser)?.username || 'User',
+            username: botProfiles.find(b => b.id === selectedUser)?.username || selectedUser,
             isBot: false
           }
         : mockConnectedUsers.get(selectedUser);
@@ -228,7 +228,8 @@ export function ChatInterface({
             userChatHistories[currentChat.userId] = [];
           }
           
-          userChatHistories[currentChat.userId] = [...userChatHistories[currentChat.userId], newMessage];
+          const updatedHistory = [...userChatHistories[currentChat.userId], newMessage];
+          userChatHistories[currentChat.userId] = updatedHistory;
         }
         return [...prevMessages, newMessage];
       });
@@ -237,7 +238,9 @@ export function ChatInterface({
         socketService.sendMessage({ 
           to: currentChat.userId, 
           content: messageInput,
-          messageId: newMessageId
+          messageId: newMessageId,
+          sender: userProfile.username,
+          senderId: userProfile.id
         });
         
         if (isVipUser) {
@@ -248,12 +251,24 @@ export function ChatInterface({
               )
             );
             
+            if (currentChat) {
+              userChatHistories[currentChat.userId] = userChatHistories[currentChat.userId].map(msg => 
+                msg.id === newMessageId ? { ...msg, status: 'delivered' as const } : msg
+              );
+            }
+            
             setTimeout(() => {
               setMessages(prevMessages => 
                 prevMessages.map(msg => 
                   msg.id === newMessageId ? { ...msg, status: 'read' as const } : msg
                 )
               );
+              
+              if (currentChat) {
+                userChatHistories[currentChat.userId] = userChatHistories[currentChat.userId].map(msg => 
+                  msg.id === newMessageId ? { ...msg, status: 'read' as const } : msg
+                );
+              }
             }, 3000);
           }, 1000);
         }
@@ -284,9 +299,10 @@ export function ChatInterface({
     const isBot = messageData.isBot || false;
     const content = messageData.content || '';
     const image = messageData.image;
+    const messageId = messageData.messageId || messageData.id || Math.random().toString(36).substring(2, 15);
     
     const receivedMessage: Message = {
-      id: messageData.id || messageData.messageId || Math.random().toString(36).substring(2, 15),
+      id: messageId,
       sender,
       senderId,
       content,
@@ -295,12 +311,16 @@ export function ChatInterface({
       image
     };
     
-    if (currentChat && (senderId === currentChat.userId || receivedMessage.senderId === currentChat.userId)) {
+    const belongsToCurrentChat = currentChat && 
+      (senderId === currentChat.userId || receivedMessage.senderId === currentChat.userId);
+    
+    if (belongsToCurrentChat) {
       setMessages(prevMessages => {
         const isDuplicate = prevMessages.some(msg => 
           msg.id === receivedMessage.id || 
           (msg.content === receivedMessage.content && 
-           Math.abs(new Date(msg.timestamp).getTime() - new Date(receivedMessage.timestamp).getTime()) < 2000)
+           msg.sender === receivedMessage.sender &&
+           Math.abs(new Date(msg.timestamp).getTime() - new Date(receivedMessage.timestamp).getTime()) < 5000)
         );
         
         if (isDuplicate) {
@@ -314,7 +334,17 @@ export function ChatInterface({
           if (!userChatHistories[currentChat.userId]) {
             userChatHistories[currentChat.userId] = [];
           }
-          userChatHistories[currentChat.userId] = updatedMessages;
+          
+          const isDuplicateInHistory = userChatHistories[currentChat.userId].some(msg => 
+            msg.id === receivedMessage.id || 
+            (msg.content === receivedMessage.content && 
+             msg.sender === receivedMessage.sender &&
+             Math.abs(new Date(msg.timestamp).getTime() - new Date(receivedMessage.timestamp).getTime()) < 5000)
+          );
+          
+          if (!isDuplicateInHistory) {
+            userChatHistories[currentChat.userId] = [...userChatHistories[currentChat.userId], receivedMessage];
+          }
         }
         
         return updatedMessages;
@@ -332,7 +362,8 @@ export function ChatInterface({
         const isDuplicate = userChatHistories[senderId].some(msg => 
           msg.id === receivedMessage.id || 
           (msg.content === receivedMessage.content && 
-           Math.abs(new Date(msg.timestamp).getTime() - new Date(receivedMessage.timestamp).getTime()) < 2000)
+           msg.sender === receivedMessage.sender &&
+           Math.abs(new Date(msg.timestamp).getTime() - new Date(receivedMessage.timestamp).getTime()) < 5000)
         );
         
         if (!isDuplicate) {
@@ -614,6 +645,12 @@ export function ChatInterface({
               msg.id === data.messageId ? { ...msg, status: data.status } : msg
             )
           );
+          
+          if (currentChat) {
+            userChatHistories[currentChat.userId] = userChatHistories[currentChat.userId].map(msg => 
+              msg.id === data.messageId ? { ...msg, status: data.status } : msg
+            );
+          }
         }
       });
       
@@ -622,18 +659,19 @@ export function ChatInterface({
         handleReceiveMessage(data);
       };
       
-      const messageEvents = ['direct_message', 'chat_message', 'message', 'receive_message'];
-      messageEvents.forEach(eventType => {
-        socketService.on(eventType, handleReceivedMessage);
-      });
+      socketService.on('receive_message', handleReceivedMessage);
+      socketService.on('direct_message', handleReceivedMessage);
+      socketService.on('chat_message', handleReceivedMessage);
+      socketService.on('message', handleReceivedMessage);
       
       return () => {
         if (socketConnected) {
           socketService.off('typing');
           socketService.off('message_status');
-          messageEvents.forEach(eventType => {
-            socketService.off(eventType);
-          });
+          socketService.off('receive_message');
+          socketService.off('direct_message');
+          socketService.off('chat_message');
+          socketService.off('message');
         }
       };
     }

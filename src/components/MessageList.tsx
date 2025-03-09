@@ -64,7 +64,7 @@ export function MessageList({
     <ScrollArea className="flex-1 p-4 overflow-auto">
       <div className="space-y-4">
         {messages.map((message) => {
-          const isCurrentUser = message.sender === currentUsername;
+          const isCurrentUser = message.sender === currentUsername || message.senderId === userProfile?.id;
           
           return (
             <div 
