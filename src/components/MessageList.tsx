@@ -61,10 +61,11 @@ export function MessageList({
   };
 
   return (
-    <ScrollArea className="flex-1 p-4 overflow-auto">
+    <ScrollArea className="flex-1 p-4 h-[calc(70vh-80px)] overflow-auto">
       <div className="space-y-4">
         {messages.map((message) => {
           const isCurrentUser = message.sender === currentUsername || message.senderId === currentUsername;
+          const senderName = message.sender || "Unknown User";
           
           return (
             <div 
@@ -79,7 +80,7 @@ export function MessageList({
                 }`}>
                   {!isCurrentUser && (
                     <div className="text-xs font-medium mb-1 text-muted-foreground">
-                      {message.sender}
+                      {senderName}
                     </div>
                   )}
                   

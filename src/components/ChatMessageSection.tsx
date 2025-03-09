@@ -86,7 +86,7 @@ export function ChatMessageSection({
   return (
     <div className="flex flex-col h-full">
       <ChatHeader 
-        username={currentChat.username}
+        username={currentChat.username || "Unknown User"}
         isAdmin={currentChat.isAdmin}
         isBot={currentChat.isBot}
         isVIP={currentChat.isVIP}

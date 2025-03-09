@@ -106,7 +106,7 @@ export function getConnectedUsers(userProfile: any, socketConnected: boolean, re
   let connectedUsers: any[] = [];
   
   if (socketConnected && realTimeUsers.length > 0) {
-    connectedUsers = realTimeUsers.filter(user => user.id !== userProfile.id);
+    connectedUsers = realTimeUsers.filter(user => user.id !== userProfile?.id);
   } else {
     // Use bot profiles as mock users when not connected
     connectedUsers = botProfiles.map(bot => ({

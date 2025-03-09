@@ -418,7 +418,7 @@ const ChatPage = () => {
         
         {!showGuidance && (
           <div className="container mx-auto px-4">
-            {/* Improved Connection Status Indicator */}
+            {/* Connection Status Indicator */}
             {!socketConnected && (
               <div className="mb-4 p-4 bg-yellow-100 dark:bg-yellow-900/40 rounded-md">
                 <div className="flex items-center justify-between mb-2">
@@ -473,8 +473,8 @@ const ChatPage = () => {
               </div>
             )}
             
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-              <div className="lg:col-span-1">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+              <div className="lg:col-span-3">
                 <ConnectedUsers 
                   userProfile={userProfile} 
                   selectedUser={selectedUser}
@@ -482,7 +482,7 @@ const ChatPage = () => {
                   socketConnected={socketConnected}
                 />
               </div>
-              <div className="lg:col-span-3 h-[70vh]">
+              <div className="lg:col-span-9 h-[70vh]">
                 <ChatInterface 
                   userProfile={userProfile} 
                   selectedUser={selectedUser}

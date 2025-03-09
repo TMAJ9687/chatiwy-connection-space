@@ -111,8 +111,8 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         filteredUsers = filteredUsers.filter(user => 
-          user.username.toLowerCase().includes(query) ||
-          user.country.toLowerCase().includes(query)
+          user.username?.toLowerCase().includes(query) ||
+          user.country?.toLowerCase().includes(query)
         );
       }
       
@@ -123,13 +123,13 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
         if (!a.isVIP && b.isVIP) return 1;
         
         // Then sort by country name alphabetically
-        return a.country.localeCompare(b.country);
+        return (a.country || '').localeCompare(b.country || '');
       });
       
       let realConnectedCount = 0;
       if (socketConnected) {
         realConnectedCount = realTimeUsers.filter(user => 
-          user.id !== userProfile.id && 
+          user.id !== userProfile?.id && 
           user.isOnline
         ).length;
       } else {
