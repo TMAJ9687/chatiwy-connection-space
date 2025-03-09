@@ -10,9 +10,13 @@ export interface Message {
   timestamp: Date;
   isBot: boolean;
   isRead?: boolean;
+  status?: 'sent' | 'delivered' | 'read'; // Added message status
   image?: {
     url: string;
     blurred: boolean;
+  };
+  audio?: {
+    url: string;
   };
 }
 
@@ -26,6 +30,7 @@ export interface ConnectedUser {
   country?: string;
   age?: number;
   isOnline?: boolean;
+  isTyping?: boolean; // Added typing indicator
 }
 
 export const BLOCKED_USERS_KEY = 'chatiwy_blocked_users';

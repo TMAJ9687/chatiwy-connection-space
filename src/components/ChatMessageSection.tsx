@@ -25,6 +25,8 @@ interface ChatMessageSectionProps {
   onViewBlocked: () => void;
   toggleImageBlur: (messageId: string, shouldBlur: boolean) => void;
   openImageInFullResolution: (imageUrl: string) => void;
+  isVipUser: boolean;
+  typingUsers?: Set<string>;
 }
 
 export function ChatMessageSection({
@@ -38,7 +40,9 @@ export function ChatMessageSection({
   onViewHistory,
   onViewBlocked,
   toggleImageBlur,
-  openImageInFullResolution
+  openImageInFullResolution,
+  isVipUser,
+  typingUsers
 }: ChatMessageSectionProps) {
   if (!currentChat) {
     return (
@@ -84,6 +88,8 @@ export function ChatMessageSection({
           toggleImageBlur={toggleImageBlur}
           openImageInFullResolution={openImageInFullResolution}
           messageEndRef={messageEndRef}
+          isVipUser={isVipUser}
+          typingUsers={typingUsers}
         />
       ) : (
         <div className="flex-1 flex items-center justify-center">

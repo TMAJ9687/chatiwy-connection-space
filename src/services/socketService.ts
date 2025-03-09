@@ -29,6 +29,7 @@ interface ConnectedUser {
 interface MessageData {
   to?: string;
   content: string;
+  messageId?: string;
   image?: {
     url: string;
     blurred: boolean;
@@ -46,6 +47,7 @@ class SocketService {
   private userId: string | null = null;
   private blockedUsers: Set<string> = new Set();
   public connectedUsers: Map<string, ConnectedUser> = new Map();
+  private typingTimeout: NodeJS.Timeout | null = null;
 
   // Initialize the socket connection
   connect(): Promise<Socket> {
@@ -209,7 +211,8 @@ class SocketService {
     const enhancedMessage = {
       ...message,
       from: this.userId, // Include sender's ID
-      recipientId: message.to // Ensure recipientId is set explicitly
+      recipientId: message.to, // Ensure recipientId is set explicitly
+      messageId: message.messageId || Math.random().toString(36).substring(2, 15)
     };
 
     this.socket.emit('send_message', enhancedMessage);
@@ -224,7 +227,23 @@ class SocketService {
       return;
     }
     
+    // Clear previous timeout
+    if (this.typingTimeout) {
+      clearTimeout(this.typingTimeout);
+      this.typingTimeout = null;
+    }
+    
+    // Send typing status
     this.socket.emit('typing', data);
+    
+    // Set auto-clear timeout for typing indicator
+    if (data.isTyping) {
+      this.typingTimeout = setTimeout(() => {
+        if (this.socket && data.to) {
+          this.socket.emit('typing', { to: data.to, isTyping: false });
+        }
+      }, 5000);
+    }
   }
 
   // Block a user

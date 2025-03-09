@@ -86,6 +86,7 @@ export function ChatInterface({
   const [blockedUsersList, setBlockedUsersList] = useState<string[]>([]);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
+  const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   
   const messageEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -175,6 +176,15 @@ export function ChatInterface({
     const value = e.target.value;
     if (value.length <= getMaxMessageLength()) {
       setMessageInput(value);
+      
+      if (socketConnected && currentChat) {
+        socketService.sendTyping({ to: currentChat.userId, isTyping: true });
+        
+        clearTimeout(typingTimeout.current);
+        typingTimeout.current = setTimeout(() => {
+          socketService.sendTyping({ to: currentChat.userId, isTyping: false });
+        }, 3000);
+      }
     }
   };
   
@@ -197,22 +207,17 @@ export function ChatInterface({
         setDuplicateCount(0);
       }
 
-      const messageData = {
-        sender: userProfile.username,
-        senderId: userProfile.id,
-        content: messageInput,
-        timestamp: new Date(),
-        isBot: false
-      };
-
+      const newMessageId = Math.random().toString(36).substring(2, 15);
+      
       setMessages(prevMessages => {
         const newMessage = {
-          id: Math.random().toString(36).substring(2, 15),
+          id: newMessageId,
           sender: userProfile.username,
           senderId: userProfile.id,
           content: messageInput,
           timestamp: new Date(),
-          isBot: false
+          isBot: false,
+          status: isVipUser ? 'sent' : undefined
         };
 
         if (currentChat) {
@@ -224,15 +229,43 @@ export function ChatInterface({
       if (socketConnected && currentChat) {
         socketService.sendMessage({ 
           to: currentChat.userId, 
-          content: messageInput
+          content: messageInput,
+          messageId: newMessageId
         });
         
+        if (isVipUser) {
+          setTimeout(() => {
+            setMessages(prevMessages => 
+              prevMessages.map(msg => 
+                msg.id === newMessageId ? { ...msg, status: 'delivered' } : msg
+              )
+            );
+            
+            setTimeout(() => {
+              setMessages(prevMessages => 
+                prevMessages.map(msg => 
+                  msg.id === newMessageId ? { ...msg, status: 'read' } : msg
+                )
+              );
+            }, 3000);
+          }, 1000);
+        }
       } else if (currentChat && currentChat.isBot) {
-        handleReceiveMessage(messageData);
+        handleReceiveMessage({
+          sender: userProfile.username,
+          senderId: userProfile.id,
+          content: messageInput,
+          timestamp: new Date(),
+          isBot: false
+        });
       }
 
       setLastMessage(messageInput);
       setMessageInput('');
+      
+      if (socketConnected && currentChat) {
+        socketService.sendTyping({ to: currentChat.userId, isTyping: false });
+      }
     }
   };
   
@@ -494,6 +527,57 @@ export function ChatInterface({
            'Unknown User';
   };
   
+  useEffect(() => {
+    if (socketConnected) {
+      socketService.on('typing', (data: { from: string; username: string; isTyping: boolean }) => {
+        if (isVipUser) {
+          setTypingUsers(prev => {
+            const newSet = new Set(prev);
+            if (data.isTyping) {
+              newSet.add(data.username);
+            } else {
+              newSet.delete(data.username);
+            }
+            return newSet;
+          });
+        }
+      });
+      
+      socketService.on('message_status', (data: { messageId: string; status: 'delivered' | 'read' }) => {
+        if (isVipUser) {
+          setMessages(prevMessages => 
+            prevMessages.map(msg => 
+              msg.id === data.messageId ? { ...msg, status: data.status } : msg
+            )
+          );
+        }
+      });
+    }
+    
+    return () => {
+      if (socketConnected) {
+        socketService.off('typing');
+        socketService.off('message_status');
+      }
+    };
+  }, [socketConnected, isVipUser]);
+  
+  useEffect(() => {
+    let typingTimeout: NodeJS.Timeout;
+    
+    if (socketConnected && currentChat && messageInput.length > 0) {
+      socketService.sendTyping({ to: currentChat.userId, isTyping: true });
+      
+      typingTimeout = setTimeout(() => {
+        socketService.sendTyping({ to: currentChat.userId, isTyping: false });
+      }, 3000);
+    }
+    
+    return () => {
+      if (typingTimeout) clearTimeout(typingTimeout);
+    };
+  }, [messageInput, currentChat, socketConnected]);
+  
   return (
     <div className="rounded-md overflow-hidden border border-border h-full">
       <ChatHistorySidebar 
@@ -551,6 +635,8 @@ export function ChatInterface({
             onViewBlocked={() => setShowBlockedSidebar(true)}
             toggleImageBlur={toggleImageBlur}
             openImageInFullResolution={openImageInFullResolution}
+            isVipUser={isVipUser}
+            typingUsers={typingUsers}
           />
           
           {!blockedUsers.has(currentChat.userId) && (
