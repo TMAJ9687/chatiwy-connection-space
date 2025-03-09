@@ -89,8 +89,8 @@ export function MessageList({
                         <img 
                           src={message.image.url} 
                           alt="Shared image" 
-                          className="max-w-full rounded-md max-h-[300px] object-contain" 
-                          onClick={() => !message.image.blurred && openImageInFullResolution(message.image.url)}
+                          className="max-w-full rounded-md max-h-[300px] object-contain cursor-pointer" 
+                          onClick={() => !message.image?.blurred && openImageInFullResolution(message.image.url)}
                         />
                       </div>
                       {message.image.blurred && (

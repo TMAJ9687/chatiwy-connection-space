@@ -11,7 +11,8 @@ import { UsersList } from './connected-users/UsersList';
 import { 
   getConnectedUsers, 
   getCountryFlag, 
-  getAvatarUrl 
+  getAvatarUrl,
+  fetchCountryFlag 
 } from './connected-users/utils';
 import './connected-users/types';
 
@@ -36,6 +37,7 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
   const [showFilters, setShowFilters] = useState(false);
   const [connectedUsersCount, setConnectedUsersCount] = useState(0);
   const [realTimeUsers, setRealTimeUsers] = useState<any[]>([]);
+  const [countryFlags, setCountryFlags] = useState<Record<string, string>>({});
   
   useEffect(() => {
     if (socketConnected) {
@@ -51,6 +53,30 @@ export function ConnectedUsers({ userProfile, selectedUser, onUserSelect, socket
       };
     }
   }, [socketConnected]);
+  
+  // Pre-fetch flags for commonly used countries
+  useEffect(() => {
+    const commonCountries = ['US', 'CA', 'GB', 'AU', 'DE', 'FR', 'IT', 'JP', 'IN', 'BR'];
+    
+    const fetchFlags = async () => {
+      const flags: Record<string, string> = {};
+      
+      for (const code of commonCountries) {
+        try {
+          const flagUrl = await fetchCountryFlag(code);
+          if (flagUrl) {
+            flags[code] = flagUrl;
+          }
+        } catch (error) {
+          console.error(`Error fetching flag for ${code}:`, error);
+        }
+      }
+      
+      setCountryFlags(flags);
+    };
+    
+    fetchFlags();
+  }, []);
   
   useEffect(() => {
     const countryNames = countries.map(country => country.name);

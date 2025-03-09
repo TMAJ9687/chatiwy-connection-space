@@ -473,8 +473,8 @@ const ChatPage = () => {
               </div>
             )}
             
-            <div className="flex flex-col lg:flex-row gap-4">
-              <div className="w-full lg:w-1/4">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+              <div className="lg:col-span-1">
                 <ConnectedUsers 
                   userProfile={userProfile} 
                   selectedUser={selectedUser}
@@ -482,7 +482,7 @@ const ChatPage = () => {
                   socketConnected={socketConnected}
                 />
               </div>
-              <div className="w-full lg:w-3/4 relative">
+              <div className="lg:col-span-3 h-[70vh]">
                 <ChatInterface 
                   userProfile={userProfile} 
                   selectedUser={selectedUser}
@@ -536,7 +536,7 @@ const ChatPage = () => {
                                   <Avatar>
                                     <AvatarImage src={message.avatar} alt={message.sender} />
                                     <AvatarFallback>
-                                      <User className="h-5 w-5" />
+                                      {message.sender.substring(0, 2).toUpperCase()}
                                     </AvatarFallback>
                                   </Avatar>
                                   

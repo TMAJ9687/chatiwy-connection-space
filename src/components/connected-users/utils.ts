@@ -1,3 +1,4 @@
+
 // Import required dependencies and types
 import { countries } from '@/utils/countryData';
 import { botProfiles } from '@/utils/botProfiles';
@@ -6,6 +7,7 @@ import { User, STANDARD_AVATARS, MALE_AVATARS, FEMALE_AVATARS } from './types';
 // Fetch country flag from REST Countries API
 export async function fetchCountryFlag(countryCode: string): Promise<string> {
   try {
+    // Use the REST Countries API to fetch the country data including flag
     const response = await fetch(`https://restcountries.com/v3.1/alpha/${countryCode}`);
     if (!response.ok) {
       throw new Error('Country not found');

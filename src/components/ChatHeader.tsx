@@ -32,12 +32,17 @@ export function ChatHeader({
   onViewHistory,
   onViewBlocked
 }: ChatHeaderProps) {
+  // Generate a fallback text from username - first two letters if available
+  const fallbackText = username && username.length > 0 
+    ? username.substring(0, 2).toUpperCase() 
+    : "UN";
+
   return (
     <div className="flex items-center justify-between p-3 bg-primary text-primary-foreground">
       <div className="flex items-center gap-3">
         <Avatar className="h-10 w-10 border-2 border-primary-foreground/20">
           <AvatarImage src={avatarUrl} alt={username} />
-          <AvatarFallback>{username.substring(0, 2).toUpperCase()}</AvatarFallback>
+          <AvatarFallback>{fallbackText}</AvatarFallback>
         </Avatar>
         
         <div>
