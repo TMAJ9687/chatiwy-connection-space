@@ -23,6 +23,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { botProfiles } from '@/utils/botProfiles';
 import { toast } from 'sonner';
 import socketService from '@/services/socketService';
+import { STANDARD_AVATARS, MALE_AVATARS, FEMALE_AVATARS } from '@/components/connected-users/types';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -134,7 +135,7 @@ export function ChatInterface({
             country: bot.country,
             age: bot.age,
             isOnline: true,
-            isVIP: bot.isVIP
+            isVIP: bot.isVIP || false
           });
         });
       }
@@ -144,7 +145,7 @@ export function ChatInterface({
             id: selectedUser, 
             username: botProfiles.find(b => b.id === selectedUser)?.username || selectedUser,
             isBot: false,
-            isVIP: botProfiles.find(b => b.id === selectedUser)?.isVIP
+            isVIP: botProfiles.find(b => b.id === selectedUser)?.isVIP || false
           }
         : mockConnectedUsers.get(selectedUser);
 
@@ -409,7 +410,7 @@ export function ChatInterface({
           
           if (user) {
             const gender = user.gender || 'Male';
-            const avatar = gender.toLowerCase() === 'male' 
+            const avatarUrl = gender.toLowerCase() === 'male' 
               ? STANDARD_AVATARS.male 
               : STANDARD_AVATARS.female;
             
@@ -417,7 +418,7 @@ export function ChatInterface({
               id: messageId,
               sender: user.username || sender,
               senderId,
-              avatar,
+              avatar: avatarUrl,
               content: content || (image ? 'Sent an image' : ''),
               timestamp: new Date(),
               isRead: false,

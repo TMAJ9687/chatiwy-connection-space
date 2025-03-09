@@ -116,7 +116,7 @@ export function getConnectedUsers(userProfile: any, socketConnected: boolean, re
       isOnline: true,
       isBot: true,
       interests: bot.interests,
-      isVIP: bot.isVIP
+      isVIP: bot.isVIP || false
     }));
   }
   

@@ -10,6 +10,7 @@ export interface BotProfile {
   isOnline?: boolean;
   lastActive?: string;
   isAdmin?: boolean;
+  isVIP?: boolean;
 }
 
 export const botProfiles: BotProfile[] = [
