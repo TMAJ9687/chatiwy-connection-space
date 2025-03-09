@@ -1,4 +1,3 @@
-
 import { botProfiles } from '@/utils/botProfiles';
 import { countries } from '@/utils/countryData';
 
@@ -57,14 +56,47 @@ export const getGenderForAvatar = (username: string, isBot: boolean = false): st
   return nameHash % 2 === 0 ? 'men' : 'women';
 };
 
-export const getCountryFlag = (countryCode: string | undefined) => {
-  if (!countryCode) return null;
-  const country = countries.find(c => c.code === countryCode);
-  if (!country) return null;
-  return country.flag || country.code;
-};
+export async function fetchCountryFlag(countryCode: string): Promise<string> {
+  try {
+    const response = await fetch(`https://restcountries.com/v3.1/alpha/${countryCode}`);
+    if (!response.ok) {
+      throw new Error('Country not found');
+    }
+    const data = await response.json();
+    return data[0]?.flags?.png || '';
+  } catch (error) {
+    console.error('Error fetching country flag:', error);
+    return '';
+  }
+}
 
-// Connection utilities
+export function getCountryFlag(countryName?: string): string {
+  if (!countryName) return '';
+  
+  // This is a fallback for common countries - for immediate display
+  const commonFlags: Record<string, string> = {
+    'USA': '🇺🇸',
+    'US': '🇺🇸',
+    'United States': '🇺🇸',
+    'UK': '🇬🇧',
+    'United Kingdom': '🇬🇧',
+    'Canada': '🇨🇦',
+    'Australia': '🇦🇺',
+    'France': '🇫🇷',
+    'Germany': '🇩🇪',
+    'Italy': '🇮🇹',
+    'Japan': '🇯🇵',
+    'China': '🇨🇳',
+    'India': '🇮🇳',
+    'Brazil': '🇧🇷',
+    'Russia': '🇷🇺',
+    'Spain': '🇪🇸',
+    'Mexico': '🇲🇽',
+  };
+  
+  return commonFlags[countryName] || '';
+}
+
 export const formatConnectionError = (error: any): string => {
   if (!error) return 'Unknown error';
   
@@ -83,7 +115,6 @@ export const formatConnectionError = (error: any): string => {
   return JSON.stringify(error);
 };
 
-// WebSocket Connection Status
 export const getConnectionStatusText = (status: ServerConnectionStatus): string => {
   if (status.isConnected) {
     return 'Connected to chat server';
@@ -100,7 +131,6 @@ export const getConnectionStatusText = (status: ServerConnectionStatus): string 
   return 'Disconnected from chat server';
 };
 
-// Get connection troubleshooting tips based on error
 export const getTroubleshootingTips = (error: string | null): string[] => {
   const tips: string[] = [
     'Make sure the chat server is running',
@@ -129,7 +159,6 @@ export const getTroubleshootingTips = (error: string | null): string[] => {
   return tips;
 };
 
-// WebSocket connectivity diagnostic function
 export const diagnoseWebSocketConnectivity = async (serverUrl: string): Promise<{
   canConnect: boolean;
   protocol: string;
@@ -207,7 +236,6 @@ export const diagnoseWebSocketConnectivity = async (serverUrl: string): Promise<
   }
 };
 
-// Constants
 export const IMAGE_UPLOADS_KEY = 'chatiwy_daily_image_uploads';
 export const IMAGE_UPLOADS_DATE_KEY = 'chatiwy_image_uploads_date';
 export const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB

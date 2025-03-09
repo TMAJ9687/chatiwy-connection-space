@@ -8,6 +8,8 @@ import { ALLOWED_IMAGE_TYPES } from '@/utils/chatUtils';
 interface ChatInputSectionProps {
   isBlocked: boolean;
   blockedUsername?: string;
+  isBlockedByUser?: boolean;
+  blockedByUsername?: string;
   messageInput: string;
   imagePreview: string | null;
   isVipUser: boolean;
@@ -25,6 +27,8 @@ interface ChatInputSectionProps {
 export function ChatInputSection({
   isBlocked,
   blockedUsername,
+  isBlockedByUser,
+  blockedByUsername,
   messageInput,
   imagePreview,
   isVipUser,
@@ -53,6 +57,15 @@ export function ChatInputSection({
       <div className="p-4 border-t text-center text-muted-foreground">
         <AlertTriangle className="h-8 w-8 mx-auto mb-2 opacity-50" />
         <p>You have blocked {blockedUsername || 'this user'}.</p>
+      </div>
+    );
+  }
+  
+  if (isBlockedByUser) {
+    return (
+      <div className="p-4 border-t text-center text-muted-foreground">
+        <AlertTriangle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+        <p>You've been blocked by {blockedByUsername || 'this user'}.</p>
       </div>
     );
   }

@@ -1,14 +1,17 @@
 
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ChatActions } from '@/components/ChatActions';
+import { Crown } from 'lucide-react';
 
 interface ChatHeaderProps {
   username: string;
   isAdmin?: boolean;
   isBot?: boolean;
+  isVIP?: boolean;
   avatarUrl: string;
-  countryFlag?: string | null;
+  countryFlag?: string;
   interests?: string[];
   onBlock: () => void;
   onReport: (username: string) => void;
@@ -16,10 +19,11 @@ interface ChatHeaderProps {
   onViewBlocked: () => void;
 }
 
-export function ChatHeader({ 
+export function ChatHeader({
   username,
   isAdmin = false,
   isBot = false,
+  isVIP = false,
   avatarUrl,
   countryFlag,
   interests,
@@ -29,33 +33,37 @@ export function ChatHeader({
   onViewBlocked
 }: ChatHeaderProps) {
   return (
-    <div className="bg-primary text-white p-4 rounded-t-md flex justify-between items-center">
-      <div className="flex items-center gap-2">
-        <img 
-          src={avatarUrl}
-          alt="Avatar" 
-          className="w-10 h-10 rounded-full" 
-        />
+    <div className="flex items-center justify-between p-3 bg-primary text-primary-foreground">
+      <div className="flex items-center gap-3">
+        <Avatar className="h-10 w-10 border-2 border-primary-foreground/20">
+          <AvatarImage src={avatarUrl} alt={username} />
+          <AvatarFallback>{username.substring(0, 2).toUpperCase()}</AvatarFallback>
+        </Avatar>
+        
         <div>
-          <div className="font-semibold flex items-center gap-1">
-            {username} 
+          <div className="flex items-center gap-2">
+            <span className="font-medium">{username}</span>
+            {countryFlag && <span className="text-lg">{countryFlag}</span>}
+            
             {isAdmin && (
-              <Badge variant="success" className="ml-1 text-[10px]">
+              <Badge variant="outline" className="bg-blue-500/20 text-white border-blue-400">
                 Admin
               </Badge>
             )}
-            {isBot && (
-              <Badge variant="outline" className="ml-1 text-[10px] border-primary-foreground/30">
-                Bot
+            
+            {isVIP && (
+              <Badge variant="outline" className="bg-amber-500/20 text-white border-amber-400">
+                <Crown className="h-3 w-3 mr-1" />
+                VIP
               </Badge>
             )}
           </div>
-          <div className="text-xs opacity-80 flex items-center gap-1">
-            {countryFlag && <span>{countryFlag} </span>}
-            {interests && interests.length > 0 
-              ? interests.slice(0, 2).join(', ')
-              : 'Chatiwy user'}
-          </div>
+          
+          {interests && interests.length > 0 && (
+            <div className="text-sm opacity-80 mt-0.5">
+              {interests.join(', ')}
+            </div>
+          )}
         </div>
       </div>
       

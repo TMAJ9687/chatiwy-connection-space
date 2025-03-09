@@ -55,6 +55,20 @@ const userChatHistories: Record<string, Message[]> = {};
 const blockedUsers: Set<string> = new Set();
 const mockConnectedUsers = new Map<string, any>();
 
+interface InboxMessage {
+  id: string;
+  sender: string;
+  senderId: string;
+  avatar: string;
+  content: string;
+  timestamp: Date;
+  isRead: boolean;
+  image?: {
+    url: string;
+    blurred: boolean;
+  };
+}
+
 export function ChatInterface({ 
   userProfile, 
   selectedUser, 
@@ -66,6 +80,7 @@ export function ChatInterface({
     username: string;
     isBot: boolean;
     isAdmin?: boolean;
+    isVIP?: boolean;
   } | null>(null);
   
   const [messages, setMessages] = useState<Message[]>([]);
@@ -87,6 +102,7 @@ export function ChatInterface({
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
+  const [inboxMessages, setInboxMessages] = useState<InboxMessage[]>([]);
   
   const messageEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -117,7 +133,8 @@ export function ChatInterface({
             gender: bot.gender,
             country: bot.country,
             age: bot.age,
-            isOnline: true
+            isOnline: true,
+            isVIP: bot.isVIP
           });
         });
       }
@@ -126,7 +143,8 @@ export function ChatInterface({
         ? { 
             id: selectedUser, 
             username: botProfiles.find(b => b.id === selectedUser)?.username || selectedUser,
-            isBot: false
+            isBot: false,
+            isVIP: botProfiles.find(b => b.id === selectedUser)?.isVIP
           }
         : mockConnectedUsers.get(selectedUser);
 
@@ -135,7 +153,8 @@ export function ChatInterface({
           userId: user.id,
           username: user.username || user.id,
           isBot: false,
-          isAdmin: !!user.isAdmin
+          isAdmin: !!user.isAdmin,
+          isVIP: !!user.isVIP
         });
       }
     } else {
@@ -198,96 +217,113 @@ export function ChatInterface({
     }
   };
   
+  const isUserBlockedBy = (userId: string): boolean => {
+    return false;
+  };
+  
   const handleSendMessage = () => {
-    if (messageInput.trim()) {
-      if (messageInput === lastMessage) {
-        setDuplicateCount(duplicateCount + 1);
-        if (duplicateCount >= 2) {
-          toast.warning('Please avoid sending the same message repeatedly.');
-          return;
-        }
-      } else {
-        setDuplicateCount(0);
+    if (!messageInput.trim()) return;
+
+    if (currentChat && isUserBlockedBy(currentChat.userId)) {
+      toast.error(`You've been blocked by ${currentChat.username}`);
+      return;
+    }
+
+    if (currentChat && blockedUsers.has(currentChat.userId)) {
+      toast.error(`You can't message a blocked user`);
+      return;
+    }
+
+    if (messageInput === lastMessage) {
+      setDuplicateCount(duplicateCount + 1);
+      if (duplicateCount >= 2) {
+        toast.warning('Please avoid sending the same message repeatedly.');
+        return;
       }
+    } else {
+      setDuplicateCount(0);
+    }
 
-      const newMessageId = Math.random().toString(36).substring(2, 15);
+    const newMessageId = Math.random().toString(36).substring(2, 15);
+    
+    setMessages(prevMessages => {
+      const newMessage: Message = {
+        id: newMessageId,
+        sender: userProfile.username,
+        senderId: userProfile.id,
+        content: messageInput,
+        timestamp: new Date(),
+        isBot: false,
+        status: isVipUser ? 'sent' : undefined
+      };
+
+      if (currentChat) {
+        if (!userChatHistories[currentChat.userId]) {
+          userChatHistories[currentChat.userId] = [];
+        }
+        
+        const updatedHistory = [...userChatHistories[currentChat.userId], newMessage];
+        userChatHistories[currentChat.userId] = updatedHistory;
+      }
+      return [...prevMessages, newMessage];
+    });
+
+    if (socketConnected && currentChat) {
+      socketService.sendMessage({ 
+        to: currentChat.userId, 
+        content: messageInput,
+        messageId: newMessageId,
+        sender: userProfile.username,
+        senderId: userProfile.id
+      }).catch(error => {
+        console.error('Error sending message:', error);
+        toast.error('Failed to send message. Please try again.');
+      });
       
-      setMessages(prevMessages => {
-        const newMessage: Message = {
-          id: newMessageId,
-          sender: userProfile.username,
-          senderId: userProfile.id,
-          content: messageInput,
-          timestamp: new Date(),
-          isBot: false,
-          status: isVipUser ? 'sent' : undefined
-        };
-
-        if (currentChat) {
-          if (!userChatHistories[currentChat.userId]) {
-            userChatHistories[currentChat.userId] = [];
+      if (isVipUser) {
+        setTimeout(() => {
+          setMessages(prevMessages => 
+            prevMessages.map(msg => 
+              msg.id === newMessageId ? { ...msg, status: 'delivered' as const } : msg
+            )
+          );
+          
+          if (currentChat) {
+            userChatHistories[currentChat.userId] = userChatHistories[currentChat.userId].map(msg => 
+              msg.id === newMessageId ? { ...msg, status: 'delivered' as const } : msg
+            );
           }
           
-          const updatedHistory = [...userChatHistories[currentChat.userId], newMessage];
-          userChatHistories[currentChat.userId] = updatedHistory;
-        }
-        return [...prevMessages, newMessage];
-      });
-
-      if (socketConnected && currentChat) {
-        socketService.sendMessage({ 
-          to: currentChat.userId, 
-          content: messageInput,
-          messageId: newMessageId,
-          sender: userProfile.username,
-          senderId: userProfile.id
-        });
-        
-        if (isVipUser) {
           setTimeout(() => {
             setMessages(prevMessages => 
               prevMessages.map(msg => 
-                msg.id === newMessageId ? { ...msg, status: 'delivered' as const } : msg
+                msg.id === newMessageId ? { ...msg, status: 'read' as const } : msg
               )
             );
-            
+          
             if (currentChat) {
               userChatHistories[currentChat.userId] = userChatHistories[currentChat.userId].map(msg => 
-                msg.id === newMessageId ? { ...msg, status: 'delivered' as const } : msg
+                msg.id === newMessageId ? { ...msg, status: 'read' as const } : msg
               );
             }
-            
-            setTimeout(() => {
-              setMessages(prevMessages => 
-                prevMessages.map(msg => 
-                  msg.id === newMessageId ? { ...msg, status: 'read' as const } : msg
-                )
-              );
-              
-              if (currentChat) {
-                userChatHistories[currentChat.userId] = userChatHistories[currentChat.userId].map(msg => 
-                  msg.id === newMessageId ? { ...msg, status: 'read' as const } : msg
-                );
-              }
-            }, 3000);
-          }, 1000);
-        }
-      } else if (currentChat && currentChat.isBot) {
-        handleReceiveMessage({
-          sender: userProfile.username,
-          senderId: userProfile.id,
-          content: messageInput,
-          timestamp: new Date(),
-          isBot: false
-        });
+          }, 3000);
+        }, 1000);
       }
+    } else if (currentChat && currentChat.isBot) {
+      handleReceiveMessage({
+        sender: userProfile.username,
+        senderId: userProfile.id,
+        content: messageInput,
+        timestamp: new Date(),
+        isBot: false
+      });
+    }
 
-      setLastMessage(messageInput);
-      setMessageInput('');
-      
-      if (socketConnected && currentChat) {
-        socketService.sendTyping({ to: currentChat.userId, isTyping: false });
-      }
+    setLastMessage(messageInput);
+    setMessageInput('');
+    
+    if (socketConnected && currentChat) {
+      socketService.sendTyping({ to: currentChat.userId, isTyping: false });
     }
   };
   
@@ -300,6 +336,11 @@ export function ChatInterface({
     const content = messageData.content || '';
     const image = messageData.image;
     const messageId = messageData.messageId || messageData.id || Math.random().toString(36).substring(2, 15);
+    
+    if (blockedUsers.has(senderId)) {
+      console.log('Message from blocked user ignored:', senderId);
+      return;
+    }
     
     const receivedMessage: Message = {
       id: messageId,
@@ -335,16 +376,7 @@ export function ChatInterface({
             userChatHistories[currentChat.userId] = [];
           }
           
-          const isDuplicateInHistory = userChatHistories[currentChat.userId].some(msg => 
-            msg.id === receivedMessage.id || 
-            (msg.content === receivedMessage.content && 
-             msg.sender === receivedMessage.sender &&
-             Math.abs(new Date(msg.timestamp).getTime() - new Date(receivedMessage.timestamp).getTime()) < 5000)
-          );
-          
-          if (!isDuplicateInHistory) {
-            userChatHistories[currentChat.userId] = [...userChatHistories[currentChat.userId], receivedMessage];
-          }
+          userChatHistories[currentChat.userId] = [...userChatHistories[currentChat.userId], receivedMessage];
         }
         
         return updatedMessages;
@@ -371,8 +403,32 @@ export function ChatInterface({
           
           window.unreadMessagesPerUser.add(senderId);
           
-          if (!blockedUsers.has(senderId)) {
-            toast.info(`New message from ${sender}`);
+          const user = socketConnected
+            ? { id: senderId, username: sender }
+            : mockConnectedUsers.get(senderId) || botProfiles.find(b => b.id === senderId);
+          
+          if (user) {
+            const gender = user.gender || 'Male';
+            const avatar = gender.toLowerCase() === 'male' 
+              ? STANDARD_AVATARS.male 
+              : STANDARD_AVATARS.female;
+            
+            const inboxMessage: InboxMessage = {
+              id: messageId,
+              sender: user.username || sender,
+              senderId,
+              avatar,
+              content: content || (image ? 'Sent an image' : ''),
+              timestamp: new Date(),
+              isRead: false,
+              image
+            };
+            
+            setInboxMessages(prev => [inboxMessage, ...prev]);
+            
+            if (!blockedUsers.has(senderId)) {
+              toast.info(`New message from ${sender}`);
+            }
           }
         }
       }
@@ -466,7 +522,17 @@ export function ChatInterface({
   };
   
   const sendImageMessage = async () => {
-    if (!selectedImage || !imagePreview) {
+    if (!selectedImage || !imagePreview || !currentChat) {
+      return;
+    }
+
+    if (isUserBlockedBy(currentChat.userId)) {
+      toast.error(`You've been blocked by ${currentChat.username}`);
+      return;
+    }
+
+    if (blockedUsers.has(currentChat.userId)) {
+      toast.error(`You can't message a blocked user`);
       return;
     }
 
@@ -483,8 +549,10 @@ export function ChatInterface({
       }
 
       const imageUrl = imagePreview;
+      const messageId = Math.random().toString(36).substring(2, 15);
 
-      const messageData = {
+      const imageMessage: Message = {
+        id: messageId,
         sender: userProfile.username,
         senderId: userProfile.id,
         content: '',
@@ -497,8 +565,32 @@ export function ChatInterface({
       };
 
       setMessages(prevMessages => {
-        const newMessage: Message = {
-          id: Math.random().toString(36).substring(2, 15),
+        if (currentChat) {
+          if (!userChatHistories[currentChat.userId]) {
+            userChatHistories[currentChat.userId] = [];
+          }
+          userChatHistories[currentChat.userId] = [...userChatHistories[currentChat.userId], imageMessage];
+        }
+        return [...prevMessages, imageMessage];
+      });
+
+      if (socketConnected) {
+        socketService.sendMessage({ 
+          to: currentChat.userId, 
+          content: '',
+          messageId,
+          sender: userProfile.username,
+          senderId: userProfile.id,
+          image: {
+            url: imageUrl,
+            blurred: true
+          }
+        }).catch(error => {
+          console.error('Error sending image:', error);
+          toast.error('Failed to send image. Please try again.');
+        });
+      } else {
+        handleReceiveMessage({
           sender: userProfile.username,
           senderId: userProfile.id,
           content: '',
@@ -508,28 +600,7 @@ export function ChatInterface({
             url: imageUrl,
             blurred: true
           }
-        };
-
-        if (currentChat) {
-          if (!userChatHistories[currentChat.userId]) {
-            userChatHistories[currentChat.userId] = [];
-          }
-          userChatHistories[currentChat.userId] = [...userChatHistories[currentChat.userId], newMessage];
-        }
-        return [...prevMessages, newMessage];
-      });
-
-      if (socketConnected && currentChat) {
-        socketService.sendMessage({ 
-          to: currentChat.userId, 
-          content: '',
-          image: {
-            url: imageUrl,
-            blurred: true
-          }
         });
-      } else {
-        handleReceiveMessage(messageData);
       }
 
       setImageUploads(prevUploads => {
@@ -697,6 +768,9 @@ export function ChatInterface({
     };
   }, [messageInput, currentChat, socketConnected]);
   
+  const isBlockedByUser = currentChat ? blockedUsers.has(userProfile.id) : false;
+  const isBlocked = currentChat ? blockedUsers.has(currentChat.userId) : false;
+  
   return (
     <div className="rounded-md overflow-hidden border border-border h-full">
       <ChatHistorySidebar 
@@ -746,7 +820,8 @@ export function ChatInterface({
             currentChat={currentChat}
             messages={messages}
             currentUsername={userProfile.username}
-            isBlocked={blockedUsers.has(currentChat.userId)}
+            isBlocked={isBlocked}
+            isBlockedByUser={isBlockedByUser}
             messageEndRef={messageEndRef}
             onBlockUser={handleBlockUser}
             onReport={handleReport}
@@ -758,10 +833,12 @@ export function ChatInterface({
             typingUsers={typingUsers}
           />
           
-          {!blockedUsers.has(currentChat.userId) && (
+          {(!isBlocked && !isBlockedByUser) && (
             <ChatInputSection 
-              isBlocked={blockedUsers.has(currentChat.userId)}
+              isBlocked={isBlocked}
               blockedUsername={currentChat.username}
+              isBlockedByUser={isBlockedByUser}
+              blockedByUsername={userProfile.username}
               messageInput={messageInput}
               imagePreview={imagePreview}
               isVipUser={isVipUser}

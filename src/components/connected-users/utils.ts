@@ -1,104 +1,125 @@
-
+// Import required dependencies and types
 import { countries } from '@/utils/countryData';
 import { botProfiles } from '@/utils/botProfiles';
-import { STANDARD_AVATARS, MALE_AVATARS, FEMALE_AVATARS } from './types';
+import { User, STANDARD_AVATARS, MALE_AVATARS, FEMALE_AVATARS } from './types';
 
-// Utility function to get country flag
-export const getCountryFlag = (countryName?: string): string => {
-  if (!countryName || countryName === 'Unknown') return '🌍';
-  
-  // Find the country in the countries array
-  const country = countries.find(c => c.name === countryName);
-  return country?.flag || '🌍';
-};
-
-// Utility function to get avatar URL
-export const getAvatarUrl = (name: string, gender: string): string => {
-  // For non-VIP users, return the standard avatar based on gender
-  return gender.toLowerCase() === 'male' 
-    ? STANDARD_AVATARS.male 
-    : STANDARD_AVATARS.female;
-};
-
-// Function to get VIP avatar URL
-export const getVIPAvatarUrl = (gender: string, index: number = 0): string => {
-  const avatars = gender.toLowerCase() === 'male' ? MALE_AVATARS : FEMALE_AVATARS;
-  return avatars[index % avatars.length];
-};
-
-// Function to get connected users
-export const getConnectedUsers = (userProfile: any, socketConnected: boolean, realTimeUsers: any[]) => {
+// Fetch country flag from REST Countries API
+export async function fetchCountryFlag(countryCode: string): Promise<string> {
   try {
-    if (socketConnected && realTimeUsers.length > 0) {
-      // Only return users that are not the current user and are online
-      const socketUsers = realTimeUsers
-        .filter(user => user.id !== userProfile.id && user.isOnline)
-        .map(user => ({
-          id: user.id,
-          username: user.username,
-          age: user.age,
-          gender: user.gender,
-          country: user.country || 'Unknown',
-          flag: user.flag || getCountryFlag(user.country),
-          isOnline: true,
-          isBot: false,
-          isVIP: !!user.isVIP,
-          avatar: user.avatar || getAvatarUrl(user.username, user.gender)
-        }));
-      
-      const bots = botProfiles.map(bot => ({
-        ...bot,
-        isBot: false,
-        isVIP: false
-      }));
-      
-      return [...socketUsers, ...bots];
-    } else {
-      const mockUsers = [
-        {
-          id: "mock-user-1",
-          username: "TravelBug",
-          age: 28,
-          gender: "Female",
-          country: "Canada",
-          flag: "🇨🇦",
-          isOnline: true,
-          isBot: false,
-          isVIP: true,
-          avatar: getAvatarUrl("TravelBug", "Female")
-        },
-        {
-          id: "mock-user-2",
-          username: "CoffeeGuy",
-          age: 34,
-          gender: "Male",
-          country: "Italy",
-          flag: "🇮🇹",
-          isOnline: true,
-          isBot: false,
-          isVIP: false,
-          avatar: getAvatarUrl("CoffeeGuy", "Male")
-        }
-      ];
-      
-      const bots = botProfiles.map(bot => ({
-        ...bot,
-        flag: getCountryFlag(bot.country),
-        isBot: false,
-        isVIP: false,
-        avatar: getAvatarUrl(bot.username, bot.gender)
-      }));
-      
-      return [...mockUsers, ...bots];
+    const response = await fetch(`https://restcountries.com/v3.1/alpha/${countryCode}`);
+    if (!response.ok) {
+      throw new Error('Country not found');
     }
+    const data = await response.json();
+    return data[0]?.flags?.png || '';
   } catch (error) {
-    console.error("Error fetching connected users:", error);
-    return botProfiles.map(bot => ({
-      ...bot,
-      flag: getCountryFlag(bot.country),
-      isBot: false,
-      isVIP: false,
-      avatar: getAvatarUrl(bot.username, bot.gender)
+    console.error('Error fetching country flag:', error);
+    return '';
+  }
+}
+
+// Get country flag emoji as fallback
+export function getCountryFlag(countryName?: string): string {
+  if (!countryName) return '';
+  
+  // Country code mapping for common countries
+  const countryCodeMap: Record<string, string> = {
+    'USA': 'US',
+    'United States': 'US',
+    'UK': 'GB',
+    'United Kingdom': 'GB',
+    'Canada': 'CA',
+    'Australia': 'AU',
+    'France': 'FR',
+    'Germany': 'DE',
+    'Italy': 'IT',
+    'Japan': 'JP',
+    'China': 'CN',
+    'India': 'IN',
+    'Brazil': 'BR',
+    'Russia': 'RU',
+    'Spain': 'ES',
+    'Mexico': 'MX',
+  };
+  
+  // Emoji flags as fallback
+  const emojiFlags: Record<string, string> = {
+    'US': '🇺🇸',
+    'GB': '🇬🇧',
+    'CA': '🇨🇦',
+    'AU': '🇦🇺',
+    'FR': '🇫🇷',
+    'DE': '🇩🇪',
+    'IT': '🇮🇹',
+    'JP': '🇯🇵',
+    'CN': '🇨🇳',
+    'IN': '🇮🇳',
+    'BR': '🇧🇷',
+    'RU': '🇷🇺',
+    'ES': '🇪🇸',
+    'MX': '🇲🇽',
+  };
+  
+  // Find the country in our data
+  const country = countries.find(c => 
+    c.name.toLowerCase() === countryName.toLowerCase() ||
+    c.code.toLowerCase() === countryName.toLowerCase()
+  );
+  
+  const countryCode = country?.code || countryCodeMap[countryName] || '';
+  
+  // Trigger async fetch of actual flag but return emoji for immediate display
+  if (countryCode) {
+    fetchCountryFlag(countryCode).then(flagUrl => {
+      // Cache the flag URL for future use
+      if (flagUrl) {
+        localStorage.setItem(`flag_${countryCode}`, flagUrl);
+      }
+    });
+    
+    // Return emoji flag as fallback
+    return emojiFlags[countryCode] || '';
+  }
+  
+  return '';
+}
+
+// Function to get appropriate avatar URL based on user properties
+export function getAvatarUrl(name: string, gender: string, isVIP = false): string {
+  if (isVIP) {
+    // Use VIP avatars based on gender
+    if (gender.toLowerCase() === 'male') {
+      return MALE_AVATARS[Math.floor(Math.random() * MALE_AVATARS.length)];
+    } else {
+      return FEMALE_AVATARS[Math.floor(Math.random() * FEMALE_AVATARS.length)];
+    }
+  } else {
+    // Use standard avatars based on gender
+    return gender.toLowerCase() === 'male' ? STANDARD_AVATARS.male : STANDARD_AVATARS.female;
+  }
+}
+
+// Get connected users with filtering for VIP users
+export function getConnectedUsers(userProfile: any, socketConnected: boolean, realTimeUsers: any[] = []): any[] {
+  let connectedUsers: any[] = [];
+  
+  if (socketConnected && realTimeUsers.length > 0) {
+    connectedUsers = realTimeUsers.filter(user => user.id !== userProfile.id);
+  } else {
+    // Use bot profiles as mock users when not connected
+    connectedUsers = botProfiles.map(bot => ({
+      id: bot.id,
+      username: bot.username,
+      age: bot.age,
+      gender: bot.gender,
+      country: bot.country,
+      isOnline: true,
+      isBot: true,
+      interests: bot.interests,
+      isVIP: bot.isVIP
     }));
   }
-};
+  
+  // Ensure VIP users are visible to everyone, not just other VIP users
+  return connectedUsers;
+}

@@ -1,4 +1,3 @@
-
 import { io, Socket } from 'socket.io-client';
 import { toast } from 'sonner';
 import { formatConnectionError, diagnoseWebSocketConnectivity } from '@/utils/chatUtils';
@@ -33,12 +32,19 @@ interface MessageData {
   from?: string;
   sender?: string;
   senderId?: string;
-  content: string;
+  userId?: string;
+  username?: string;
+  content?: string;
+  message?: string;
+  text?: string;
+  timestamp?: Date | string;
   messageId?: string;
+  id?: string;
   image?: {
     url: string;
     blurred: boolean;
   };
+  isTyping?: boolean;
 }
 
 class SocketService {
@@ -290,8 +296,8 @@ class SocketService {
     }
   }
 
-  private normalizeMessageData(data: any): any {
-    const normalized: any = { ...data };
+  private normalizeMessageData(data: any): MessageData {
+    const normalized: MessageData = {};
     
     normalized.from = data.from || data.senderId || data.userId || data.sender;
     normalized.sender = data.sender || data.username || data.from || 'Unknown';
@@ -301,7 +307,10 @@ class SocketService {
     normalized.messageId = data.messageId || data.id || Math.random().toString(36).substring(2, 15);
     
     if (data.image) {
-      normalized.image = data.image;
+      normalized.image = {
+        url: data.image.url || '',
+        blurred: typeof data.image.blurred === 'boolean' ? data.image.blurred : true
+      };
     }
     
     return normalized;
@@ -387,70 +396,43 @@ class SocketService {
     return Array.from(this.blockedUsers);
   }
 
-  sendMessage(message: MessageData): void {
-    if (!this.socket) {
-      console.error('Cannot send message: Socket not connected');
-      toast.warning('Message sent in offline mode');
-      return;
-    }
-
-    if (message.to && this.blockedUsers.has(message.to)) {
-      toast.error('Cannot send message to blocked user');
-      return;
-    }
-
-    const enhancedMessage = {
-      ...message,
-      from: this.userId,
-      senderId: this.userId,
-      sender: this.username,
-      username: this.username,
-      recipientId: message.to,
-      to: message.to,
-      messageId: message.messageId || Math.random().toString(36).substring(2, 15),
-      timestamp: new Date()
-    };
-
-    console.log('Sending message:', enhancedMessage);
-    
-    this.socket.emit('send_message', enhancedMessage);
-    this.socket.emit('direct_message', enhancedMessage);
-    this.socket.emit('message', enhancedMessage);
-    
-    const messageId = enhancedMessage.messageId;
-    this.socket.once(`message_sent_${messageId}`, (confirmation) => {
-      console.log('Message sent confirmation:', confirmation);
+  sendMessage(data: MessageData): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (!this.socket || !this.socket.connected) {
+        console.error('Socket not connected. Cannot send message.');
+        reject(new Error('Socket not connected'));
+        return;
+      }
+      
+      const normalizedData = this.normalizeMessageData(data);
+      
+      if (!normalizedData.to) {
+        reject(new Error('Recipient (to) is required'));
+        return;
+      }
+      
+      this.socket.emit('direct_message', normalizedData, (acknowledgement: any) => {
+        if (acknowledgement && acknowledgement.error) {
+          console.error('Message sending failed:', acknowledgement.error);
+          reject(new Error(acknowledgement.error));
+        } else {
+          console.log('Message sent successfully:', normalizedData);
+          resolve();
+        }
+      });
     });
   }
 
   sendTyping(data: { to: string; isTyping: boolean }): void {
-    if (!this.socket) return;
-    
-    if (data.to && this.blockedUsers.has(data.to)) {
+    if (!this.socket || !this.socket.connected) {
+      console.log('Socket not connected. Cannot send typing status.');
       return;
     }
     
-    if (this.typingTimeoutRef) {
-      clearTimeout(this.typingTimeoutRef);
-      this.typingTimeoutRef = null;
-    }
-    
     this.socket.emit('typing', {
-      ...data,
-      username: this.username
+      to: data.to,
+      isTyping: data.isTyping
     });
-    
-    if (data.isTyping) {
-      this.typingTimeoutRef = setTimeout(() => {
-        if (this.socket && data.to) {
-          this.socket.emit('typing', { 
-            to: data.to, 
-            isTyping: false,
-            username: this.username
-          });
-        }
-      }, 5000);
-    }
   }
 
   blockUser(userId: string): void {

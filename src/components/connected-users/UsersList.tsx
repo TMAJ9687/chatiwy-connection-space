@@ -2,8 +2,8 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User, ShieldCheck } from 'lucide-react';
-import { STANDARD_AVATARS } from './types';
+import { User, ShieldCheck, Crown } from 'lucide-react';
+import { STANDARD_AVATARS, MALE_AVATARS, FEMALE_AVATARS } from './types';
 
 interface UsersListProps {
   usersList: any[];
@@ -33,9 +33,21 @@ export function UsersList({
     <div className="space-y-4">
       {usersList.map((user) => {
         const hasUnread = window.unreadMessagesPerUser?.has(user.id);
-        const defaultAvatar = user.gender?.toLowerCase() === 'male' 
-          ? STANDARD_AVATARS.male 
-          : STANDARD_AVATARS.female;
+        let avatarUrl;
+        
+        if (user.isVIP) {
+          // Use VIP avatars based on gender
+          if (user.gender?.toLowerCase() === 'male') {
+            avatarUrl = user.avatar || MALE_AVATARS[Math.floor(Math.random() * MALE_AVATARS.length)];
+          } else {
+            avatarUrl = user.avatar || FEMALE_AVATARS[Math.floor(Math.random() * FEMALE_AVATARS.length)];
+          }
+        } else {
+          // Use standard avatars
+          avatarUrl = user.avatar || (user.gender?.toLowerCase() === 'male' 
+            ? STANDARD_AVATARS.male 
+            : STANDARD_AVATARS.female);
+        }
         
         // Ensure we have a fallback username if username is not provided
         const displayUsername = user.username || `User-${user.id.substring(0, 5)}`;
@@ -48,10 +60,10 @@ export function UsersList({
             } ${hasUnread ? 'bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800' : ''}`}
             onClick={() => onUserSelect(user.id)}
           >
-            <div className={`w-10 h-10 rounded-full overflow-hidden ${hasUnread ? 'ring-2 ring-teal-400' : ''}`}>
+            <div className={`w-10 h-10 rounded-full overflow-hidden ${hasUnread ? 'ring-2 ring-teal-400' : ''} ${user.isVIP ? 'ring-2 ring-amber-400' : ''}`}>
               <Avatar>
                 <AvatarImage 
-                  src={user.avatar || defaultAvatar} 
+                  src={avatarUrl} 
                   alt={displayUsername}
                 />
                 <AvatarFallback>{displayUsername.substring(0, 2).toUpperCase()}</AvatarFallback>
@@ -65,7 +77,7 @@ export function UsersList({
                 
                 {user.isVIP && (
                   <Badge variant="default" className="ml-1 bg-amber-500 text-white">
-                    <ShieldCheck className="h-3 w-3 mr-1" />VIP
+                    <Crown className="h-3 w-3 mr-1" />VIP
                   </Badge>
                 )}
                 

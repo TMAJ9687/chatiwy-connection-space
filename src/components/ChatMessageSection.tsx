@@ -14,10 +14,12 @@ interface ChatMessageSectionProps {
     username: string;
     isBot: boolean;
     isAdmin?: boolean;
+    isVIP?: boolean;
   } | null;
   messages: Message[];
   currentUsername: string;
   isBlocked: boolean;
+  isBlockedByUser?: boolean;
   messageEndRef: React.RefObject<HTMLDivElement>;
   onBlockUser: () => void;
   onReport: (username: string) => void;
@@ -34,6 +36,7 @@ export function ChatMessageSection({
   messages,
   currentUsername,
   isBlocked,
+  isBlockedByUser,
   messageEndRef,
   onBlockUser,
   onReport,
@@ -63,8 +66,16 @@ export function ChatMessageSection({
     const botProfile = botProfiles.find(b => b.id === currentChat.userId || b.username === username);
     const gender = botProfile?.gender || 'Male';
     
-    // For both bots and regular users, use standard avatars based on gender
-    return gender.toLowerCase() === 'male' ? STANDARD_AVATARS.male : STANDARD_AVATARS.female;
+    // For both bots and regular users, determine avatar based on VIP status
+    if (currentChat.isVIP) {
+      // Use VIP avatars based on gender
+      return gender.toLowerCase() === 'male' 
+        ? MALE_AVATARS[Math.floor(Math.random() * MALE_AVATARS.length)]
+        : FEMALE_AVATARS[Math.floor(Math.random() * FEMALE_AVATARS.length)];
+    } else {
+      // Use standard avatars based on gender
+      return gender.toLowerCase() === 'male' ? STANDARD_AVATARS.male : STANDARD_AVATARS.female;
+    }
   };
   
   return (
@@ -73,6 +84,7 @@ export function ChatMessageSection({
         username={currentChat.username}
         isAdmin={currentChat.isAdmin}
         isBot={currentChat.isBot}
+        isVIP={currentChat.isVIP}
         avatarUrl={getAvatarForChat(currentChat.username, currentChat.isBot)}
         countryFlag={getCountryFlag(botProfiles.find(b => b.id === currentChat.userId)?.country)}
         interests={botProfiles.find(b => b.id === currentChat.userId)?.interests?.slice(0, 2)}
